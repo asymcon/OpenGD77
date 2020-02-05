@@ -242,13 +242,13 @@ const char menuStringTable[32][17] = { "",//0
                                          "Draft",//13
                                          "Quick test",//14
 										 "Battery",//15
-										 "Firmware info",//16
+										 "Firmware",//16
 										 "RSSI",//17
-										 "Last heard",//18
+										 "Last Heard",//18
 										 "Options",//19
-										 "Display options",//20
+										 "Display",//20
 										 "Credits",//21
-										 "Channel details",//22
+										 "Channel",//22
 										 "Hotspot mode",//23
 										 "Contact List",//24
 										 "Contact Details",//25
@@ -257,17 +257,19 @@ const char menuStringTable[32][17] = { "",//0
 
 const menuItemNew_t menuDataMainMenu[] = {
 	{11,11},// number of menus
-	{ 2, MENU_CREDITS },
+	{ 9, MENU_OPTIONS },
 	{ 3, MENU_ZONE_LIST },
+	{ 11, MENU_CHANNEL_DETAILS},
+	{ 10, MENU_DISPLAY},
 	{ 4, MENU_RSSI_SCREEN },
-	{ 5, MENU_BATTERY },
 	{ 6, MENU_CONTACTS_MENU },
 	{ 7, MENU_LAST_HEARD },
-	{ 8, MENU_FIRMWARE_INFO },
-	{ 9, MENU_OPTIONS },
-	{ 10, MENU_DISPLAY},
-	{ 11, MENU_CHANNEL_DETAILS},
 	{ 12, MENU_LANGUAGE},
+	{ 8, MENU_FIRMWARE_INFO },
+	{ 2, MENU_CREDITS },
+	{ 5, MENU_BATTERY },
+
+
 };
 const menuItemNew_t menuDataContact[] = {
 	{ 2, 2} ,// length

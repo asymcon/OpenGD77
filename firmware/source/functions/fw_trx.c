@@ -505,34 +505,43 @@ void trxSetPowerFromLevel(int powerLevel)
 
 	switch(powerLevel)
 	{
-		case 0:// 50mW
-			txPower = trxPowerSettings.lowPower * 0.62;//- 700;
+		case 0:// 10mW
+			txPower = trxPowerSettings.lowPower * 0.35;// Untested;
 			break;
-		case 1:// 250mW
-			txPower = trxPowerSettings.lowPower * 0.75;//- 470;
+		case 1:// 50mW
+			txPower = trxPowerSettings.lowPower * 0.50;//- 0.50 970;
 			break;
-		case 2:// 500mW
-			txPower = trxPowerSettings.lowPower * 0.85;//- 290;
+		case 2:// 75mW
+			txPower = trxPowerSettings.lowPower * 0.53;//- 0.53 850;
 			break;
-		case 3:// 750mW
-			txPower = trxPowerSettings.lowPower * 0.93;//- 150;
+		case 3:// 100mW
+			txPower = trxPowerSettings.lowPower * 0.56;//- 0.56 710;
 			break;
-		case 4:// 1W
+		case 4:// 250mW
+			txPower = trxPowerSettings.lowPower * 0.72;//- 0.72 470;
+			break;
+		case 5:// 500mW
+			txPower = trxPowerSettings.lowPower * 0.85;//- 0.85 290;
+			break;
+		case 6:// 750mW
+			txPower = trxPowerSettings.lowPower * 0.93;//- 0.95 150;
+			break;
+		case 7:// 1W
 			txPower = trxPowerSettings.lowPower;
 			break;
-		case 5:// 2W
-			txPower = (((powerLevel - 3) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;
+		case 8:// 2W
+			txPower = (((powerLevel - 6.8) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;
 			break;
-		case 6:// 3W
-			txPower = (((powerLevel - 3) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;
+		case 9:// 3W
+			txPower = (((powerLevel - 6.8) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;
 			break;
-		case 7:// 4W
-			txPower = (((powerLevel - 3) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;
+		case 10:// 4W
+			txPower = (((powerLevel - 6.8) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;
 			break;
-		case 8:// 5W
+		case 11:// 5W
 			txPower = trxPowerSettings.highPower;
 			break;
-		case 9:// 5W+
+		case 12:// 5W+
 			txPower = 4095;
 			break;
 		default:

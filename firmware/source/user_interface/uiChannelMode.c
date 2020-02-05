@@ -685,7 +685,7 @@ static void handleEvent(uiEvent_t *ev)
 		{
 			if (ev->buttons & BUTTON_SK2)
 			{
-				if (nonVolatileSettings.txPowerLevel < 9)
+				if (nonVolatileSettings.txPowerLevel < 11)
 				{
 					nonVolatileSettings.txPowerLevel++;
 					trxSetPowerFromLevel(nonVolatileSettings.txPowerLevel);
@@ -1010,7 +1010,7 @@ static void updateQuickMenuScreen(void)
 				strncpy(buf, currentLanguage->vfoToChannel, bufferLen);
 				break;
 			case CH_SCREEN_QUICK_MENU_DMR_FILTER:
-				snprintf(buf, bufferLen, "%s:%s", currentLanguage->filter, (tmpQuickMenuDmrFilterLevel == 0) ? currentLanguage->none : DMR_FILTER_LEVELS[tmpQuickMenuDmrFilterLevel]);
+				snprintf(buf, bufferLen, "%s:%s", currentLanguage->filter, (tmpQuickMenuDmrFilterLevel == 0) ? currentLanguage->Double : DMR_FILTER_LEVELS[tmpQuickMenuDmrFilterLevel]);
 				break;
 			default:
 				strcpy(buf, "");
@@ -1059,7 +1059,7 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 		}
 		return;
 	}
-	else if (KEYCHECK_PRESS(ev->keys, KEY_RIGHT))
+	else if (KEYCHECK_PRESS(ev->keys, KEY_LEFT))
 	{
 		switch(gMenusCurrentItemIndex)
 		{
@@ -1071,7 +1071,7 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 				break;
 		}
 	}
-	else if (KEYCHECK_PRESS(ev->keys, KEY_LEFT))
+	else if (KEYCHECK_PRESS(ev->keys, KEY_RIGHT))
 	{
 		switch(gMenusCurrentItemIndex)
 		{

@@ -24,12 +24,12 @@
 static void updateScreen(void);
 static void handleEvent(uiEvent_t *ev);
 static bool	doFactoryReset;
-enum OPTIONS_MENU_LIST { OPTIONS_MENU_TIMEOUT_BEEP=0,OPTIONS_MENU_FACTORY_RESET,OPTIONS_MENU_USE_CALIBRATION,
+enum OPTIONS_MENU_LIST { OPTIONS_MENU_HOTSPOT_TYPE=0, OPTIONS_MENU_TIMEOUT_BEEP,OPTIONS_MENU_FACTORY_RESET,OPTIONS_MENU_USE_CALIBRATION,
 							OPTIONS_MENU_TX_FREQ_LIMITS,OPTIONS_MENU_BEEP_VOLUME,OPTIONS_MIC_GAIN_DMR,
 							OPTIONS_MENU_KEYPAD_TIMER_LONG, OPTIONS_MENU_KEYPAD_TIMER_REPEAT, OPTIONS_MENU_DMR_MONITOR_CAPTURE_TIMEOUT,
 							OPTIONS_MENU_SCAN_DELAY,OPTIONS_MENU_SCAN_MODE,
 							OPTIONS_MENU_SQUELCH_DEFAULT_VHF,OPTIONS_MENU_SQUELCH_DEFAULT_220MHz,OPTIONS_MENU_SQUELCH_DEFAULT_UHF,
-							OPTIONS_MENU_PTT_TOGGLE, OPTIONS_MENU_HOTSPOT_TYPE, OPTIONS_MENU_TALKER_ALIAS_TX,
+							OPTIONS_MENU_PTT_TOGGLE, OPTIONS_MENU_TALKER_ALIAS_TX,
 							OPTIONS_MENU_PRIVATE_CALLS, OPTIONS_MENU_CONTACT_DISPLAY_ORDER, NUM_OPTIONS_MENU_ITEMS};
 
 int menuOptions(uiEvent_t *ev, bool isFirstRun)
@@ -66,7 +66,13 @@ static void updateScreen(void)
 
 		switch(mNum)
 		{
-			case OPTIONS_MENU_TIMEOUT_BEEP:
+		case OPTIONS_MENU_HOTSPOT_TYPE:
+			{
+				const char *hsTypes[] = { currentLanguage->off, "MMDVM", "BlueDV" };
+				snprintf(buf, bufferLen, "Hotspot:%s", hsTypes[nonVolatileSettings.hotspotType]);
+			}
+			break;
+		case OPTIONS_MENU_TIMEOUT_BEEP:
 				if (nonVolatileSettings.txTimeoutBeepX5Secs != 0)
 				{
 					snprintf(buf, bufferLen, "%s:%d", currentLanguage->timeout_beep, nonVolatileSettings.txTimeoutBeepX5Secs * 5);
@@ -142,12 +148,6 @@ static void updateScreen(void)
 				break;
 			case OPTIONS_MENU_PTT_TOGGLE:
 				snprintf(buf, bufferLen, "%s:%s", currentLanguage->ptt_toggle, (nonVolatileSettings.pttToggle ? currentLanguage->on : currentLanguage->off));
-				break;
-			case OPTIONS_MENU_HOTSPOT_TYPE:
-				{
-					const char *hsTypes[] = { currentLanguage->off, "MMDVM", "BlueDV" };
-					snprintf(buf, bufferLen, "Hotspot:%s", hsTypes[nonVolatileSettings.hotspotType]);
-				}
 				break;
 			case OPTIONS_MENU_TALKER_ALIAS_TX:
 				snprintf(buf, bufferLen, "TA Tx:%s",(nonVolatileSettings.transmitTalkerAlias ? currentLanguage->on : currentLanguage->off));
@@ -289,6 +289,12 @@ static void handleEvent(uiEvent_t *ev)
 
 		switch(gMenusCurrentItemIndex)
 		{
+		case OPTIONS_MENU_HOTSPOT_TYPE:
+			if (nonVolatileSettings.hotspotType > HOTSPOT_TYPE_OFF)
+			{
+				nonVolatileSettings.hotspotType--;
+			}
+			break;
 			case OPTIONS_MENU_TIMEOUT_BEEP:
 				if (nonVolatileSettings.txTimeoutBeepX5Secs>0)
 				{
@@ -367,12 +373,6 @@ static void handleEvent(uiEvent_t *ev)
 				break;
 			case OPTIONS_MENU_PTT_TOGGLE:
 				nonVolatileSettings.pttToggle = false;
-				break;
-			case OPTIONS_MENU_HOTSPOT_TYPE:
-				if (nonVolatileSettings.hotspotType > HOTSPOT_TYPE_OFF)
-				{
-					nonVolatileSettings.hotspotType--;
-				}
 				break;
 			case OPTIONS_MENU_TALKER_ALIAS_TX:
 				nonVolatileSettings.transmitTalkerAlias = false;

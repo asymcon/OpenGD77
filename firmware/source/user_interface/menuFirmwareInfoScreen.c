@@ -39,12 +39,12 @@ static void updateScreen(void)
 {
 	char buf[17];
 
-	snprintf(buf, 16, "[ %s ]", GITVERSION);
+	snprintf(buf, 16, "v1.34.20", GITVERSION);
 	buf[11] = 0; // git hash id 7 char long;
 
 	ucClearBuf();
 	ucPrintCentered(5, "OpenGD77", FONT_8x16);
-	ucPrintCentered(24, currentLanguage->built, FONT_8x8);
+	ucPrintCentered(24, "Built by NA7Q", FONT_8x8);
 	ucPrintCentered(34,__TIME__, FONT_8x8);
 	ucPrintCentered(44,__DATE__, FONT_8x8);
 	ucPrintCentered(54, buf, FONT_8x8);

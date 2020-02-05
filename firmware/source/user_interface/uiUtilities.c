@@ -47,8 +47,8 @@ const uint32_t RSSI_UPDATE_COUNTER_RELOAD = 100;
 uint32_t menuUtilityReceivedPcId 	= 0;// No current Private call awaiting acceptance
 uint32_t menuUtilityTgBeforePcMode 	= 0;// No TG saved, prior to a Private call being accepted.
 
-const char *POWER_LEVELS[]={ "50mW","250mW","500mW","750mW","1W","2W","3W","4W","5W","5W++"};
-const char *DMR_FILTER_LEVELS[]={"None","TS","TS,TG"};
+const char *POWER_LEVELS[]={"10mW","50mW","75mW","100mW","250mW","500mW","750mW","1W","2W","3W","4W","5W"};
+const char *DMR_FILTER_LEVELS[]={"Double","Single","TS,TG"};
 
 volatile uint32_t lastID=0;// This needs to be volatile as lastHeardClearLastID() is called from an ISR
 uint32_t lastTG=0;
@@ -1103,7 +1103,7 @@ void menuUtilityRenderHeader(void)
 //				(trxGetMode() == RADIO_MODE_DIGITAL && settingsPrivateCallMuteMode == true)?" MUTE":"");// The location that this was displayed is now used for the power level
 				ucPrintCore(0, Y_OFFSET, "DMR", ((nonVolatileSettings.hotspotType != HOTSPOT_TYPE_OFF) ? FONT_6x8_BOLD : FONT_6x8), TEXT_ALIGN_LEFT, modeInverted);
 
-				snprintf(buffer, bufferLen, "%s%d", currentLanguage->ts, trxGetDMRTimeSlot() + 1);
+				snprintf(buffer, bufferLen, "%s%d", currentLanguage->timeslot, trxGetDMRTimeSlot() + 1);
 				buffer[bufferLen - 1] = 0;
 				if (nonVolatileSettings.dmrFilterLevel < DMR_FILTER_TS)
 				{
@@ -1145,11 +1145,11 @@ void menuUtilityRenderHeader(void)
 	if (settingsUsbMode == USB_MODE_HOTSPOT || trxGetMode() == RADIO_MODE_ANALOG)
 	{
 		// In hotspot mode the CC is show as part of the rest of the display and in Analogue mode the CC is meaningless
-		snprintf(buffer, bufferLen, "%d%%", batteryPerentage);
+		snprintf(buffer, bufferLen, "%d%", batteryPerentage);
 	}
 	else
 	{
-		snprintf(buffer, bufferLen, "C%d %d%%", trxGetDMRColourCode(), batteryPerentage);
+		snprintf(buffer, bufferLen, "CC%d %d%", trxGetDMRColourCode(), batteryPerentage);
 	}
 	buffer[bufferLen - 1] = 0;
 	ucPrintCore(0, Y_OFFSET, buffer, FONT_6x8, TEXT_ALIGN_RIGHT, false);// Display battery percentage at the right

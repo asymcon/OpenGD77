@@ -86,13 +86,13 @@ static void updateScreen(void)
 				if (nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO)
 				{
 					if (nonVolatileSettings.backLightTimeout == 0)
-						snprintf(buf, bufferLen, "%s:%s", currentLanguage->backlight_timeout, currentLanguage->no);
+						snprintf(buf, bufferLen, "%s:%s", currentLanguage->backlight_timeout, currentLanguage->off);
 					else
 						snprintf(buf, bufferLen, "%s:%ds", currentLanguage->backlight_timeout, nonVolatileSettings.backLightTimeout);
 				}
 				else
 				{
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->backlight_timeout, currentLanguage->n_a);
+					snprintf(buf, bufferLen, "%s:%s", currentLanguage->backlight_timeout, currentLanguage->off);
 				}
 				break;
 			case DISPLAY_MENU_COLOUR_INVERT:
