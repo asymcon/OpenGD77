@@ -530,7 +530,7 @@ void trxSetPowerFromLevel(int powerLevel)
 			txPower = trxPowerSettings.lowPower;
 			break;
 		case 8:// 2W
-			txPower = (((powerLevel - 6.8) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;
+			txPower = (((powerLevel - 6.8) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower; // must match number is fw_settings.c
 			break;
 		case 9:// 3W
 			txPower = (((powerLevel - 6.8) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;

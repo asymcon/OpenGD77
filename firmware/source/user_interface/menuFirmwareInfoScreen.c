@@ -39,7 +39,7 @@ static void updateScreen(void)
 {
 	char buf[17];
 
-	snprintf(buf, 16, "v1.34.20", GITVERSION);
+	snprintf(buf, 16, "v1.35.20", GITVERSION);
 	buf[11] = 0; // git hash id 7 char long;
 
 	ucClearBuf();

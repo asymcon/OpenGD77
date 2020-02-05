@@ -27,7 +27,7 @@
 
 static const int STORAGE_BASE_ADDRESS 		= 0x6000;
 
-static const int STORAGE_MAGIC_NUMBER 		= 0x4740;
+static const int STORAGE_MAGIC_NUMBER 		= 0x4741;
 
 
 settingsStruct_t nonVolatileSettings;
@@ -141,7 +141,7 @@ void settingsRestoreDefaultSettings(void)
 	nonVolatileSettings.displayInverseVideo=false;// Not inverse video
 	nonVolatileSettings.useCalibration = true;// enable the new calibration system
 	nonVolatileSettings.txFreqLimited = true;// Limit Tx frequency to US Amateur bands
-	nonVolatileSettings.txPowerLevel=7;// 1 W
+	nonVolatileSettings.txPowerLevel=7;// 1 W Power level in fw_trx.c must match
 	nonVolatileSettings.overrideTG=0;// 0 = No override
 	nonVolatileSettings.txTimeoutBeepX5Secs = 0;
 	nonVolatileSettings.beepVolumeDivider = 1;// no reduction in volume
@@ -167,6 +167,7 @@ void settingsRestoreDefaultSettings(void)
 	nonVolatileSettings.vfoBScanLow=4200000;						//Low frequency limit for VFO B Scanning
 	nonVolatileSettings.vfoBScanHigh=45000000;						//High Frequency limit for VFO B Scanning
 	nonVolatileSettings.contactDisplayPriority = CONTACT_DISPLAY_PRIO_CC_DB_TA;
+	nonVolatileSettings.splitContact = false;
 
 
 	currentChannelData = &settingsVFOChannel[nonVolatileSettings.currentVFONumber];// Set the current channel data to point to the VFO data since the default screen will be the VFO

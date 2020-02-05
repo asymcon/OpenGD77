@@ -144,6 +144,7 @@ const stringsTable_t englishLanguage =
 .ptt_toggle				= "PTT Toggle", // MaxLen 16 (with ':' + .on or .off)
 .private_call_handling  = "Allow PC", // MaxLen 16 (with ':' + .on or .off)
 .stop					= "Stop", // Maxlen 16 (with ':' + .scan_mode)
+.split_contact				= "Split Cc", // MaxLen 16 (with ':' + .yes or .no)
 };
 /********************************************************************
  *
