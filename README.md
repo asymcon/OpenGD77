@@ -1,3 +1,6 @@
+# NA7Q builds are manually merged to keep up to date with the original source code
+Only minor modifications are done to the source code. Thanks to all the developers who have made this firmware possible and made it open source!
+
 # OpenGD77
 Open source firmware for the Radioddity GD-77 dual band DMR / FM handheld transceiever, for Amateur Radio use.
 
