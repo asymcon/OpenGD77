@@ -141,7 +141,7 @@ void settingsRestoreDefaultSettings(void)
 	nonVolatileSettings.displayInverseVideo=false;// Not inverse video
 	nonVolatileSettings.useCalibration = true;// enable the new calibration system
 	nonVolatileSettings.txFreqLimited = true;// Limit Tx frequency to US Amateur bands
-	nonVolatileSettings.txPowerLevel=7;// 1 W Power level in fw_trx.c must match
+	nonVolatileSettings.txPowerLevel=7;// 1W Power level in fw_trx.c must match 1W level case
 	nonVolatileSettings.overrideTG=0;// 0 = No override
 	nonVolatileSettings.txTimeoutBeepX5Secs = 0;
 	nonVolatileSettings.beepVolumeDivider = 1;// no reduction in volume
