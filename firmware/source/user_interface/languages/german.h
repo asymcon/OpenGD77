@@ -20,7 +20,7 @@
  * Translators: DG3GSP, DL4LEX
  *
  *
- * Rev: 3.4
+ * Rev: 3.5
  */
 #ifndef USER_INTERFACE_LANGUAGES_GERMAN_H_
 #define USER_INTERFACE_LANGUAGES_GERMAN_H_
@@ -48,6 +48,7 @@ const stringsTable_t germanLanguage =
 .display_options		= "Display Optionen", // MaxLen: 16
 .channel_details		= "Kanal Details", // MaxLen: 16
 .new_contact			= "Neuer Kontakt", // MaxLen: 16
+.new_channel			= "New channel", // MaxLen: 16, leave room for a space and four channel digits after
 .contact_list			= "Kontaktliste", // MaxLen: 16
 .hotspot_mode			= "Hotspot-Modus", // MaxLen: 16
 .contact_details		= "Kontakt Details", // MaxLen: 16
@@ -78,6 +79,7 @@ const stringsTable_t germanLanguage =
 .scan					= "Suchlauf", // MaxLen: 16
 .channelToVfo			= "Kanal --> VFO", // MaxLen: 16
 .vfoToChannel			= "VFO --> Kanal", // MaxLen: 16
+.vfoToNewChannel		= "VFO --> New Chan", // MaxLen: 16
 .group					= "Gruppe", // MaxLen: 16 (with .type)
 .private				= "Privat", // MaxLen: 16 (with .type)
 .all					= "Alle", // MaxLen: 16 (with .type)
@@ -144,8 +146,8 @@ const stringsTable_t germanLanguage =
 .ptt_toggle				= "PTT bistabil", // MaxLen 16 (with ':' + .on or .off)
 .private_call_handling		= "Anruf Hinw.", // MaxLen 16 (with ':' + .on ot .off)
 .stop					= "Stop", // Maxlen 16 (with ':' + .scan_mode)
-.one_line				= "1 line", // MaxLen 16 (with ':' + .contact)
-.two_lines				= "2 lines", // MaxLen 16 (with ':' + .contact)
+.one_line				= "1 Zeile", // MaxLen 16 (with ':' + .contact)
+.two_lines				= "2 Zeilen", // MaxLen 16 (with ':' + .contact)
 };
 /********************************************************************
  *

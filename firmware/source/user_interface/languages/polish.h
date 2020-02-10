@@ -48,6 +48,7 @@ const stringsTable_t polishLanguage =
 .display_options			= "Opcje ekranu", // MaxLen: 16
 .channel_details			= "Detale kanaˆu", // MaxLen: 16
 .new_contact				= "Nowy kontakt", // MaxLen: 16
+.new_channel				= "New channel", // MaxLen: 16, leave room for a space and four channel digits after
 .contact_list				= "Lista kontaktów", // MaxLen: 16
 .hotspot_mode				= "Tryb HotSpot", // MaxLen: 16
 .contact_details			= "Detale kontaktu", // MaxLen: 16
@@ -78,6 +79,7 @@ const stringsTable_t polishLanguage =
 .scan					= "Skanowanie", // MaxLen: 16
 .channelToVfo				= "Kanaˆ ---> VFO", // MaxLen: 16
 .vfoToChannel				= "VFO ---> Kanaˆ", // MaxLen: 16
+.vfoToNewChannel		= "VFO --> New Chan", // MaxLen: 16
 .group					= "Grupa", // MaxLen: 16 (with .type)
 .private				= "Prywatny", // MaxLen: 16 (with .type)
 .all					= "Wszystko", // MaxLen: 16 (with .type)
@@ -144,8 +146,8 @@ const stringsTable_t polishLanguage =
 .ptt_toggle				= "Staˆe PTT", // MaxLen 16 (with ':' + .on or .off)
 .private_call_handling  = "Zezwól PC", // MaxLen 16 (with ':' + .on ot .off)
 .stop					= "Stop", // Maxlen 16 (with ':' + .scan_mode)
-.one_line				= "1 line", // MaxLen 16 (with ':' + .contact)
-.two_lines				= "2 lines", // MaxLen 16 (with ':' + .contact)
+.one_line				= "1 linia", // MaxLen 16 (with ':' + .contact)
+.two_lines				= "2 linie", // MaxLen 16 (with ':' + .contact)
 };
 /********************************************************************
  *
