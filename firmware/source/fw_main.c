@@ -441,6 +441,9 @@ void fw_main_task(void *data)
 				case '4':
 					keyFunction = ( MENU_CHANNEL_DETAILS << 8) | 2;
 					break;
+				case '5':
+					keyFunction = ( MENU_RSSI_SCREEN << 8);
+					break;
 				case '7':
 					keyFunction = (MENU_DISPLAY <<8) + DEC_BRIGHTNESS;
 					break;

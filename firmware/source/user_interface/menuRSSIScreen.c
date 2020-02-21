@@ -72,8 +72,17 @@ static void updateScreen(void)
 
 		sprintf(buffer, "%d", trxRxSignal);
 		ucPrintCore(0, 3, buffer, FONT_8x8, TEXT_ALIGN_RIGHT, false);
-
+		
+		// Display "No Signal" when signal is lost
+		if (dBm < -130)
+		{
+		sprintf(buffer, "No Signal");
+		}
+		else
+		{
 		sprintf(buffer, "%d%s", dBm, "dBm");
+		}
+		
 		ucPrintCentered(20, buffer, FONT_8x16);
 
 		barGraphLength = ((dBm + 130) * 24)/10;
