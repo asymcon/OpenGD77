@@ -34,7 +34,7 @@ const int TX_TIMER_Y_OFFSET = 8;
 const int CONTACT_Y_POS = 16;
 const int FREQUENCY_X_POS = /* '>Ta'*/ (3 * 8) + 4;
 static const int BAR_Y_POS = 10;
-const int MAX_POWER_SETTING_NUM = 12;// Limit max power setting to 8 (5W)
+const int MAX_POWER_SETTING_NUM = 14;
 
 static const int DMRID_MEMORY_STORAGE_START = 0x30000;
 static const int DMRID_HEADER_LENGTH = 0x0C;
@@ -48,7 +48,7 @@ const uint32_t RSSI_UPDATE_COUNTER_RELOAD = 100;
 uint32_t menuUtilityReceivedPcId 	= 0;// No current Private call awaiting acceptance
 uint32_t menuUtilityTgBeforePcMode 	= 0;// No TG saved, prior to a Private call being accepted.
 
-const char *POWER_LEVELS[]={"10mW","50mW","75mW","100mW","250mW","500mW","750mW","1W","2W","3W","4W","5W","5W++"};
+const char *POWER_LEVELS[]={"1mW","10mW","25mW","50mW","75mW","100mW","250mW","500mW","750mW","1W","2W","3W","4W","5W","5W++"};
 const char *DMR_FILTER_LEVELS[]={"Double","Single","TS,TG","TS,Ct"};
 
 volatile uint32_t lastID=0;// This needs to be volatile as lastHeardClearLastID() is called from an ISR
