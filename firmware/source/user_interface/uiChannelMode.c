@@ -766,6 +766,20 @@ static void handleEvent(uiEvent_t *ev)
 			}
 
 		}
+//		else if (KEYCHECK_LONGDOWN(ev->keys, KEY_LEFT))
+//		{
+//			// Long press allows lower power levels
+//			if (ev->buttons & BUTTON_SK2)
+//			{
+//				if (nonVolatileSettings.txPowerLevel > 0)
+//				{
+//					nonVolatileSettings.txPowerLevel--;
+//					trxSetPowerFromLevel(nonVolatileSettings.txPowerLevel);
+//					menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
+//					menuChannelModeUpdateScreen(0);
+//				}
+//			}
+//		}
 		else if (KEYCHECK_PRESS(ev->keys,KEY_LEFT))
 		{
 			if (ev->buttons & BUTTON_SK2)
@@ -1080,9 +1094,7 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 				break;
 			case CH_SCREEN_QUICK_MENU_COPY_FROM_VFO:
 				memcpy(&channelScreenChannelData.rxFreq,&settingsVFOChannel[nonVolatileSettings.currentVFONumber].rxFreq,sizeof(struct_codeplugChannel_t)- 16);// Don't copy the name of the vfo, which are in the first 16 bytes
-
 				codeplugChannelSaveDataForIndex(settingsCurrentChannelNumber,&channelScreenChannelData);
-
 				menuSystemPopAllAndDisplaySpecificRootMenu(MENU_CHANNEL_MODE);
 				break;
 			case CH_SCREEN_QUICK_MENU_DMR_FILTER:

@@ -75,8 +75,6 @@ static int currentTxFrequency = 14400000;
 static int currentCC = 1;
 static uint8_t squelch = 0x00;
 static bool rxCTCSSactive = false;
-static uint8_t ANTENNA_SWITCH_RX = 0;
-static uint8_t ANTENNA_SWITCH_TX = 1;
 
 // AT-1846 native values for Rx
 static uint8_t rx_fl_l;
@@ -431,7 +429,6 @@ void trxActivateRx(void)
 	GPIO_PinWrite(GPIO_VHF_TX_amp_power, Pin_VHF_TX_amp_power, 0);// VHF PA off
 	GPIO_PinWrite(GPIO_UHF_TX_amp_power, Pin_UHF_TX_amp_power, 0);// UHF PA off
 
-    GPIO_PinWrite(GPIO_RF_ant_switch, Pin_RF_ant_switch, ANTENNA_SWITCH_RX);
 	txPAEnabled=false;
 
 
@@ -485,8 +482,6 @@ void trxActivateTx(void)
 		set_clear_I2C_reg_2byte_with_mask(0x30, 0xFF, 0x1F, 0x00, 0xC0); // digital TX
 	}
 
-    GPIO_PinWrite(GPIO_RF_ant_switch, Pin_RF_ant_switch, ANTENNA_SWITCH_TX);
-
 	// TX PA on
 	if (trxCurrentBand[TRX_TX_FREQ_BAND] == RADIO_BAND_UHF)
 	{
@@ -510,46 +505,49 @@ void trxSetPowerFromLevel(int powerLevel)
 		case 0:// 1mW
 			txPower = trxPowerSettings.lowPower * 0.35;// Untested;
 			break;
-		case 1:// 10mW
+		case 1:// 5mW
+			txPower = trxPowerSettings.lowPower * 0.39;// Untested;
+			break;
+		case 2:// 10mW
 			txPower = trxPowerSettings.lowPower * 0.42;// Tested;
 			break;
-		case 2:// 25mW
+		case 3:// 25mW
 			txPower = trxPowerSettings.lowPower * 0.46;// Tested;
 			break;
-		case 3:// 50mW
+		case 4:// 50mW
 			txPower = trxPowerSettings.lowPower * 0.50;//- 0.50 970;
 			break;
-		case 4:// 75mW
+		case 5:// 75mW
 			txPower = trxPowerSettings.lowPower * 0.53;//- 0.53 850;
 			break;
-		case 5:// 100mW
+		case 6:// 100mW
 			txPower = trxPowerSettings.lowPower * 0.56;//- 0.56 710;
 			break;
-		case 6:// 250mW
+		case 7:// 250mW
 			txPower = trxPowerSettings.lowPower * 0.72;//- 0.72 470;
 			break;
-		case 7:// 500mW
+		case 8:// 500mW
 			txPower = trxPowerSettings.lowPower * 0.85;//- 0.85 290;
 			break;
-		case 8:// 750mW
+		case 9:// 750mW
 			txPower = trxPowerSettings.lowPower * 0.93;//- 0.95 150;
 			break;
-		case 9:// 1W
+		case 10:// 1W
 			txPower = trxPowerSettings.lowPower;
 			break;
-		case 10:// 2W
+		case 11:// 2W
 			txPower = (((powerLevel - 7) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower; // must match number is fw_settings.c
 			break;
-		case 11:// 3W
+		case 12:// 3W
 			txPower = (((powerLevel - 7) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;
 			break;
-		case 12:// 4W
+		case 13:// 4W
 			txPower = (((powerLevel - 7) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;
 			break;
-		case 13:// 5W
+		case 14:// 5W
 			txPower = trxPowerSettings.highPower;
 			break;
-		case 14:// 5W+
+		case 15:// 5W+
 			txPower = 4095;
 			break;
 		default:
