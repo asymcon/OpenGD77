@@ -141,6 +141,7 @@ typedef struct stringsTable
    const char *two_lines;
    const char *new_channel;
    const char *priority_order;
+   const char *tone;
 } stringsTable_t;
 
 extern const stringsTable_t languages[];

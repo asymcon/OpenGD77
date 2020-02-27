@@ -52,6 +52,7 @@ static void startScan(void);
 static void handleUpKey(uiEvent_t *ev);
 static bool isDisplayingQSOData=false;
 static int tmpQuickMenuDmrFilterLevel;
+static int tmpQuickMenuAnalogFilterLevel;
 static void menuVFOUpdateTrxID(void );
 
 static int16_t newChannelIndex = 0;
@@ -119,7 +120,14 @@ int menuVFOMode(uiEvent_t *ev, bool isFirstRun)
 			trxSetTxCTCSS(currentChannelData->txTone);
 			if (!toneScanActive)
 			{
-				trxSetRxCTCSS(currentChannelData->rxTone);
+				if (nonVolatileSettings.analogFilterLevel == ANALOG_FILTER_NONE)
+				{
+					trxSetRxCTCSS(TRX_CTCSS_TONE_NONE);
+				}
+				else
+				{
+					trxSetRxCTCSS(currentChannelData->rxTone);
+				}
 			}
 
 			if (uiVfoModeScanActive==false)
@@ -172,7 +180,9 @@ int menuVFOMode(uiEvent_t *ev, bool isFirstRun)
 		// hence immediately display complete contact/TG info on screen
 		// This mostly happens when getting out of a menu.
 		if ((trxIsTransmitting == false) && ((trxGetMode() == RADIO_MODE_DIGITAL) && (rxID != 0) && (HRC6000GetReceivedTgOrPcId() != 0)) &&
-				(GPIO_PinRead(GPIO_audio_amp_enable, Pin_audio_amp_enable) == 1) && checkTalkGroupFilter() &&
+				//(GPIO_PinRead(GPIO_audio_amp_enable, Pin_audio_amp_enable) == 1)
+				(getAudioAmpStatus() & AUDIO_AMP_MODE_RF)
+				&& checkTalkGroupFilter() &&
 				(((item = lastheardFindInList(rxID)) != NULL) && (item == LinkHead)))
 		{
 			menuDisplayQSODataState = QSO_DISPLAY_CALLER_DATA;
@@ -719,7 +729,7 @@ static void handleEvent(uiEvent_t *ev)
 						nonVolatileSettings.tsManualOverride &= 0x0F;// Clear upper nibble value
 						nonVolatileSettings.tsManualOverride |= (trxGetDMRTimeSlot()+1)<<4;// Store manual TS override for VFO in upper nibble
 
-						//init_digital();
+						disableAudioAmp(AUDIO_AMP_MODE_RF);
 						clearActiveDMRID();
 						lastHeardClearLastID();
 						menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
@@ -1025,7 +1035,7 @@ static void stepFrequency(int increment)
 
 // Quick Menu functions
 enum VFO_SCREEN_QUICK_MENU_ITEMS { 	VFO_SCREEN_QUICK_MENU_SCAN=0,VFO_SCREEN_QUICK_MENU_VFO_TO_NEW,VFO_SCREEN_CODE_SCAN,VFO_SCREEN_QUICK_MENU_VFO_A_B,VFO_SCREEN_QUICK_MENU_TX_SWAP_RX, VFO_SCREEN_QUICK_MENU_BOTH_TO_RX, VFO_SCREEN_QUICK_MENU_BOTH_TO_TX,
-									VFO_SCREEN_SCAN_LOW_FREQ,VFO_SCREEN_SCAN_HIGH_FREQ,VFO_SCREEN_QUICK_MENU_DMR_FILTER,
+									VFO_SCREEN_SCAN_LOW_FREQ,VFO_SCREEN_SCAN_HIGH_FREQ,VFO_SCREEN_QUICK_MENU_FILTER,
 									NUM_VFO_SCREEN_QUICK_MENU_ITEMS };// The last item in the list is used so that we automatically get a total number of items in the list
 
 
@@ -1034,6 +1044,7 @@ int menuVFOModeQuickMenu(uiEvent_t *ev, bool isFirstRun)
 	if (isFirstRun)
 	{
 		tmpQuickMenuDmrFilterLevel = nonVolatileSettings.dmrFilterLevel;
+		tmpQuickMenuAnalogFilterLevel = nonVolatileSettings.analogFilterLevel;
 		updateQuickMenuScreen();
 	}
 	else
@@ -1093,9 +1104,15 @@ static void updateQuickMenuScreen(void)
 			case VFO_SCREEN_SCAN_HIGH_FREQ:
 				strcpy(buf, "Scan Limit High");
 				break;
-			case VFO_SCREEN_QUICK_MENU_DMR_FILTER:
-				snprintf(buf, bufferLen, "%s:%s", currentLanguage->filter, ((trxGetMode() == RADIO_MODE_ANALOG) ?
-						currentLanguage->n_a : ((tmpQuickMenuDmrFilterLevel == 0) ? currentLanguage->Double : DMR_FILTER_LEVELS[tmpQuickMenuDmrFilterLevel])));
+			case VFO_SCREEN_QUICK_MENU_FILTER:
+				if(trxGetMode() == RADIO_MODE_ANALOG)
+				{
+					snprintf(buf, bufferLen, "%s:%s", currentLanguage->tone, ((tmpQuickMenuAnalogFilterLevel == 0) ? currentLanguage->off : ANALOG_FILTER_LEVELS[tmpQuickMenuAnalogFilterLevel]));
+				}
+				else
+				{
+					snprintf(buf, bufferLen, "%s:%s", currentLanguage->filter, ((tmpQuickMenuDmrFilterLevel == 0) ? currentLanguage->Double : DMR_FILTER_LEVELS[tmpQuickMenuDmrFilterLevel]));
+				}
 				break;
 
 			default:
@@ -1197,13 +1214,17 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 				trxSetFrequency(currentChannelData->rxFreq,currentChannelData->txFreq,DMR_MODE_AUTO);
 
 				break;
-			case VFO_SCREEN_QUICK_MENU_DMR_FILTER:
+			case VFO_SCREEN_QUICK_MENU_FILTER:
 				if (trxGetMode() == RADIO_MODE_DIGITAL)
-					{
-						nonVolatileSettings.dmrFilterLevel = tmpQuickMenuDmrFilterLevel;
-					}
+				{
+					nonVolatileSettings.dmrFilterLevel = tmpQuickMenuDmrFilterLevel;
+					init_digital_DMR_RX();
+				}
+				else
+				{
+					nonVolatileSettings.analogFilterLevel = tmpQuickMenuAnalogFilterLevel;
+				}
 				break;
-
 			case VFO_SCREEN_CODE_SCAN:
 				if(trxGetMode() == RADIO_MODE_ANALOG)
 				{
@@ -1211,7 +1232,7 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 					scanTimer=TONESCANINTERVAL;
 					scanIndex=1;
 					trxSetRxCTCSS(TRX_CTCSSTones[scanIndex]);
-					GPIO_PinWrite(GPIO_audio_amp_enable, Pin_audio_amp_enable,0);// turn off the audio amp
+					disableAudioAmp(AUDIO_AMP_MODE_RF);
 				}
 				else
 				{
@@ -1242,7 +1263,6 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 					nonVolatileSettings.vfoAScanHigh=currentChannelData->rxFreq;
 				}
 				break;
-
 		}
 		menuSystemPopPreviousMenu();
 		return;
@@ -1258,12 +1278,19 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 	{
 		switch(gMenusCurrentItemIndex)
 		{
-			case VFO_SCREEN_QUICK_MENU_DMR_FILTER:
+			case VFO_SCREEN_QUICK_MENU_FILTER:
 				if (trxGetMode() == RADIO_MODE_DIGITAL)
 				{
-					if (tmpQuickMenuDmrFilterLevel < DMR_FILTER_TS_DC)
+					if (tmpQuickMenuDmrFilterLevel < NUM_DMR_FILTER_LEVELS - 1)
 					{
 						tmpQuickMenuDmrFilterLevel++;
+					}
+				}
+				else
+				{
+					if (tmpQuickMenuAnalogFilterLevel > ANALOG_FILTER_NONE)
+					{
+						tmpQuickMenuAnalogFilterLevel--;
 					}
 				}
 				break;
@@ -1280,12 +1307,19 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 	{
 		switch(gMenusCurrentItemIndex)
 		{
-			case VFO_SCREEN_QUICK_MENU_DMR_FILTER:
+			case VFO_SCREEN_QUICK_MENU_FILTER:
 				if (trxGetMode() == RADIO_MODE_DIGITAL)
 				{
 					if (tmpQuickMenuDmrFilterLevel > DMR_FILTER_NONE)
 					{
 						tmpQuickMenuDmrFilterLevel--;
+					}
+				}
+				else
+				{
+					if (tmpQuickMenuAnalogFilterLevel < NUM_ANALOG_FILTER_LEVELS - 1)
+					{
+						tmpQuickMenuAnalogFilterLevel++;
 					}
 				}
 				break;
@@ -1317,7 +1351,7 @@ bool menuVFOModeIsScanning(void)
 
 static void toneScan(void)
 {
-	if (GPIO_PinRead(GPIO_audio_amp_enable, Pin_audio_amp_enable)==1)
+	if (getAudioAmpStatus() & AUDIO_AMP_MODE_RF)
 	{
 		currentChannelData->txTone=TRX_CTCSSTones[scanIndex];
 		currentChannelData->rxTone=TRX_CTCSSTones[scanIndex];
@@ -1351,7 +1385,8 @@ static void toneScan(void)
 
 static void CCscan(void)
 {
-	if (GPIO_PinRead(GPIO_audio_amp_enable, Pin_audio_amp_enable)==1)
+	//if (GPIO_PinRead(GPIO_audio_amp_enable, Pin_audio_amp_enable)==1)
+	if (getAudioAmpStatus() & AUDIO_AMP_MODE_RF)
 	{
 		currentChannelData->rxColor=scanIndex;
 		menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
@@ -1494,7 +1529,8 @@ static void scanning(void)
 
 	if(((scanState == SCAN_PAUSED) && (nonVolatileSettings.scanModePause == SCAN_MODE_HOLD)) || (scanState == SCAN_SHORT_PAUSED))   // only do this once if scan mode is PAUSE do it every time if scan mode is HOLD
 	{
-	    if (GPIO_PinRead(GPIO_audio_amp_enable, Pin_audio_amp_enable) == 1)	    	// if speaker on we must be receiving a signal so extend the time before resuming scan.
+	    //if (GPIO_PinRead(GPIO_audio_amp_enable, Pin_audio_amp_enable) == 1)	    	// if speaker on we must be receiving a signal so extend the time before resuming scan.
+	    if (getAudioAmpStatus() & AUDIO_AMP_MODE_RF)
 	    {
 	    	scanTimer = nonVolatileSettings.scanDelay * 1000;
 	    	scanState = SCAN_PAUSED;

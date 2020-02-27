@@ -149,6 +149,7 @@ const stringsTable_t catalanLanguage=
 .one_line				= "1 línia", // MaxLen 16 (with ':' + .contact)
 .two_lines				= "2 linies", // MaxLen 16 (with ':' + .contact)
 .priority_order			= "Prio.", // MaxLen 16 (with ':' + 'Cc/DB/TA')
+.tone					= "Tone",
 };
 /********************************************************************
  *

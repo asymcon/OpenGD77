@@ -149,6 +149,7 @@ const stringsTable_t englishLanguage =
 .one_line				= "1 line", // MaxLen 16 (with ':' + .contact)
 .two_lines				= "2 lines", // MaxLen 16 (with ':' + .contact)
 .priority_order				= "Order", // MaxLen 16 (with ':' + 'Cc/DB/TA')
+.tone					= "Tone",
 };
 /********************************************************************
  *
