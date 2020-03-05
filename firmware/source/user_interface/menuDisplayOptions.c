@@ -176,7 +176,7 @@ static void handleEvent(uiEvent_t *ev)
 	}
 	if (ev->events & KEY_EVENT)
 	{
-		if (KEYCHECK_PRESS(ev->keys,KEY_DOWN) && gMenusEndIndex!=0)
+		if (KEYCHECK_PRESS(ev->keys,KEY_DOWN))
 		{
 			MENU_INC(gMenusCurrentItemIndex, NUM_DISPLAY_MENU_ITEMS);
 		}
