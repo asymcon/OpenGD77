@@ -90,9 +90,7 @@ const stringsTable_t finnishLanguage =
 .duplicate		= "kaksoiskappale",
 .tg			= "TG", 		// MaxLen: 8
 .pc			= "PC", 		// MaxLen: 8
-.Double					= "Double", // MaxLen: 8 (Dual Slot)
-.ts					= "Single", // MaxLen: 8
-.timeslot					= "TS", // MaxLen: 8
+.ts			= "TS", 		// MaxLen: 8
 .mode			= "Mode", 		// MaxLen: 12
 .colour_code		= "Väri Koodi", 	// MaxLen: 16 (with ':' * .n_a)
 .n_a			= "Pois", 		// MaxLen: 16 (with ':' * .colour_code)
@@ -149,7 +147,7 @@ const stringsTable_t finnishLanguage =
 .one_line		= "1 rivi", 		// MaxLen 16 (with ':' + .contact)
 .two_lines		= "2 riviä", 		// MaxLen 16 (with ':' + .contact)
 .priority_order		= "Järjest", 		// MaxLen 16 (with ':' + 'Cc/DB/TA')
-.tone					= "Tone",
+.tone					= "Tone SQL",
 };
 /********************************************************************
  *

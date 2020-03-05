@@ -49,15 +49,29 @@ uint32_t menuUtilityReceivedPcId 	= 0;// No current Private call awaiting accept
 uint32_t menuUtilityTgBeforePcMode 	= 0;// No TG saved, prior to a Private call being accepted.
 
 const char *POWER_LEVELS[]={"1mW","5mW","10mW","25mW","50mW","75mW","100mW","250mW","500mW","750mW","1W","2W","3W","4W","5W","5W++"};
-const char *DMR_FILTER_LEVELS[]={"Double","Single","TG","CC","Contact"};
-const char *ANALOG_FILTER_LEVELS[]={"None","CTCSS"};
+const char *DMR_FILTER_LEVELS[]={"All","CC","TS","TG","Contact"};
+const char *ANALOG_FILTER_LEVELS[]={"None","On"};
 
 volatile uint32_t lastID=0;// This needs to be volatile as lastHeardClearLastID() is called from an ISR
 uint32_t lastTG=0;
 
 static dmrIDsCache_t dmrIDsCache;
 
+int nuisanceDelete[MAX_ZONE_SCAN_NUISANCE_CHANNELS];
+int nuisanceDeleteIndex;
+int scanTimer=0;
+bool scanActive=false;
+ScanState_t scanState = SCAN_SCANNING;		//state flag for scan routine.
+int scanDirection = 1;
 
+bool displaySquelch=false;
+
+
+const int SCAN_SHORT_PAUSE_TIME = 500;			//time to wait after carrier detected to allow time for full signal detection. (CTCSS or DMR)
+const int SCAN_TOTAL_INTERVAL = 30;			    //time between each scan step
+const int SCAN_DMR_SIMPLEX_MIN_INTERVAL=60;		//minimum time between steps when scanning DMR Simplex. (needs extra time to capture TDMA Pulsing)
+const int SCAN_FREQ_CHANGE_SETTLING_INTERVAL = 1;//Time after frequency is changed before RSSI sampling starts
+const int SCAN_SKIP_CHANNEL_INTERVAL = 1;		//This is actually just an implicit flag value to indicate the channel should be skipped
 
 /*
  * Remove space at the end of the array, and return pointer to first non space character
@@ -1079,14 +1093,13 @@ void menuUtilityRenderHeader(void)
 		}
 	}
 
-	if (menuChannelModeIsScanning() || menuVFOModeIsScanning())
+	if (scanActive &&  menuVFOModeIsScanning())
 	{
 		int blinkPeriod = 1000;
 		if (scanBlinkPhase)
 		{
 			blinkPeriod = 500;
 		}
-
 
 		if ((fw_millis() - blinkTime) > blinkPeriod)
 		{

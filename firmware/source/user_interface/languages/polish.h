@@ -149,7 +149,7 @@ const stringsTable_t polishLanguage =
 .one_line				= "1 linia", // MaxLen 16 (with ':' + .contact)
 .two_lines				= "2 linie", // MaxLen 16 (with ':' + .contact)
 .priority_order				= "Wybór", // MaxLen 16 (with ':' + 'Cc/DB/TA')
-.tone					= "Tone",
+.tone					= "Tone SQL",
 };
 /********************************************************************
  *

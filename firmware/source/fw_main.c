@@ -353,7 +353,7 @@ void fw_main_task(void *data)
 							currentMenu != MENU_TX_SCREEN )
 					{
 						bool wasScanning = false;
-						if (menuVFOModeIsScanning() || menuChannelModeIsScanning())
+						if (scanActive)
 						{
 							if (currentMenu == MENU_VFO_MODE)
 							{
@@ -442,10 +442,10 @@ void fw_main_task(void *data)
 					keyFunction = ( MENU_CHANNEL_DETAILS << 8) | 2;
 					break;
 				case '5':
-					keyFunction = ( MENU_OPTIONS << 8);
+					keyFunction = ( MENU_OPTIONS << 8) | 2;
 					break;
 				case '6':
-					keyFunction = ( MENU_DISPLAY << 8);
+					keyFunction = ( MENU_DISPLAY << 8) | 2;
 					break;
 				case '7':
 					keyFunction = (MENU_DISPLAY <<8) + DEC_BRIGHTNESS;
@@ -456,9 +456,6 @@ void fw_main_task(void *data)
 				case '9':
 					keyFunction = ( MENU_RSSI_SCREEN << 8);
 					break;
-				//case '9':
-				//	keyFunction = (MENU_VFO_QUICK_MENU << 8) + VFO_SCREEN_QUICK_MENU_VFO_TO_NEW;
-				//	break;
 				default:
 					keyFunction = 0;
 					break;

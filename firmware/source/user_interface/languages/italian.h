@@ -149,7 +149,7 @@ const stringsTable_t italianLanguage =
 .one_line				= "1 linea", // MaxLen 16 (with ':' + .contact)
 .two_lines				= "2 linee", // MaxLen 16 (with ':' + .contact)
 .priority_order			= "Prio.", // MaxLen 16 (with ':' + 'Cc/DB/TA')
-.tone					= "Tone",
+.tone					= "Tone SQL",
 };
 /********************************************************************
  *

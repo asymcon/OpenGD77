@@ -149,7 +149,7 @@ const stringsTable_t germanLanguage =
 .one_line				= "1 Zeile", // MaxLen 16 (with ':' + .contact)
 .two_lines				= "2 Zeilen", // MaxLen 16 (with ':' + .contact)
 .priority_order				= "ID-Prio", // MaxLen 16 (with ':' + 'Cc/DB/TA')
-.tone					= "Tone",
+.tone					= "Tone SQL",
 };
 /********************************************************************
  *
@@ -159,4 +159,4 @@ const stringsTable_t germanLanguage =
  * or emacs on Linux with windows-1252-unix encoding
  *
  ********************************************************************/
-#endif /* USER_INTERFACE_LANGUAGES_GERMAN_H_ */
+#endif /* USER_INTERFACE_LANGUAGES_GERMAN_H  */
