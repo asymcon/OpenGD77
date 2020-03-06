@@ -23,6 +23,11 @@
 int menuDisplayLightTimer=-1;
 menuItemNew_t *gMenuCurrentMenuList;
 
+int gMenusCurrentItemIndex; // each menu can re-use this var to hold the position in their display list. To save wasted memory if they each had their own variable
+int gMenusStartIndex;// as above
+int gMenusEndIndex;// as above
+
+
 menuControlDataStruct_t menuControlData = { .stackPosition = 0, .stack = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, .itemIndex = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}};
 
 
@@ -50,6 +55,7 @@ const menuItemNew_t * menusData[] = { 	NULL,// splash
 										NULL,// LastHeard
 										NULL,// Options
 										NULL,// Display options
+										NULL,// Sound options
 										NULL,// Credits
 										NULL,// Channel Details
 										NULL,// hotspot mode
@@ -79,6 +85,7 @@ const menuFunctionPointer_t menuFunctions[] = { menuSplashScreen,
 												menuLastHeard,
 												menuOptions,
 												menuDisplayOptions,
+												menuSoundOptions,
 												menuCredits,
 												menuChannelDetails,
 												menuHotspotMode,
@@ -202,12 +209,6 @@ void displayLightOverrideTimeout(int timeout)
 	}
 }
 
-const int MENU_EVENT_SAVE_SETTINGS = -1;
-int gMenusCurrentItemIndex; // each menu can re-use this var to hold the position in their display list. To save wasted memory if they each had their own variable
-int gMenusStartIndex;// as above
-int gMenusEndIndex;// as above
-
-
 void menuInitMenuSystem(void)
 {
 	uiEvent_t ev = { .buttons = 0, .keys = NO_KEYCODE, .function = 0, .events = NO_EVENT, .hasEvent = false, .time = fw_millis() };
@@ -256,15 +257,16 @@ const char menuStringTable[32][17] = { "",//0
 */
 
 const menuItemNew_t menuDataMainMenu[] = {
-	{11,11},// number of menus
+	{12,12},// number of menus
 	{ 9, MENU_OPTIONS },
+	{ 11, MENU_SOUND },
 	{ 3, MENU_ZONE_LIST },
-	{ 11, MENU_CHANNEL_DETAILS},
+	{ 12, MENU_CHANNEL_DETAILS},
 	{ 10, MENU_DISPLAY},
 	{ 4, MENU_RSSI_SCREEN },
 	{ 6, MENU_CONTACTS_MENU },
 	{ 7, MENU_LAST_HEARD },
-	{ 12, MENU_LANGUAGE},
+	{ 13, MENU_LANGUAGE},
 	{ 8, MENU_FIRMWARE_INFO },
 	{ 2, MENU_CREDITS },
 	{ 5, MENU_BATTERY },
@@ -272,10 +274,9 @@ const menuItemNew_t menuDataMainMenu[] = {
 
 };
 const menuItemNew_t menuDataContact[] = {
-	{ 2, 2} ,// length
-	{ 13 , MENU_CONTACT_NEW },// 7 New Contact
-	{ 14, MENU_CONTACT_LIST },// 24 Contacts List
-	{ -1, MENU_CONTACT_LIST },// 24 Contacts Lis
+	{ 2, 2} , // Special entry: number of menus entries, both member must be set to the same number
+	{ 14, MENU_CONTACT_NEW },
+	{ 15, MENU_CONTACT_LIST },
 };
 
 /*
@@ -307,28 +308,28 @@ void menuDisplayEntry(int loopOffset, int focusedItem,const char *entryText)
 
 int menuGetMenuOffset(int maxMenuEntries, int loopOffset)
 {
-     int offset = gMenusCurrentItemIndex + loopOffset;
+	int offset = gMenusCurrentItemIndex + loopOffset;
 
-     if (offset < 0)
-     {
-	  if ((maxMenuEntries == 1) && (maxMenuEntries < MENU_MAX_DISPLAYED_ENTRIES))
-	       offset = MENU_MAX_DISPLAYED_ENTRIES - 1;
-	  else
-	       offset = maxMenuEntries + offset;
-     }
+	if (offset < 0)
+	{
+		if ((maxMenuEntries == 1) && (maxMenuEntries < MENU_MAX_DISPLAYED_ENTRIES))
+			offset = MENU_MAX_DISPLAYED_ENTRIES - 1;
+		else
+			offset = maxMenuEntries + offset;
+	}
 
-     if (maxMenuEntries < MENU_MAX_DISPLAYED_ENTRIES)
-     {
-	  if (loopOffset == 1)
-	       offset = MENU_MAX_DISPLAYED_ENTRIES - 1;
-     }
-     else
-     {
-	  if (offset >= maxMenuEntries)
-	       offset = offset - maxMenuEntries;
-     }
+	if (maxMenuEntries < MENU_MAX_DISPLAYED_ENTRIES)
+	{
+		if (loopOffset == 1)
+			offset = MENU_MAX_DISPLAYED_ENTRIES - 1;
+	}
+	else
+	{
+		if (offset >= maxMenuEntries)
+			offset = offset - maxMenuEntries;
+	}
 
-     return offset;
+	return offset;
 }
 
 /*

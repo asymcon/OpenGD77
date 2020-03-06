@@ -46,6 +46,7 @@ const stringsTable_t catalanLanguage=
 .last_heard				= "Escoltats",
 .options				= "Opcions",
 .display_options		= "Opcions pantalla",
+.sound_options				= "Sound options", // MaxLen: 16
 .channel_details		= "Detalls Canal",
 .new_contact			= "Nou contacte",
 .new_channel			= "Nou canal", // MaxLen: 16, leave room for a space and four channel digits after
@@ -90,9 +91,7 @@ const stringsTable_t catalanLanguage=
 .duplicate				= "Duplicat",
 .tg						= "TG",
 .pc						= "ID",
-.Double					= "Double", // MaxLen: 8 (Dual Slot)
-.ts					= "Single", // MaxLen: 8
-.timeslot					= "TS", // MaxLen: 8
+.ts						= "TS",
 .mode					= "Mode",
 .colour_code			= "Codi Color",
 .n_a					= "N/D",
@@ -149,7 +148,10 @@ const stringsTable_t catalanLanguage=
 .one_line				= "1 línia", // MaxLen 16 (with ':' + .contact)
 .two_lines				= "2 linies", // MaxLen 16 (with ':' + .contact)
 .priority_order			= "Prio.", // MaxLen 16 (with ':' + 'Cc/DB/TA')
-.tone					= "Tone SQL",
+.dmr_beep				= "DMR beep", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
+.start					= "Start", // MaxLen 16 (with ':' + .dmr_beep)
+.both					= "Both", // MaxLen 16 (with ':' + .dmr_beep)
+.tone					= "Tone SQL"
 };
 /********************************************************************
  *

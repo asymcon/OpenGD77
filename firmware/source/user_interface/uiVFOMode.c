@@ -766,9 +766,26 @@ static void handleEvent(uiEvent_t *ev)
 					return;// The event has been handled
 				}
 
+#if (PLATFORM == GD-77)
+				menuSystemSetCurrentMenu(MENU_CHANNEL_MODE);
+#endif
+				return;
+			}
+#if (PLATFORM == DM-1801)
+			else if (KEYCHECK_SHORTUP(ev->keys, KEY_VFO_MR))
+			{
 				menuSystemSetCurrentMenu(MENU_CHANNEL_MODE);
 				return;
 			}
+			else if (KEYCHECK_SHORTUP(ev->keys, KEY_A_B))
+			{
+				nonVolatileSettings.currentVFONumber = 1 - nonVolatileSettings.currentVFONumber;// Switch to other VFO
+				currentChannelData = &settingsVFOChannel[nonVolatileSettings.currentVFONumber];
+				menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
+				menuSystemPopAllAndDisplayRootMenu(); // Force to set all TX/RX settings.
+				return;
+			}
+#endif
 			else if (KEYCHECK_LONGDOWN(ev->keys, KEY_RIGHT))
 			{
 				// Long press allows the 5W+ power setting to be selected immediately
@@ -831,25 +848,25 @@ static void handleEvent(uiEvent_t *ev)
 					}
 				}
 			}
-//			else if (KEYCHECK_LONGDOWN(ev->keys, KEY_LEFT))
-//			{
-//				// Long press allows lower power levels
-//				if (ev->buttons & BUTTON_SK2)
-//				{
-//					if (nonVolatileSettings.txPowerLevel > 0)
-//					{
-//						nonVolatileSettings.txPowerLevel--;
-//						trxSetPowerFromLevel(nonVolatileSettings.txPowerLevel);
-//						menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
-//						menuChannelModeUpdateScreen(0);
-//					}
-//				}
-//			}
+			else if (KEYCHECK_LONGDOWN(ev->keys, KEY_LEFT))
+			{
+				// Long press allows lower power levels
+				if (ev->buttons & BUTTON_SK2)
+				{
+					if (nonVolatileSettings.txPowerLevel > 0)
+					{
+						nonVolatileSettings.txPowerLevel--;
+						trxSetPowerFromLevel(nonVolatileSettings.txPowerLevel);
+						menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
+						menuChannelModeUpdateScreen(0);
+					}
+				}
+			}
 			else if (KEYCHECK_PRESS(ev->keys,KEY_LEFT))
 			{
 				if (ev->buttons & BUTTON_SK2)
 				{
-					if (nonVolatileSettings.txPowerLevel > 0)
+					if (nonVolatileSettings.txPowerLevel > 4)
 					{
 						nonVolatileSettings.txPowerLevel--;
 						trxSetPowerFromLevel(nonVolatileSettings.txPowerLevel);
@@ -1013,10 +1030,19 @@ static void stepFrequency(int increment)
 }
 
 // Quick Menu functions
-enum VFO_SCREEN_QUICK_MENU_ITEMS { 	VFO_SCREEN_QUICK_MENU_SCAN=0,VFO_SCREEN_QUICK_MENU_VFO_TO_NEW,VFO_SCREEN_CODE_SCAN,VFO_SCREEN_QUICK_MENU_VFO_A_B,VFO_SCREEN_QUICK_MENU_TX_SWAP_RX, VFO_SCREEN_QUICK_MENU_BOTH_TO_RX, VFO_SCREEN_QUICK_MENU_BOTH_TO_TX,
-									VFO_SCREEN_SCAN_LOW_FREQ,VFO_SCREEN_SCAN_HIGH_FREQ,VFO_SCREEN_QUICK_MENU_FILTER,
-									NUM_VFO_SCREEN_QUICK_MENU_ITEMS };// The last item in the list is used so that we automatically get a total number of items in the list
-
+enum VFO_SCREEN_QUICK_MENU_ITEMS // The last item in the list is used so that we automatically get a total number of items in the list
+{
+#if (PLATFORM == GD-77)
+	VFO_SCREEN_QUICK_MENU_SCAN = 0, VFO_SCREEN_QUICK_MENU_VFO_TO_NEW, VFO_SCREEN_QUICK_MENU_VFO_A_B, VFO_SCREEN_QUICK_MENU_TX_SWAP_RX, 
+	VFO_SCREEN_QUICK_MENU_BOTH_TO_RX, VFO_SCREEN_QUICK_MENU_BOTH_TO_TX, VFO_SCREEN_SCAN_LOW_FREQ,
+	VFO_SCREEN_SCAN_HIGH_FREQ, VFO_SCREEN_QUICK_MENU_FILTER,
+#elif (PLATFORM == DM-1801)
+	VFO_SCREEN_QUICK_MENU_SCAN = 0, VFO_SCREEN_QUICK_MENU_VFO_TO_NEW, VFO_SCREEN_QUICK_MENU_TX_SWAP_RX, 
+	VFO_SCREEN_QUICK_MENU_BOTH_TO_RX, VFO_SCREEN_QUICK_MENU_BOTH_TO_TX, VFO_SCREEN_SCAN_LOW_FREQ,
+	VFO_SCREEN_SCAN_HIGH_FREQ, VFO_SCREEN_QUICK_MENU_FILTER,
+#endif
+	NUM_VFO_SCREEN_QUICK_MENU_ITEMS
+};
 
 int menuVFOModeQuickMenu(uiEvent_t *ev, bool isFirstRun)
 {
@@ -1064,9 +1090,11 @@ static void updateQuickMenuScreen(void)
 			case VFO_SCREEN_QUICK_MENU_BOTH_TO_TX:
 				strcpy(buf, "Tx --> Rx");
 				break;
+#if (PLATFORM == GD-77)
 			case VFO_SCREEN_QUICK_MENU_VFO_A_B:
 				sprintf(buf, "VFO:%c", ((nonVolatileSettings.currentVFONumber==0) ? 'A' : 'B'));
 				break;
+#endif
 			case VFO_SCREEN_SCAN_LOW_FREQ:
 				strcpy(buf, "Scan Limit Low");
 				break;
@@ -1215,6 +1243,7 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 		menuSystemPopPreviousMenu();
 		return;
 	}
+#if (PLATFORM == GD-77)
 	else if (((ev->events & BUTTON_EVENT) && (ev->buttons & BUTTON_ORANGE)) && (gMenusCurrentItemIndex==VFO_SCREEN_QUICK_MENU_VFO_A_B))
 	{
 		nonVolatileSettings.currentVFONumber = 1 - nonVolatileSettings.currentVFONumber;// Switch to other VFO
@@ -1222,6 +1251,7 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 		menuSystemPopPreviousMenu();
 		return;
 	}
+#endif
 	else if (KEYCHECK_PRESS(ev->keys,KEY_RIGHT))
 	{
 		switch(gMenusCurrentItemIndex)
@@ -1242,6 +1272,7 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 					}
 				}
 				break;
+#if (PLATFORM == GD-77)
 			case VFO_SCREEN_QUICK_MENU_VFO_A_B:
 				if (nonVolatileSettings.currentVFONumber==0)
 				{
@@ -1249,6 +1280,7 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 					currentChannelData = &settingsVFOChannel[nonVolatileSettings.currentVFONumber];
 				}
 				break;
+#endif
 			}
 	}
 	else if (KEYCHECK_PRESS(ev->keys,KEY_LEFT))
@@ -1271,6 +1303,7 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 					}
 				}
 				break;
+#if (PLATFORM == GD-77)
 			case VFO_SCREEN_QUICK_MENU_VFO_A_B:
 				if (nonVolatileSettings.currentVFONumber==1)
 				{
@@ -1278,6 +1311,7 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 					currentChannelData = &settingsVFOChannel[nonVolatileSettings.currentVFONumber];
 				}
 				break;
+#endif
 		}
 	}
 	else if (KEYCHECK_PRESS(ev->keys,KEY_DOWN))
@@ -1287,6 +1321,12 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 	else if (KEYCHECK_PRESS(ev->keys,KEY_UP))
 	{
 		MENU_DEC(gMenusCurrentItemIndex, NUM_VFO_SCREEN_QUICK_MENU_ITEMS);
+	}
+	else if (((ev->events & BUTTON_EVENT) && (ev->buttons & BUTTON_ORANGE)) && (gMenusCurrentItemIndex==VFO_SCREEN_QUICK_MENU_SCAN))
+	{
+		startScan();
+		menuSystemPopPreviousMenu();
+		return;
 	}
 
 	updateQuickMenuScreen();

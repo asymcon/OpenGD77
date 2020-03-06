@@ -61,6 +61,13 @@ static void show_lowbattery(void)
 	ucRender();
 }
 
+static void showErrorMessage(char *message)
+{
+	ucClearBuf();
+	ucPrintCentered(32, message, FONT_8x16);
+	ucRender();
+}
+
 void fw_main_task(void *data)
 {
 	keyboardCode_t keys;
@@ -108,6 +115,12 @@ void fw_main_task(void *data)
 
     SPI_Flash_init();
 
+    if (!checkAndCopyCalibrationToCommonLocation())
+	{
+		showErrorMessage("FLASH MEM ERROR");
+		while(1U) {};
+	}
+
     // Init AT1846S
     I2C_AT1846S_init();
 
@@ -122,7 +135,7 @@ void fw_main_task(void *data)
     init_HR_C6000_interrupts();
 
     // Small startup delay after initialization to stabilize system
-    vTaskDelay(portTICK_PERIOD_MS * 500);
+  //  vTaskDelay(portTICK_PERIOD_MS * 500);
 
 	init_pit();
 
@@ -429,6 +442,9 @@ void fw_main_task(void *data)
 //				keyFunction = codeplugGetQuickkeyFunctionID(keys.key);
 				switch (keys.key)
 				{
+				case '0':
+					keyFunction = ( MENU_SOUND << 8) | 2;
+					break;
 				case '1':
 					keyFunction = START_SCANNING;
 					break;

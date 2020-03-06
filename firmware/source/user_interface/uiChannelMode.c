@@ -636,7 +636,7 @@ static void handleEvent(uiEvent_t *ev)
 			}
 			else
 			{
-				// ToDo Quick Menu
+				// Quick Menu
 				menuSystemPushNewMenu(MENU_CHANNEL_QUICK_MENU);
 			}
 
@@ -722,10 +722,20 @@ static void handleEvent(uiEvent_t *ev)
 			}
 			else
 			{
+#if (PLATFORM == GD-77)
 				menuSystemSetCurrentMenu(MENU_VFO_MODE);
+#endif
 				return;
 			}
 		}
+#if (PLATFORM == DM-1801)
+		else if (KEYCHECK_SHORTUP(ev->keys, KEY_VFO_MR))
+		{
+			directChannelNumber = 0;
+			menuSystemSetCurrentMenu(MENU_VFO_MODE);
+			return;
+		}
+#endif
 		else if (KEYCHECK_LONGDOWN(ev->keys, KEY_RIGHT))
 		{
 			// Long press allows the 5W+ power setting to be selected immediately
@@ -792,25 +802,25 @@ static void handleEvent(uiEvent_t *ev)
 			}
 
 		}
-//		else if (KEYCHECK_LONGDOWN(ev->keys, KEY_LEFT))
-//		{
-//			// Long press allows lower power levels
-//			if (ev->buttons & BUTTON_SK2)
-//			{
-//				if (nonVolatileSettings.txPowerLevel > 0)
-//				{
-//					nonVolatileSettings.txPowerLevel--;
-//					trxSetPowerFromLevel(nonVolatileSettings.txPowerLevel);
-//					menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
-//					menuChannelModeUpdateScreen(0);
-//				}
-//			}
-//		}
+		else if (KEYCHECK_LONGDOWN(ev->keys, KEY_LEFT))
+		{
+			// Long press allows lower power levels
+			if (ev->buttons & BUTTON_SK2)
+			{
+				if (nonVolatileSettings.txPowerLevel > 0)
+				{
+					nonVolatileSettings.txPowerLevel--;
+					trxSetPowerFromLevel(nonVolatileSettings.txPowerLevel);
+					menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
+					menuChannelModeUpdateScreen(0);
+				}
+			}
+		}
 		else if (KEYCHECK_PRESS(ev->keys,KEY_LEFT))
 		{
 			if (ev->buttons & BUTTON_SK2)
 			{
-				if (nonVolatileSettings.txPowerLevel > 0)
+				if (nonVolatileSettings.txPowerLevel > 4)
 				{
 					nonVolatileSettings.txPowerLevel--;
 					trxSetPowerFromLevel(nonVolatileSettings.txPowerLevel);
@@ -1351,7 +1361,6 @@ void menuChannelModeStopScanning(void)
 {
 	scanActive = false;
 }
-
 
 void menuChannelColdStart(void)
 {

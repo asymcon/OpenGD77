@@ -20,7 +20,7 @@
  *
  * Translators: SQ7PTE
  *
- * Rev: 4.6
+ * Rev: 4.7
  */
 #ifndef USER_INTERFACE_LANGUAGES_POLISH_H_
 #define USER_INTERFACE_LANGUAGES_POLISH_H_
@@ -46,6 +46,7 @@ const stringsTable_t polishLanguage =
 .last_heard				= "Ostatnio aktywne", // MaxLen: 16
 .options				= "Opcje", // MaxLen: 16
 .display_options			= "Opcje ekranu", // MaxLen: 16
+.sound_options				= "Opcje dêwiÜku", // MaxLen: 16
 .channel_details			= "Detale kanaàu", // MaxLen: 16
 .new_contact				= "Nowy kontakt", // MaxLen: 16
 .new_channel				= "Nowy kanaà", // MaxLen: 16, leave room for a space and four channel digits after
@@ -90,9 +91,7 @@ const stringsTable_t polishLanguage =
 .duplicate				= "Duplikat", // MaxLen: 16
 .tg					= "TG",  // MaxLen: 8
 .pc					= "PC", // MaxLen: 8
-.Double					= "Double", // MaxLen: 8 (Dual Slot)
-.ts					= "Single", // MaxLen: 8
-.timeslot					= "TS", // MaxLen: 8
+.ts					= "TS", // MaxLen: 8
 .mode					= "Tryb",  // MaxLen: 12
 .colour_code				= "Kolor kodu", // MaxLen: 16 (with ':' * .n_a)
 .n_a					= "N/A",// MaxLen: 16 (with ':' * .colour_code)
@@ -149,7 +148,10 @@ const stringsTable_t polishLanguage =
 .one_line				= "1 linia", // MaxLen 16 (with ':' + .contact)
 .two_lines				= "2 linie", // MaxLen 16 (with ':' + .contact)
 .priority_order				= "WybÛr", // MaxLen 16 (with ':' + 'Cc/DB/TA')
-.tone					= "Tone SQL",
+.dmr_beep				= "WybÛr bipa", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
+.start					= "Start", // MaxLen 16 (with ':' + .dmr_beep)
+.both					= "Oba", // MaxLen 16 (with ':' + .dmr_beep)
+.tone					= "Tone SQL"
 };
 /********************************************************************
  *

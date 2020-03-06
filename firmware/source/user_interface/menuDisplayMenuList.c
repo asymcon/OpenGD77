@@ -28,7 +28,7 @@ int menuDisplayMenuList(uiEvent_t *ev, bool isFirstRun)
 	{
 		gMenuCurrentMenuList = (menuItemNew_t *)menusData[menuSystemGetCurrentMenuNumber()];
 		gMenusEndIndex = gMenuCurrentMenuList[0].menuNum;// first entry actually contains the number of entries
-		gMenuCurrentMenuList = & gMenuCurrentMenuList[1];// move to first real index
+		gMenuCurrentMenuList = &gMenuCurrentMenuList[1];// move to first real index
 		updateScreen();
 	}
 	else
@@ -49,9 +49,13 @@ static void updateScreen(void)
 	for(int i = -1; i <= 1 ; i++)
 	{
 		mNum = menuGetMenuOffset(gMenusEndIndex, i);
-		if (gMenuCurrentMenuList[mNum].stringNumber>=0)
+
+		if (mNum < gMenusEndIndex)
 		{
-			menuDisplayEntry(i, mNum, (const char *)currentLanguage + (gMenuCurrentMenuList[mNum].stringNumber * LANGUAGE_TEXTS_LENGTH));
+			if (gMenuCurrentMenuList[mNum].stringOffset >= 0)
+			{
+				menuDisplayEntry(i, mNum, (const char *)currentLanguage + (gMenuCurrentMenuList[mNum].stringOffset * LANGUAGE_TEXTS_LENGTH));
+			}
 		}
 	}
 

@@ -46,6 +46,7 @@ const stringsTable_t italianLanguage =
 .last_heard				= "Ultimi Ricevuti", // MaxLen: 16
 .options				= "Opzioni", // MaxLen: 16
 .display_options		= "Opz. Display", // MaxLen: 16
+.sound_options				= "Opzioni Audio", // MaxLen: 16
 .channel_details		= "Dettagli canale", // MaxLen: 16
 .new_contact			= "Nuovo Contatto", // MaxLen: 16
 .new_channel			= "Nuovo can.", // MaxLen: 16, leave room for a space and four channel digits after
@@ -90,9 +91,7 @@ const stringsTable_t italianLanguage =
 .duplicate				= "Duplicato", // MaxLen: 16
 .tg						= "TG", // MaxLen: 8
 .pc						= "PC", // MaxLen: 8
-.Double					= "Double", // MaxLen: 8 (Dual Slot)
-.ts					= "Single", // MaxLen: 8
-.timeslot					= "TS", // MaxLen: 8
+.ts						= "TS", // MaxLen: 8
 .mode					= "Modo", // MaxLen: 12
 .colour_code			= "Codice Colore", // MaxLen: 16 (with ':' * .n_a)
 .n_a					= "N/A", // MaxLen: 16 (with ':' * .colour_code)
@@ -145,11 +144,14 @@ const stringsTable_t italianLanguage =
 .manual					= "Manuale",  // MaxLen 16 (with .mode + ':') 
 .ptt_toggle				= "Auto-PTT", // MaxLen 16 (with ':' + .on or .off)
 .private_call_handling	= "Gest. PC", // MaxLen 16 (with ':' + .on ot .off)
-.stop					= "Stop", // Maxlen 16 (with ':' + .scan_mode)
+.stop					= "Fine", // Maxlen 16 (with ':' + .scan_mode)
 .one_line				= "1 linea", // MaxLen 16 (with ':' + .contact)
 .two_lines				= "2 linee", // MaxLen 16 (with ':' + .contact)
 .priority_order			= "Prio.", // MaxLen 16 (with ':' + 'Cc/DB/TA')
-.tone					= "Tone SQL",
+.dmr_beep				= "DMR bip", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
+.start					= "Inizio", // MaxLen 16 (with ':' + .dmr_beep)
+.both					= "Doppio", // MaxLen 16 (with ':' + .dmr_beep)
+.tone					= "Tone SQL"
 };
 /********************************************************************
  *

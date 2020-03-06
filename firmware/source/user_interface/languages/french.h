@@ -46,6 +46,7 @@ const stringsTable_t frenchLanguage =
 .last_heard				= "Derniers reçus",
 .options				= "Options",
 .display_options		= "Options aff.",
+.sound_options				= "Options son", // MaxLen: 16
 .channel_details		= "Détails canal",
 .new_contact			= "Nouv. contact",
 .new_channel			= "New channel", // MaxLen: 16, leave room for a space and four channel digits after
@@ -90,9 +91,7 @@ const stringsTable_t frenchLanguage =
 .duplicate				= "Dupliqué",
 .tg						= "TG",
 .pc						= "PC",
-.Double					= "Double", // MaxLen: 8 (Dual Slot)
-.ts					= "Single", // MaxLen: 8
-.timeslot					= "TS", // MaxLen: 8
+.ts						= "TS",
 .mode					= "Mode",
 .colour_code			= "Code Couleur",
 .n_a					= "ND",
@@ -149,7 +148,10 @@ const stringsTable_t frenchLanguage =
 .one_line				= "1 ligne", // MaxLen 16 (with ':' + .contact)
 .two_lines				= "2 lignes", // MaxLen 16 (with ':' + .contact)
 .priority_order				= "Ordre", // MaxLen 16 (with ':' + 'Cc/DB/TA')
-.tone					= "Tone SQL",
+.dmr_beep				= "Bip TX", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
+.start					= "Début", // MaxLen 16 (with ':' + .dmr_beep)
+.both					= "Les Deux", // MaxLen 16 (with ':' + .dmr_beep)
+.tone					= "Tone SQL"
 };
 /********************************************************************
  *

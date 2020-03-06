@@ -46,6 +46,7 @@ const stringsTable_t spanishLanguage =
 .last_heard				= "Ult. escuchados", // MaxLen: 16
 .options				= "Opciones", // MaxLen: 16
 .display_options		= "Opciones display", // MaxLen: 16
+.sound_options			= "Opciones sonido", // MaxLen: 16
 .channel_details		= "Detalles Canal", // MaxLen: 16
 .new_contact			= "Nuevo contacto", // MaxLen: 16
 .new_channel			= "Nuevo canal", // MaxLen: 16, leave room for a space and four channel digits after
@@ -90,9 +91,7 @@ const stringsTable_t spanishLanguage =
 .duplicate				= "Duplicado", // MaxLen: 16
 .tg						= "TG",  // MaxLen: 8
 .pc						= "PC", // MaxLen: 8
-.Double					= "Double", // MaxLen: 8 (Dual Slot)
-.ts					= "Single", // MaxLen: 8
-.timeslot					= "TS", // MaxLen: 8
+.ts						= "TS", // MaxLen: 8
 .mode					= "Modo",  // MaxLen: 12
 .colour_code			= "Codigo Color", // MaxLen: 16 (with ':' * .n_a)
 .n_a					= "N/A",// MaxLen: 16 (with ':' * .colour_code)
@@ -149,7 +148,10 @@ const stringsTable_t spanishLanguage =
 .one_line				= "1 linea", // MaxLen 16 (with ':' + .contact)
 .two_lines				= "2 linea", // MaxLen 16 (with ':' + .contact)
 .priority_order				= "Orden", // MaxLen 16 (with ':' + 'Cc/DB/TA')
-.tone					= "Tone SQL",
+.dmr_beep				= "DMR beep", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
+.start					= "Inicio", // MaxLen 16 (with ':' + .dmr_beep)
+.both					= "Ambos", // MaxLen 16 (with ':' + .dmr_beep)
+.tone					= "Tone SQL"
 };
 /********************************************************************
  *
