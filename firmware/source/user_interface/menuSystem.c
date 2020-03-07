@@ -259,10 +259,10 @@ const char menuStringTable[32][17] = { "",//0
 const menuItemNew_t menuDataMainMenu[] = {
 	{12,12},// number of menus
 	{ 9, MENU_OPTIONS },
-	{ 11, MENU_SOUND },
 	{ 3, MENU_ZONE_LIST },
 	{ 12, MENU_CHANNEL_DETAILS},
 	{ 10, MENU_DISPLAY},
+	{ 11, MENU_SOUND },
 	{ 4, MENU_RSSI_SCREEN },
 	{ 6, MENU_CONTACTS_MENU },
 	{ 7, MENU_LAST_HEARD },
