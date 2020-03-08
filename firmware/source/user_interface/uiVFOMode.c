@@ -858,7 +858,7 @@ static void handleEvent(uiEvent_t *ev)
 						nonVolatileSettings.txPowerLevel--;
 						trxSetPowerFromLevel(nonVolatileSettings.txPowerLevel);
 						menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
-						menuChannelModeUpdateScreen(0);
+						menuVFOModeUpdateScreen(0);
 					}
 				}
 			}
@@ -1033,11 +1033,11 @@ static void stepFrequency(int increment)
 enum VFO_SCREEN_QUICK_MENU_ITEMS // The last item in the list is used so that we automatically get a total number of items in the list
 {
 #if (PLATFORM == GD-77)
-	VFO_SCREEN_QUICK_MENU_SCAN = 0, VFO_SCREEN_QUICK_MENU_VFO_TO_NEW, VFO_SCREEN_QUICK_MENU_VFO_A_B, VFO_SCREEN_QUICK_MENU_TX_SWAP_RX, 
+	VFO_SCREEN_QUICK_MENU_SCAN = 0, VFO_SCREEN_QUICK_MENU_VFO_TO_NEW, VFO_SCREEN_CODE_SCAN, VFO_SCREEN_QUICK_MENU_VFO_A_B, VFO_SCREEN_QUICK_MENU_TX_SWAP_RX, 
 	VFO_SCREEN_QUICK_MENU_BOTH_TO_RX, VFO_SCREEN_QUICK_MENU_BOTH_TO_TX, VFO_SCREEN_SCAN_LOW_FREQ,
 	VFO_SCREEN_SCAN_HIGH_FREQ, VFO_SCREEN_QUICK_MENU_FILTER,
 #elif (PLATFORM == DM-1801)
-	VFO_SCREEN_QUICK_MENU_SCAN = 0, VFO_SCREEN_QUICK_MENU_VFO_TO_NEW, VFO_SCREEN_QUICK_MENU_TX_SWAP_RX, 
+	VFO_SCREEN_QUICK_MENU_SCAN = 0, VFO_SCREEN_CODE_SCAN, VFO_SCREEN_QUICK_MENU_VFO_TO_NEW, VFO_SCREEN_QUICK_MENU_TX_SWAP_RX, 
 	VFO_SCREEN_QUICK_MENU_BOTH_TO_RX, VFO_SCREEN_QUICK_MENU_BOTH_TO_TX, VFO_SCREEN_SCAN_LOW_FREQ,
 	VFO_SCREEN_SCAN_HIGH_FREQ, VFO_SCREEN_QUICK_MENU_FILTER,
 #endif
@@ -1089,6 +1089,16 @@ static void updateQuickMenuScreen(void)
 				break;
 			case VFO_SCREEN_QUICK_MENU_BOTH_TO_TX:
 				strcpy(buf, "Tx --> Rx");
+				break;
+			case VFO_SCREEN_CODE_SCAN:	
+				if(trxGetMode() == RADIO_MODE_ANALOG)	
+				{	
+					strncpy(buf, currentLanguage->tone_scan, bufferLen);	
+				}	
+				else	
+				{	
+					strncpy(buf, currentLanguage->n_a, bufferLen);	
+				}	
 				break;
 #if (PLATFORM == GD-77)
 			case VFO_SCREEN_QUICK_MENU_VFO_A_B:
@@ -1206,6 +1216,18 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 				trxSetFrequency(currentChannelData->rxFreq,currentChannelData->txFreq,DMR_MODE_AUTO);
 
 				break;
+				
+			case VFO_SCREEN_CODE_SCAN:	
+				if(trxGetMode() == RADIO_MODE_ANALOG)	
+				{	
+					toneScanActive=true;	
+					scanTimer=TONESCANINTERVAL;	
+					scanIndex=1;	
+					trxSetRxCTCSS(TRX_CTCSSTones[scanIndex]);	
+					disableAudioAmp(AUDIO_AMP_MODE_RF);	
+				}
+				break;
+
 			case VFO_SCREEN_QUICK_MENU_FILTER:
 				if (trxGetMode() == RADIO_MODE_DIGITAL)
 				{
