@@ -100,6 +100,8 @@ static volatile int repeaterWakeupResponseTimeout=0;
 static volatile int isWaking = WAKING_MODE_NONE;
 static volatile int rxwait;// used for Repeater wakeup sequence
 static volatile int rxcnt;// used for Repeater wakeup sequence
+static volatile int tsLockCount=0;
+
 volatile int lastTimeCode=0;
 static volatile uint8_t previousLCBuf[12];
 volatile bool updateLastHeard=false;
@@ -122,9 +124,6 @@ static void HRC6000TransitionToTx(void);
 static void triggerQSOdataDisplay(void);
 
 
-void initReceivedColourCodes(void);
-volatile uint32_t receivedColourCodes[16];
-volatile int	bestColourCodeIndex = -1;
 
 
 enum RXSyncClass { SYNC_CLASS_HEADER = 0, SYNC_CLASS_VOICE = 1, SYNC_CLASS_DATA = 2, SYNC_CLASS_RC = 3};
@@ -133,6 +132,9 @@ static const int START_TICK_TIMEOUT = 20;
 static const int END_TICK_TIMEOUT 	= 13;
 
 static volatile int lastRxColorCode=0;
+static bool ccHold=true;
+static int ccHoldTimer=0;
+static const int CCHOLDVALUE =1000;			//1 second
 
 void SPI_HR_C6000_init(void)
 {
@@ -707,6 +709,7 @@ inline static void HRC6000SysReceivedDataInt(void)
 				 (slot_state == DMR_STATE_RX_1))) && checkTalkGroupFilter() && checkColourCodeFilter())
 			{
 				//SEGGER_RTT_printf(0, "Audio frame %d\t%d\n",sequenceNumber,timeCode);
+				ccHold=true;				//don't allow CC to change if we are receiving audio
 				enableAudioAmp(AUDIO_AMP_MODE_RF);
 				if (sequenceNumber == 1)
 				{
@@ -773,36 +776,14 @@ inline static void HRC6000SysInterruptHandler(void)
 
 	if (!trxIsTransmitting) // ignore the LC data when we are transmitting
 	{
-		// reg0x52 Bit 3 (0x08) CACH
-		if ((reg0x52 & 0x08)!=0 && nonVolatileSettings.dmrFilterLevel < DMR_FILTER_CC )
+		if ((!ccHold) && (nonVolatileSettings.dmrFilterLevel < DMR_FILTER_CC) )
 		{
-			// This code implements a more complex strategy to lock onto the CC that is received the most often,
-			// This strategy
-			// but is not necessarily better than the other
-			receivedColourCodes[rxColorCode]++;
-
-			if (bestColourCodeIndex==-1)
+			if(rxColorCode==lastRxColorCode)
 			{
-				bestColourCodeIndex = rxColorCode;
-				//SEGGER_RTT_printf(0, "%d\tFirst best index %d\n",PITCounter,bestColourCodeIndex);
-				trxSetDMRColourCode(bestColourCodeIndex);
-				currentChannelData->rxColor=bestColourCodeIndex;
-
+				trxSetDMRColourCode(rxColorCode);
+				currentChannelData->rxColor=rxColorCode;
 			}
-			else
-			{
-				if (receivedColourCodes[rxColorCode] > receivedColourCodes[bestColourCodeIndex])
-				{
-					bestColourCodeIndex = rxColorCode;
-					//SEGGER_RTT_printf(0, "%d\tNew best index %d\n",PITCounter,bestColourCodeIndex);
-					trxSetDMRColourCode(bestColourCodeIndex);
-					currentChannelData->rxColor = bestColourCodeIndex;
-				}
-				else
-				{
-					//SEGGER_RTT_printf(0, "receivedColourCodes[rxColorCode] %d %d %d\n",receivedColourCodes[rxColorCode], bestColourCodeIndex,rxColorCode);
-				}
-			}
+		lastRxColorCode=rxColorCode;
 		}
 
 		uint8_t LCBuf[12];
@@ -843,6 +824,10 @@ inline static void HRC6000SysInterruptHandler(void)
 			}
 		}
 		memcpy((uint8_t *)previousLCBuf,LCBuf,12);
+	}
+	else
+	{
+		ccHold=true;					//prevent CC change when transmitting.
 	}
 
 	if (tmp_val_0x82 & SYS_INT_SEND_REQUEST_REJECTED)
@@ -927,6 +912,7 @@ inline static void HRC6000TimeslotInterruptHandler(void)
 
 	if (slot_state == DMR_STATE_REPEATER_WAKE_4 || timeCode == -1)			//if we are waking up the repeater, or we don't currently have a valid value for the timecode
 	{
+		tsLockCount=0;
 		timeCode=receivedTimeCode;							//use the received TC directly from the CACH
 	}
 	else
@@ -934,15 +920,18 @@ inline static void HRC6000TimeslotInterruptHandler(void)
 		timeCode=!timeCode;									//toggle the timecode.
 		if(timeCode==receivedTimeCode)						//if this agrees with the received version
 		{
+			tsLockCount++;
 			if(rxcnt>0) rxcnt--;							//decrement the disagree count
 		}
 		else												//if there is a disagree it might be just a glitch so ignore it a couple of times.
 		{
 			rxcnt++;										//count the number of disagrees.
+			tsLockCount--;
 			if(rxcnt>3)										//if we have had four disagrees then re-sync.
 			{
 				timeCode=receivedTimeCode;
 				rxcnt=0;
+				tsLockCount=0;
 			}
 		}
 	}
@@ -955,7 +944,7 @@ inline static void HRC6000TimeslotInterruptHandler(void)
 			if (trxDMRMode == DMR_MODE_PASSIVE)
 			{
 
-				if( !isWaking &&  trxIsTransmitting && !checkTimeSlotFilter() && (rxcnt==0))
+				if( !isWaking &&  trxIsTransmitting && !checkTimeSlotFilter() && (rxcnt==0) && (tsLockCount > 4))
 				{
 						HRC6000TransitionToTx();
 				}
@@ -1279,11 +1268,11 @@ void init_digital(void)
 	disableAudioAmp(AUDIO_AMP_MODE_RF);
     GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, false);
     timeCode = -1;// Clear current timecode synchronisation
+    tsLockCount = 0;
 	init_digital_DMR_RX();
 	init_digital_state();
     NVIC_EnableIRQ(PORTC_IRQn);
 	init_codec();
-	initReceivedColourCodes();
 }
 
 void terminate_digital(void)
@@ -1294,11 +1283,7 @@ void terminate_digital(void)
     NVIC_DisableIRQ(PORTC_IRQn);
 }
 
-void initReceivedColourCodes(void)
-{
-	memset((void*)&receivedColourCodes[0],0,sizeof(uint32_t)*16);
-	bestColourCodeIndex = -1;
-}
+
 
 void triggerQSOdataDisplay(void)
 {
@@ -1404,6 +1389,28 @@ bool callAcceptFilter(void)
 
 void tick_HR_C6000(void)
 {
+
+	if(nonVolatileSettings.dmrFilterLevel < DMR_FILTER_CC)
+	{
+		if(slot_state == DMR_STATE_IDLE)
+		{
+		  if (ccHoldTimer< CCHOLDVALUE)
+			{
+			ccHoldTimer++;
+			}
+		  else
+			{
+			ccHold=false;
+			}
+
+		}
+		else
+		{
+		 ccHoldTimer=0;
+		}
+	}
+
+
 	if (trxIsTransmitting==true  && (isWaking == WAKING_MODE_NONE))
 	{
 		if (slot_state == DMR_STATE_IDLE)

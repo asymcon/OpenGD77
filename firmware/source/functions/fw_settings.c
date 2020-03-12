@@ -27,7 +27,7 @@
 
 static const int STORAGE_BASE_ADDRESS 		= 0x6000;
 
-static const int STORAGE_MAGIC_NUMBER 		= 0x6001;
+static const int STORAGE_MAGIC_NUMBER 		= 0x6003;
 
 // Bit patterns for DMR Beep
 const uint8_t BEEP_TX_NONE  = 0x00;
@@ -130,7 +130,11 @@ void settingsRestoreDefaultSettings(void)
 	nonVolatileSettings.displayInverseVideo=false;// Not inverse video
 	nonVolatileSettings.useCalibration = true;// enable the new calibration system
 	nonVolatileSettings.txFreqLimited = true;// Limit Tx frequency to US Amateur bands
+//	#if(PLATFORM_GD-77  || PLATFORM_GD77S)
 	nonVolatileSettings.txPowerLevel=10;// 1W Power level in fw_trx.c must match 1W level case
+//	#elif (PLATFORM_DM1801)
+//	nonVolatileSettings.txPowerLevel=4;// 1 W
+//	#endif
 	nonVolatileSettings.overrideTG=0;// 0 = No override
 	nonVolatileSettings.txTimeoutBeepX5Secs = 0;
 	nonVolatileSettings.beepVolumeDivider = 1;// no reduction in volume
@@ -149,7 +153,11 @@ void settingsRestoreDefaultSettings(void)
 	nonVolatileSettings.squelchDefaults[RADIO_BAND_220MHz]	= 10;// 1 - 21 = 0 - 100% , same as from the CPS variable squelch
 	nonVolatileSettings.squelchDefaults[RADIO_BAND_UHF]		= 10;// 1 - 21 = 0 - 100% , same as from the CPS variable squelch
 	nonVolatileSettings.pttToggle = false; // PTT act as a toggle button
+#if defined(PLATFORM_GD77S)
+	nonVolatileSettings.hotspotType = HOTSPOT_TYPE_MMDVM;
+#else
 	nonVolatileSettings.hotspotType = HOTSPOT_TYPE_OFF;
+#endif
 	nonVolatileSettings.transmitTalkerAlias	= false;
     nonVolatileSettings.privateCalls = true;
     // Set all these value to zero to force the operator to set their own limits.

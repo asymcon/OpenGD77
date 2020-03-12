@@ -39,11 +39,17 @@ static void updateScreen(void)
 {
 	char buf[17];
 
-	snprintf(buf, 16, "v1.50.20", GITVERSION);
+	snprintf(buf, 16, "v1.52.20", GITVERSION);
 	buf[11] = 0; // git hash id 7 char long;
 
 	ucClearBuf();
+
+#if defined(PLATFORM_GD77)
 	ucPrintCentered(5, "OpenGD77", FONT_8x16);
+#elif defined(PLATFORM_DM1801)
+	ucPrintCentered(5, "OpenDM1801", FONT_8x16);
+#endif
+
 	ucPrintCentered(24, "Built by NA7Q", FONT_8x8);
 	ucPrintCentered(34,__TIME__, FONT_8x8);
 	ucPrintCentered(44,__DATE__, FONT_8x8);

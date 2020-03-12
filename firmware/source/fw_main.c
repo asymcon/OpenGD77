@@ -93,11 +93,29 @@ void fw_main_task(void *data)
 	if (buttons & BUTTON_SK2)
 	{
 		settingsRestoreDefaultSettings();
+
 	}
+
+#if defined(PLATFORM_GD77S)
+	if (buttons & BUTTON_SK1)
+	{
+		nonVolatileSettings.hotspotType = HOTSPOT_TYPE_MMDVM;
+		settingsSaveSettings(false);
+	}
+	else
+	{
+		if (buttons & BUTTON_SK2)
+		{
+			nonVolatileSettings.hotspotType = HOTSPOT_TYPE_BLUEDV;
+			settingsSaveSettings(false);
+		}
+	}
+#endif
     settingsLoadSettings();
 
+#if ! defined(PLATFORM_GD77S)
 	fw_init_display(nonVolatileSettings.displayInverseVideo);
-
+#endif
     // Init SPI
     init_SPI();
     setup_SPI0();
@@ -181,7 +199,11 @@ void fw_main_task(void *data)
 			tick_com_request();
 
 			fw_check_button_event(&buttons, &button_event); // Read button state and event
+
+#if ! defined(PLATFORM_GD77S)
 			fw_check_key_event(&keys, &key_event); // Read keyboard state and event
+#endif
+
 			// EVENT_*_CHANGED can be cleared later, so check this now as hasEvent has to be set anyway.
 			keyOrButtonChanged = ((key_event != NO_EVENT) || (button_event != NO_EVENT));
 
@@ -259,7 +281,8 @@ void fw_main_task(void *data)
 				}
 			}
 
-			if ((key_event == EVENT_KEY_CHANGE) && ((buttons & BUTTON_PTT) == 0) && (keys.key != 0))
+#if ! defined(PLATFORM_GD77S)
+		if ((key_event == EVENT_KEY_CHANGE) && ((buttons & BUTTON_PTT) == 0) && (keys.key != 0))
 			{
 				// Do not send any beep while scanning, otherwise enabling the AMP will be handled as a valid signal detection.
 				if (keys.event & KEY_MOD_PRESS)
@@ -280,6 +303,7 @@ void fw_main_task(void *data)
 					menuSystemPopAllAndDisplayRootMenu();
 				}
 			}
+
 /*
  * This code ignores the keypress if the display is not lit, however this functionality is proving to be a problem for things like entering a TG
  * I think it needs to be removed until a better solution can be found
@@ -348,12 +372,11 @@ void fw_main_task(void *data)
 				if (PTTToggledDown)
 					PTTToggledDown = false;
 			}
-
+#endif
 
 			if (button_event == EVENT_BUTTON_CHANGE)
 			{
 				displayLightTrigger();
-
 				if ((buttons & BUTTON_PTT) != 0)
 				{
 					int currentMenu = menuSystemGetCurrentMenuNumber();
