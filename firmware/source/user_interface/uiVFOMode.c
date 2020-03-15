@@ -15,18 +15,16 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#include <hardware/fw_HR-C6000.h>
+#include <codeplug.h>
+#include <HR-C6000.h>
+#include <settings.h>
+#include <trx.h>
 #include <user_interface/menuSystem.h>
 #include <user_interface/uiUtilities.h>
 #include <user_interface/uiLocalisation.h>
-#include "fw_trx.h"
-#include "fw_settings.h"
-#include "fw_codeplug.h"
 
 enum VFO_SELECTED_FREQUENCY_INPUT  {VFO_SELECTED_FREQUENCY_INPUT_RX , VFO_SELECTED_FREQUENCY_INPUT_TX};
 
-static char freq_enter_digits[8] = { '-', '-', '-', '-', '-', '-', '-', '-' };
-static int freq_enter_idx = 0;
 static int selectedFreq = VFO_SELECTED_FREQUENCY_INPUT_RX;
 
 static struct_codeplugRxGroup_t rxGroupData;
@@ -36,8 +34,6 @@ static struct_codeplugContact_t contactData;
 static void handleEvent(uiEvent_t *ev);
 static void handleQuickMenuEvent(uiEvent_t *ev);
 static void updateQuickMenuScreen(void);
-static void reset_freq_enter_digits(void);
-static int read_freq_enter_digits(void);
 static void update_frequency(int tmp_frequency);
 static void stepFrequency(int increment);
 static void loadContact(void);
@@ -69,6 +65,7 @@ int menuVFOMode(uiEvent_t *ev, bool isFirstRun)
 	{
 		LinkItem_t *item = NULL;
 		uint32_t rxID = HRC6000GetReceivedSrcId();
+		freq_enter_idx = 0;
 
 		isDisplayingQSOData=false;
 		nonVolatileSettings.initialMenuNumber=MENU_VFO_MODE;
@@ -428,29 +425,6 @@ void menuVFOModeStopScanning(void)
 	displayLightTrigger();
 }
 
-static void reset_freq_enter_digits(void)
-{
-	for (int i=0;i<8;i++)
-	{
-		freq_enter_digits[i]='-';
-	}
-	freq_enter_idx = 0;
-}
-
-static int read_freq_enter_digits(void)
-{
-	int result=0;
-	for (int i=0;i<8;i++)
-	{
-		result=result*10;
-		if ((freq_enter_digits[i]>='0') && (freq_enter_digits[i]<='9'))
-		{
-			result=result+freq_enter_digits[i]-'0';
-		}
-	}
-	return result;
-}
-
 static void update_frequency(int frequency)
 {
 	if (selectedFreq == VFO_SELECTED_FREQUENCY_INPUT_TX)
@@ -572,7 +546,8 @@ static void handleEvent(uiEvent_t *ev)
 		// If Blue button is pressed during reception it sets the Tx TG to the incoming TG
 		if (isDisplayingQSOData && (ev->buttons & BUTTON_SK2) && trxGetMode() == RADIO_MODE_DIGITAL &&
 					(trxTalkGroupOrPcId != tg ||
-					(dmrMonitorCapturedTS!=-1 && dmrMonitorCapturedTS != trxGetDMRTimeSlot())))
+					(dmrMonitorCapturedTS!=-1 && dmrMonitorCapturedTS != trxGetDMRTimeSlot()) ||
+					(trxGetDMRColourCode() != currentChannelData->rxColor)))
 		{
 			lastHeardClearLastID();
 
@@ -595,6 +570,9 @@ static void handleEvent(uiEvent_t *ev)
 					nonVolatileSettings.overrideTG = trxTalkGroupOrPcId;
 				}
 			}
+
+			currentChannelData->rxColor = trxGetDMRColourCode();// Set the CC to the current CC, which may have been determined by the CC finding algorithm in C6000.c
+
 			menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
 			menuVFOModeUpdateScreen(0);
 			return;
@@ -654,22 +632,24 @@ static void handleEvent(uiEvent_t *ev)
 				}
 			}
 		}
-		else if (KEYCHECK_SHORTUP(ev->keys,KEY_HASH))
-		{
-			if (trxGetMode() == RADIO_MODE_DIGITAL)
-			{
-				if ((ev->buttons & BUTTON_SK2) != 0)
-				{
-					menuSystemPushNewMenu(MENU_CONTACT_QUICKLIST);
-				} else {
-					menuSystemPushNewMenu(MENU_NUMERICAL_ENTRY);
-				}
-			}
-			return;
-		}
+
 
 		if (freq_enter_idx==0)
 		{
+			if (KEYCHECK_SHORTUP(ev->keys,KEY_HASH))
+			{
+				if (trxGetMode() == RADIO_MODE_DIGITAL)
+				{
+					if ((ev->buttons & BUTTON_SK2) != 0)
+					{
+						menuSystemPushNewMenu(MENU_CONTACT_QUICKLIST);
+					} else {
+						menuSystemPushNewMenu(MENU_NUMERICAL_ENTRY);
+					}
+				}
+				return;
+			}
+
 			if (KEYCHECK_SHORTUP(ev->keys,KEY_STAR))
 			{
 				if (ev->buttons & BUTTON_SK2 )
@@ -935,7 +915,6 @@ static void handleEvent(uiEvent_t *ev)
 				{
 					update_frequency(tmp_frequency);
 					reset_freq_enter_digits();
-	//	        	    set_melody(melody_ACK_beep);
 				}
 				else
 				{

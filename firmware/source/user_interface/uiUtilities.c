@@ -16,16 +16,16 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include <hardware/fw_EEPROM.h>
-#include <hardware/fw_HR-C6000.h>
-#include <hardware/fw_SPI_Flash.h>
+#include <EEPROM.h>
 #include <user_interface/menuSystem.h>
 #include <user_interface/uiUtilities.h>
 #include <user_interface/uiLocalisation.h>
-#include "fw_trx.h"
-#include "fw_settings.h"
 #include <math.h>
-#include <functions/fw_ticks.h>
+#include <HR-C6000.h>
+#include <settings.h>
+#include <SPI_Flash.h>
+#include <ticks.h>
+#include <trx.h>
 
 settingsStruct_t originalNonVolatileSettings;
 
@@ -65,6 +65,10 @@ ScanState_t scanState = SCAN_SCANNING;		//state flag for scan routine.
 int scanDirection = 1;
 
 bool displaySquelch=false;
+
+char freq_enter_digits[8] = { '-', '-', '-', '-', '-', '-', '-', '-' };
+int freq_enter_idx;
+
 
 
 const int SCAN_SHORT_PAUSE_TIME = 500;			//time to wait after carrier detected to allow time for full signal detection. (CTCSS or DMR)
@@ -1008,7 +1012,9 @@ void menuUtilityRenderQSOData(void)
 		else
 		{
 			// Group call
-			if ((LinkHead->talkGroupOrPcId & 0xFFFFFF) != trxTalkGroupOrPcId || (dmrMonitorCapturedTS!=-1 && dmrMonitorCapturedTS != trxGetDMRTimeSlot()))
+			if (	(LinkHead->talkGroupOrPcId & 0xFFFFFF) != trxTalkGroupOrPcId ||
+					(dmrMonitorCapturedTS!=-1 && dmrMonitorCapturedTS != trxGetDMRTimeSlot()) ||
+					(trxGetDMRColourCode() != currentChannelData->rxColor))
 			{
 				// draw the text in inverse video
 				ucClearRows(2, 4, true);
@@ -1341,4 +1347,27 @@ void printFrequency(bool isTX, bool hasFocus, uint8_t y, uint32_t frequency, boo
 	ucPrintAt(FREQUENCY_X_POS, y, buffer, FONT_8x16);
 	// Unit
 	ucPrintAt(128 - (3 * 8), y, "MHz", FONT_8x16);
+}
+
+void reset_freq_enter_digits(void)
+{
+	for (int i=0;i<8;i++)
+	{
+		freq_enter_digits[i]='-';
+	}
+	freq_enter_idx = 0;
+}
+
+int read_freq_enter_digits(void)
+{
+	int result=0;
+	for (int i=0;i<8;i++)
+	{
+		result=result*10;
+		if ((freq_enter_digits[i]>='0') && (freq_enter_digits[i]<='9'))
+		{
+			result=result+freq_enter_digits[i]-'0';
+		}
+	}
+	return result;
 }

@@ -15,20 +15,20 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
+#include <settings.h>
 #include <user_interface/menuSystem.h>
 #include <user_interface/uiLocalisation.h>
-#include <functions/fw_settings.h>
-#include <interfaces/fw_wdog.h>
 #include <user_interface/uiUtilities.h>
+#include <wdog.h>
 
 static void updateScreen(void);
 static void handleEvent(uiEvent_t *ev);
 static bool	doFactoryReset;
-enum OPTIONS_MENU_LIST { OPTIONS_MENU_HOTSPOT_TYPE = 0, OPTIONS_MENU_FACTORY_RESET,OPTIONS_MENU_USE_CALIBRATION,
+enum OPTIONS_MENU_LIST { OPTIONS_MENU_HOTSPOT_TYPE = 0, OPTIONS_MENU_FACTORY_RESET, OPTIONS_MENU_USE_CALIBRATION,
 							OPTIONS_MENU_TX_FREQ_LIMITS,
 							OPTIONS_MENU_KEYPAD_TIMER_LONG, OPTIONS_MENU_KEYPAD_TIMER_REPEAT, OPTIONS_MENU_DMR_MONITOR_CAPTURE_TIMEOUT,
-							OPTIONS_MENU_SCAN_DELAY,OPTIONS_MENU_SCAN_MODE,
-							OPTIONS_MENU_SQUELCH_DEFAULT_VHF,OPTIONS_MENU_SQUELCH_DEFAULT_220MHz,OPTIONS_MENU_SQUELCH_DEFAULT_UHF,
+							OPTIONS_MENU_SCAN_DELAY, OPTIONS_MENU_SCAN_MODE,
+							OPTIONS_MENU_SQUELCH_DEFAULT_VHF, OPTIONS_MENU_SQUELCH_DEFAULT_220MHz, OPTIONS_MENU_SQUELCH_DEFAULT_UHF,
 							OPTIONS_MENU_PTT_TOGGLE, OPTIONS_MENU_TALKER_ALIAS_TX,
 							OPTIONS_MENU_PRIVATE_CALLS,
 							NUM_OPTIONS_MENU_ITEMS};
