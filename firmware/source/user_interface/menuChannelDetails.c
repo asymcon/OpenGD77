@@ -35,10 +35,14 @@ static char channelName[17];
 static int namePos;
 
 
-enum CHANNEL_DETAILS_DISPLAY_LIST {  CH_DETAILS_RXCTCSS=0, 
-CH_DETAILS_TXCTCSS, CH_DETAILS_BANDWIDTH, CH_DETAILS_FREQ_STEP, CH_DETAILS_MODE, 
-CH_DETAILS_RXGROUP, CH_DETAILS_DMR_CC, CH_DETAILS_DMR_TS,
-CH_DETAILS_ZONE_SKIP, CH_DETAILS_ALL_SKIP, CH_DETAILS_TOT, CH_DETAILS_NAME, CH_DETAILS_RXFREQ, CH_DETAILS_TXFREQ,
+enum CHANNEL_DETAILS_DISPLAY_LIST {  CH_DETAILS_RXCTCSS = 0, 
+									 CH_DETAILS_TXCTCSS, CH_DETAILS_BANDWIDTH, 
+									 CH_DETAILS_FREQ_STEP, CH_DETAILS_MODE, 
+									 CH_DETAILS_RXGROUP, CH_DETAILS_DMR_CC,
+									 CH_DETAILS_DMR_TS, CH_DETAILS_ZONE_SKIP,
+									 CH_DETAILS_ALL_SKIP, CH_DETAILS_TOT,
+									 CH_DETAILS_NAME, CH_DETAILS_RXFREQ,
+									 CH_DETAILS_TXFREQ,
 									NUM_CH_DETAILS_ITEMS};// The last item in the list is used so that we automatically get a total number of items in the list
 
 int menuChannelDetails(uiEvent_t *ev, bool isFirstRun)
@@ -256,7 +260,7 @@ static void updateScreen(void)
 
 static void updateFrequency(void)
 {
-	int tmp_frequency=read_freq_enter_digits();
+	int tmp_frequency=read_freq_enter_digits(0,8);
 	if (trxGetBandFromFrequency(tmp_frequency)!=-1)
 	{
 		switch(gMenusCurrentItemIndex)

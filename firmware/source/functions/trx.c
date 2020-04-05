@@ -570,7 +570,7 @@ static const float fractionalPowers[9][10] = {	{0.35,0.39,0.42,0.46,0.50,0.53,0.
 			txPower = trxPowerSettings.lowPower;
 			break;
 		case 11:// 2W
-			txPower = (((powerLevel - 10) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower; // must match number is fw_settings.c
+			txPower = (((powerLevel - 10) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower; // must match number in settings.c
 			break;
 		case 12:// 3W
 			txPower = (((powerLevel - 10) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;
