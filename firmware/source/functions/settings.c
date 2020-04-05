@@ -27,7 +27,7 @@
 
 static const int STORAGE_BASE_ADDRESS 		= 0x6000;
 
-static const int STORAGE_MAGIC_NUMBER 		= 0x6005;
+static const int STORAGE_MAGIC_NUMBER 		= 0x6006;
 
 // Bit patterns for DMR Beep
 const uint8_t BEEP_TX_NONE  = 0x00;
@@ -123,7 +123,12 @@ void settingsRestoreDefaultSettings(void)
 	nonVolatileSettings.currentZone = 0;
 	nonVolatileSettings.backlightMode = BACKLIGHT_MODE_AUTO;
 	nonVolatileSettings.backLightTimeout = 0;//0 = never timeout. 1 - 255 time in seconds
-	nonVolatileSettings.displayContrast = 0x12;
+	nonVolatileSettings.displayContrast =
+#if defined(PLATFORM_DM1801)
+			0x0e; // 14
+#else
+			0x12; // 18
+#endif
 	nonVolatileSettings.initialMenuNumber=MENU_VFO_MODE;
 	nonVolatileSettings.displayBacklightPercentage=100U;// 100% brightness
 	nonVolatileSettings.displayBacklightPercentageOff=0U;// 0% brightness
