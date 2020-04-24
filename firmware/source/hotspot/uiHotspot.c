@@ -125,7 +125,7 @@ M: 2020-01-07 09:52:15.246 DMR Slot 2, received network end of voice transmissio
 
 #define MMDVM_HEADER_LENGTH 4U
 
-#define HOTSPOT_VERSION_STRING "OpenGD77 Hotspot v0.1.1"
+#define HOTSPOT_VERSION_STRING "OpenGD77 Hotspot v0.1.3"
 #define concat(a, b) a " GitID #" b ""
 static const char HARDWARE[] = concat(HOTSPOT_VERSION_STRING, GITVERSION);
 
@@ -146,7 +146,8 @@ static const uint8_t END_FRAME_PATTERN[]    = { 0x5D,0x7F,0x77,0xFD,0x75,0x79 };
 
 static uint32_t freq_rx = 0;
 static uint32_t freq_tx = 0;
-static uint8_t rf_power;
+static uint8_t colorCode = 1;
+static uint8_t rf_power = 255;
 static uint32_t tx_delay = 0;
 static uint32_t savedTGorPC;
 static uint8_t hotspotTxLC[9];
@@ -170,7 +171,7 @@ static int savedPowerLevel = -1;// no power level saved yet
 static int hotspotPowerLevel = 0;// no power level saved yet
 
 static uint32_t mmdvmHostLastActiveTime = 0; // store last activity time (ms)
-static const uint32_t MMDVMHOST_TIMEOUT = 10000; // 10s timeout (MMDVMHost mode only, there is no timeout for BlueDV)
+static const uint32_t MMDVMHOST_TIMEOUT = 20000; // 20s timeout (MMDVMHost mode only, there is no timeout for BlueDV)
 static bool mmdvmHostIsConnected = false;
 
 static bool displayFWVersion;
@@ -392,6 +393,28 @@ int menuHotspotMode(uiEvent_t *ev, bool isFirstRun)
 
 		MMDVMHostRxState = MMDVMHOST_RX_READY; // We have not sent anything to MMDVMHost, so it can't be busy yet.
 
+		// Set CC, QRG and power, in case hotspot menu has left then re-enter.
+		trxSetDMRColourCode(colorCode);
+
+		if (trxCheckFrequencyInAmateurBand(freq_rx) && trxCheckFrequencyInAmateurBand(freq_tx))
+		{
+			trxSetFrequency(freq_rx, freq_tx, DMR_MODE_ACTIVE);
+		}
+
+		if (rf_power != 255)
+		{
+			if (rf_power < 50)
+			{
+				hotspotPowerLevel = rf_power / 12;
+			}
+			else
+			{
+				hotspotPowerLevel = (rf_power / 50) + 3;
+			}
+
+			trxSetPowerFromLevel(hotspotPowerLevel);
+		}
+
 		ucClearBuf();
 		ucPrintCentered(0, "Hotspot", FONT_8x16);
 		ucPrintCentered(32, "Waiting for", FONT_8x16);
@@ -402,6 +425,11 @@ int menuHotspotMode(uiEvent_t *ev, bool isFirstRun)
 	}
 	else
 	{
+
+#if defined(PLATFORM_GD77S)
+		heartBeatActivityForGD77S(ev);
+#endif
+
 		if (ev->hasEvent)
 		{
 			if (handleEvent(ev) == false)
@@ -668,7 +696,12 @@ static bool handleEvent(uiEvent_t *ev)
 {
 	displayLightTrigger();
 
-	if (KEYCHECK_SHORTUP(ev->keys, KEY_RED))
+	if (KEYCHECK_SHORTUP(ev->keys, KEY_RED)
+#if defined(PLATFORM_GD77S)
+			// There is no RED key on the GD-77S, use Orange button to exit the hotspot mode
+			|| ((ev->events & BUTTON_EVENT) && (ev->buttons & BUTTON_ORANGE))
+#endif
+	)
 	{
 		// Do not permit to leave HS in MMDVMHost mode, otherwise that will mess up the communication
 		// and MMDVMHost won't recover from that, sometimes.
@@ -1808,13 +1841,14 @@ static uint8_t setConfig(volatile const uint8_t *data, uint8_t length)
 
 	modemState = (MMDVM_STATE)data[3U];
 
-	uint8_t colorCode = data[6U];
+	uint8_t tmpColorCode = data[6U];
 
-	if (colorCode > 15U)
+	if (tmpColorCode > 15U)
 	{
 		return 4U;
 	}
 
+	colorCode = tmpColorCode;
 	trxSetDMRColourCode(colorCode);
 
 	/* To Do
@@ -1900,6 +1934,7 @@ static uint8_t setMode(volatile const uint8_t* data, uint8_t length)
 
 static void getVersion(void)
 {
+	char    buffer[80];
 	uint8_t buf[128];
 	uint8_t count = 0U;
 
@@ -1910,8 +1945,20 @@ static void getVersion(void)
 
 	count = 4U;
 
-	for (uint8_t i = 0U; HARDWARE[i] != 0x00U; i++, count++)
-		buf[count] = HARDWARE[i];
+	snprintf(buffer, sizeof(buffer), "%s (Radio:%s, Mode:%s)", HARDWARE,
+#if defined(PLATFORM_GD77)
+			"GD-77"
+#elif defined(PLATFORM_GD77S)
+			"GD-77S"
+#elif defined(PLATFORM_DM1801)
+			"DM-1801"
+#else
+			"Unknown"
+#endif
+			,(nonVolatileSettings.hotspotType == HOTSPOT_TYPE_MMDVM ? "MMDVM" : "BlueDV"));
+
+	for (uint8_t i = 0U; buffer[i] != 0x00U; i++, count++)
+		buf[count] = buffer[i];
 
 	buf[1U] = count;
 

@@ -56,6 +56,8 @@ void fw_init(void)
 
 void fw_powerOffFinalStage(void)
 {
+	uint32_t m;
+
 	// If user was in a private call when they turned the radio off we need to restore the last Tg prior to stating the Private call.
 	// to the nonVolatile Setting overrideTG, otherwise when the radio is turned on again it be in PC mode to that station.
 	if ((trxTalkGroupOrPcId>>24) == PC_CALL_FLAG)
@@ -65,10 +67,24 @@ void fw_powerOffFinalStage(void)
 
 	menuHotspotRestoreSettings();
 
+	m = fw_millis();
 	settingsSaveSettings(true);
+
+	// Give it a bit of time before pulling the plug as DM-1801 EEPROM looks slower
+	// than GD-77 to write, then quickly power cycling triggers settings reset.
+	while (1U)
+	{
+		if ((fw_millis() - m) > 50)
+		{
+			break;
+		}
+	}
 
 	// This turns the power off to the CPU.
 	GPIO_PinWrite(GPIO_Keep_Power_On, Pin_Keep_Power_On, 0);
+
+	// Death trap
+	while(1U) {}
 }
 
 
@@ -93,8 +109,10 @@ void fw_main_task(void *data)
 	int keyFunction;
 	uint32_t buttons;
 	int button_event;
+	uint32_t rotary;
+	int rotary_event;
 	int function_event;
-	uiEvent_t ev = { .buttons = 0, .keys = NO_KEYCODE, .function = 0, .events = NO_EVENT, .hasEvent = false, .time = 0 };
+	uiEvent_t ev = { .buttons = 0, .keys = NO_KEYCODE, .rotary = 0, .function = 0, .events = NO_EVENT, .hasEvent = false, .time = 0 };
 	bool keyOrButtonChanged = false;
 
     USB_DeviceApplicationInit();
@@ -106,34 +124,18 @@ void fw_main_task(void *data)
 	fw_init_buttons();
 	fw_init_LEDs();
 	fw_init_keyboard();
+	init_rotary_switch();
 
 	fw_check_button_event(&buttons, &button_event);// Read button state and event
 	if (buttons & BUTTON_SK2)
 	{
 		settingsRestoreDefaultSettings();
-
 	}
 
-#if defined(PLATFORM_GD77S)
-	if (buttons & BUTTON_SK1)
-	{
-		nonVolatileSettings.hotspotType = HOTSPOT_TYPE_MMDVM;
-		settingsSaveSettings(false);
-	}
-	else
-	{
-		if (buttons & BUTTON_SK2)
-		{
-			nonVolatileSettings.hotspotType = HOTSPOT_TYPE_BLUEDV;
-			settingsSaveSettings(false);
-		}
-	}
-#endif
     settingsLoadSettings();
 
-#if ! defined(PLATFORM_GD77S)
 	fw_init_display(nonVolatileSettings.displayInverseVideo);
-#endif
+
     // Init SPI
     init_SPI();
     setup_SPI0();
@@ -194,7 +196,6 @@ void fw_main_task(void *data)
 
     fw_init_beep_task();
 
-
 #if defined(USE_SEGGER_RTT)
     SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_NO_BLOCK_TRIM);
     SEGGER_RTT_printf(0,"Segger RTT initialised\n");
@@ -204,6 +205,14 @@ void fw_main_task(void *data)
     codeplugInitContactsCache();
     dmrIDCacheInit();
     menuInitMenuSystem();
+
+#if defined(PLATFORM_GD77S)
+    // Change hotspot modem type setting
+	if (buttons & BUTTON_SK1)
+	{
+		nonVolatileSettings.hotspotType = (buttons & BUTTON_PTT) ? HOTSPOT_TYPE_BLUEDV : HOTSPOT_TYPE_MMDVM;
+	}
+#endif
 
     while (1U)
     {
@@ -221,12 +230,12 @@ void fw_main_task(void *data)
 
 			fw_check_button_event(&buttons, &button_event); // Read button state and event
 
-#if ! defined(PLATFORM_GD77S)
 			fw_check_key_event(&keys, &key_event); // Read keyboard state and event
-#endif
+
+			check_rotary_switch_event(&rotary, &rotary_event); // Rotary switch state and event (GD-77S only)
 
 			// EVENT_*_CHANGED can be cleared later, so check this now as hasEvent has to be set anyway.
-			keyOrButtonChanged = ((key_event != NO_EVENT) || (button_event != NO_EVENT));
+			keyOrButtonChanged = ((key_event != NO_EVENT) || (button_event != NO_EVENT) || (rotary_event != NO_EVENT));
 
 			if (batteryVoltageHasChanged == true)
 			{
@@ -539,8 +548,10 @@ void fw_main_task(void *data)
 					}
 					ev.function = keyFunction & 0xff;
 					buttons = BUTTON_NONE;
+					rotary = 0;
 					key_event = EVENT_KEY_NONE;
 					button_event = EVENT_BUTTON_NONE;
+					rotary_event = EVENT_ROTARY_NONE;
 					keys.key = 0;
 					keys.event = 0;
 					function_event = FUNCTION_EVENT;
@@ -549,7 +560,8 @@ void fw_main_task(void *data)
 			}
     		ev.buttons = buttons;
     		ev.keys = keys;
-    		ev.events = function_event | (button_event<<1) | key_event;
+    		ev.rotary = rotary;
+    		ev.events = function_event | (button_event << 1) | (rotary_event << 3) | key_event;
     		ev.hasEvent = keyOrButtonChanged || function_event;
     		ev.time = fw_millis();
 

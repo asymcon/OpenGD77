@@ -19,16 +19,17 @@
 #define _FW_MENUSYSTEM_H_
 #include "main.h"
 
-typedef enum { NO_EVENT = 0, KEY_EVENT = 0x01, BUTTON_EVENT = 0x02, FUNCTION_EVENT = 0x04 } uiEventInput_t;
+typedef enum { NO_EVENT = 0, KEY_EVENT = 0x01, BUTTON_EVENT = 0x02, FUNCTION_EVENT = 0x04, ROTARY_EVENT = 0x08 } uiEventInput_t;
 
 typedef struct
 {
-	uint32_t	    buttons;
+	uint32_t        buttons;
 	keyboardCode_t  keys;
-	uint16_t		function;
-	uiEventInput_t	events;
-	bool		    hasEvent;
-	uint32_t 	    time;
+	uint32_t        rotary;
+	uint16_t        function;
+	uiEventInput_t  events;
+	bool            hasEvent;
+	uint32_t        time;
 } uiEvent_t;
 
 #define MENU_MAX_DISPLAYED_ENTRIES 3
@@ -100,6 +101,10 @@ void menuClearPrivateCall(void);
 void menuAcceptPrivateCall(int id);
 
 void menuHotspotRestoreSettings(void);
+
+#if defined(PLATFORM_GD77S)
+void heartBeatActivityForGD77S(uiEvent_t *ev);
+#endif
 
 
 /*
