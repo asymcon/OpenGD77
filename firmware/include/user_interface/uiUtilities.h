@@ -27,6 +27,8 @@ extern const int QSO_TIMER_TIMEOUT;
 extern const int TX_TIMER_Y_OFFSET;
 extern const int CONTACT_Y_POS;
 extern const int FREQUENCY_X_POS;
+extern struct_codeplugRxGroup_t currentRxGroupData;
+extern struct_codeplugContact_t currentContactData;
 
 enum UI_CALL_STATE { NOT_IN_CALL=0, PRIVATE_CALL_ACCEPT, PRIVATE_CALL, PRIVATE_CALL_DECLINED };
 
@@ -117,11 +119,14 @@ void lastheardInitList(void);
 bool lastHeardListUpdate(uint8_t *dmrDataBuffer, bool forceOnHotspot);
 void lastHeardClearLastID(void);
 void drawRSSIBarGraph(void);
+void drawFMMicLevelBarGraph(void);
 void drawDMRMicLevelBarGraph(void);
 void setOverrideTGorPC(int tgOrPc, bool privateCall);
 void printFrequency(bool isTX, bool hasFocus, uint8_t y, uint32_t frequency, bool displayVFOChannel,bool isScanMode);
 void printToneAndSquelch(void);
 void reset_freq_enter_digits(void);
 int read_freq_enter_digits(int startDigit, int endDigit);
+int getBatteryPercentage(void);
+
 
 #endif

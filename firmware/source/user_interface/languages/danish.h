@@ -111,6 +111,7 @@ const stringsTable_t danishLanguage =
 .band_limits			= "Åben FRQ",
 .beep_volume			= "Bip vol",
 .dmr_mic_gain			= "DMR mic",
+.fm_mic_gain				= "FM mic", // MaxLen: 16 (with ':' + 0..31)
 .key_long				= "Lang Tast",
 .key_repeat				= "Tast rpt",
 .dmr_filter_timeout		= "Filter tid",
@@ -151,7 +152,9 @@ const stringsTable_t danishLanguage =
 .dmr_beep				= "DMR beep", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
 .start					= "Start", // MaxLen 16 (with ':' + .dmr_beep)
 .both					= "Both", // MaxLen 16 (with ':' + .dmr_beep)
-.tone					= "Tone SQL"
+.tone					= "Tone SQL",
+.vox_threshold                          = "VOX Thres.", // MaxLen 16 (with ':' + .off or 1..30)
+.vox_tail                               = "VOX Tail" // MaxLen 16 (with ':' + .n_a or '0.0s')
 };
 /********************************************************************
  *

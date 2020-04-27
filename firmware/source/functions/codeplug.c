@@ -66,6 +66,8 @@ const int VFO_FREQ_STEP_TABLE[8] = {250,500,625,1000,1250,2500,3000,5000};
 const int CODEPLUG_MAX_VARIABLE_SQUELCH = 21;
 const int CODEPLUG_MIN_VARIABLE_SQUELCH = 1;
 
+const uint16_t CODEPLUG_DCS_FLAGS_MASK = 0xC000;
+
 typedef struct
 {
 	uint32_t tgOrPCNum;
@@ -115,6 +117,11 @@ int int2bcd(int i)
         shift += 4;
     }
     return result;
+}
+
+bool codeplugChannelToneIsCTCSS(uint16_t tone)
+{
+	return ((tone != TRX_CTCSS_TONE_NONE) && !(tone & CODEPLUG_DCS_FLAGS_MASK));
 }
 
 void codeplugUtilConvertBufToString(char *inBuf,char *outBuf,int len)
@@ -307,11 +314,11 @@ void codeplugChannelGetDataForIndex(int index, struct_codeplugChannel_t *channel
 	// Convert the the legacy codeplug tx and rx freq values into normal integers
 	channelBuf->txFreq = bcd2int(channelBuf->txFreq);
 	channelBuf->rxFreq = bcd2int(channelBuf->rxFreq);
-	if (channelBuf->rxTone != 0xffff)
+	if (codeplugChannelToneIsCTCSS(channelBuf->rxTone))
 	{
 		channelBuf->rxTone = bcd2int(channelBuf->rxTone);
 	}
-	if (channelBuf->txTone != 0xffff)
+	if (codeplugChannelToneIsCTCSS(channelBuf->txTone))
 	{
 		channelBuf->txTone = bcd2int(channelBuf->txTone);
 	}
@@ -338,12 +345,12 @@ bool codeplugChannelSaveDataForIndex(int index, struct_codeplugChannel_t *channe
 	// Convert the the legacy codeplug tx and rx freq values into normal integers
 	channelBuf->txFreq = int2bcd(channelBuf->txFreq);
 	channelBuf->rxFreq = int2bcd(channelBuf->rxFreq);
-	if (channelBuf->rxTone != 0xffff)
+	if (codeplugChannelToneIsCTCSS(channelBuf->rxTone))
 	{
 		channelBuf->rxTone = int2bcd(channelBuf->rxTone);
 	}
 
-	if (channelBuf->txTone != 0xffff)
+	if (codeplugChannelToneIsCTCSS(channelBuf->txTone))
 	{
 		channelBuf->txTone = int2bcd(channelBuf->txTone);
 	}
@@ -431,11 +438,11 @@ bool codeplugChannelSaveDataForIndex(int index, struct_codeplugChannel_t *channe
 	// Convert the the legacy codeplug tx and rx freq values into normal integers
 	channelBuf->txFreq = bcd2int(channelBuf->txFreq);
 	channelBuf->rxFreq = bcd2int(channelBuf->rxFreq);
-	if (channelBuf->rxTone != 0xffff)
+	if (codeplugChannelToneIsCTCSS(channelBuf->rxTone))
 	{
 		channelBuf->rxTone = bcd2int(channelBuf->rxTone);
 	}
-	if (channelBuf->txTone != 0xffff)
+	if (codeplugChannelToneIsCTCSS(channelBuf->txTone))
 	{
 		channelBuf->txTone = bcd2int(channelBuf->txTone);
 	}
@@ -445,19 +452,23 @@ bool codeplugChannelSaveDataForIndex(int index, struct_codeplugChannel_t *channe
 
 void codeplugRxGroupGetDataForIndex(int index, struct_codeplugRxGroup_t *rxGroupBuf)
 {
+	struct_codeplugContact_t contactData;
 	int i=0;
+	const int dataSizeInCodeplug = 16 * sizeof(char) + 32 * sizeof(uint16_t);// Calculate the size of the rx group in the codeplug
 	index--; //Index numbers start from 1 not zero
-// Not our struct contains an extra property to hold the number of TGs in the group
-	SPI_Flash_read(CODEPLUG_ADDR_RX_GROUP + index*(sizeof(struct_codeplugRxGroup_t) - sizeof(int)),(uint8_t *)rxGroupBuf,sizeof(struct_codeplugRxGroup_t) - sizeof(int));
+	// Not our struct contains an extra property to hold the number of TGs in the group
+	SPI_Flash_read(CODEPLUG_ADDR_RX_GROUP + index*(dataSizeInCodeplug),(uint8_t *)rxGroupBuf,dataSizeInCodeplug);
 	for(i=0;i<32;i++)
 	{
+		codeplugContactGetDataForIndex(rxGroupBuf->contacts[i],&contactData);
+		rxGroupBuf->NOT_IN_CODEPLUG_contactsTG[i] = contactData.tgNumber;
 		// Empty groups seem to be filled with zeros
 		if (rxGroupBuf->contacts[i] == 0)
 		{
 			break;
 		}
 	}
-	rxGroupBuf->NOT_IN_MEMORY_numTGsInGroup = i;
+	rxGroupBuf->NOT_IN_CODEPLUG_numTGsInGroup = i;
 }
 
 
@@ -857,6 +868,14 @@ void codeplugGetVFO_ChannelData(struct_codeplugChannel_t *vfoBuf,int VFONumber)
 	vfoBuf->chMode = (vfoBuf->chMode==0)?RADIO_MODE_ANALOG:RADIO_MODE_DIGITAL;
 	vfoBuf->txFreq = bcd2int(vfoBuf->txFreq);
 	vfoBuf->rxFreq = bcd2int(vfoBuf->rxFreq);
+	if (codeplugChannelToneIsCTCSS(vfoBuf->rxTone))
+	{
+		vfoBuf->rxTone = bcd2int(vfoBuf->rxTone);
+	}
+	if (codeplugChannelToneIsCTCSS(vfoBuf->txTone))
+	{
+		vfoBuf->txTone = bcd2int(vfoBuf->txTone);
+	}
 }
 
 void codeplugSetVFO_ChannelData(struct_codeplugChannel_t *vfoBuf,int VFONumber)
@@ -866,6 +885,14 @@ void codeplugSetVFO_ChannelData(struct_codeplugChannel_t *vfoBuf,int VFONumber)
 	tmpChannel.chMode = (vfoBuf->chMode==RADIO_MODE_ANALOG)?0:1;
 	tmpChannel.txFreq = int2bcd(vfoBuf->txFreq);
 	tmpChannel.rxFreq = int2bcd(vfoBuf->rxFreq);
+	if (codeplugChannelToneIsCTCSS(vfoBuf->rxTone))
+	{
+		tmpChannel.rxTone = int2bcd(vfoBuf->rxTone);
+	}
+	if (codeplugChannelToneIsCTCSS(vfoBuf->txTone))
+	{
+		tmpChannel.txTone = int2bcd(vfoBuf->txTone);
+	}
 	EEPROM_Write(CODEPLUG_ADDR_VFO_A_CHANNEL+(sizeof(struct_codeplugChannel_t)*VFONumber),(uint8_t *)&tmpChannel,sizeof(struct_codeplugChannel_t));
 }
 

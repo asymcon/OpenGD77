@@ -111,6 +111,7 @@ const stringsTable_t polishLanguage =
 .band_limits				= "Limit pasma", // MaxLen: 16 (with ':' + .on or .off)
 .beep_volume				= "Gˆos bipa", // MaxLen: 16 (with ':' + -24..6 + 'dB')
 .dmr_mic_gain				= "Mikrofon", // MaxLen: 16 (with ':' + -33..12 + 'dB')
+.fm_mic_gain				= "FM mic", // MaxLen: 16 (with ':' + 0..31)
 .key_long				= "Key dˆugi", // MaxLen: 11 (with ':' + x.xs fitted)
 .key_repeat				= "Key krótki", // MaxLen: 11 (with ':' + x.xs fitted)
 .dmr_filter_timeout			= "Czas filtra", // MaxLen: 16 (with ':' + 1..90 + 's')
@@ -151,7 +152,9 @@ const stringsTable_t polishLanguage =
 .dmr_beep				= "Wybór bipa", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
 .start					= "Start", // MaxLen 16 (with ':' + .dmr_beep)
 .both					= "Oba", // MaxLen 16 (with ':' + .dmr_beep)
-.tone					= "Tone SQL"
+.tone					= "Tone SQL",
+.vox_threshold                          = "VOX Thres.", // MaxLen 16 (with ':' + .off or 1..30)
+.vox_tail                               = "VOX Tail" // MaxLen 16 (with ':' + .n_a or '0.0s')
 };
 /********************************************************************
  *

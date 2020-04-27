@@ -111,6 +111,7 @@ const stringsTable_t spanishLanguage =
 .band_limits			= "Limite Banda", // MaxLen: 16 (with ':' + .on or .off)
 .beep_volume			= "Vol. BEEP", // MaxLen: 16 (with ':' + -24..6 + 'dB')
 .dmr_mic_gain			= "Micro DMR", // MaxLen: 16 (with ':' + -33..12 + 'dB')
+.fm_mic_gain				= "Micro FM", // MaxLen: 16 (with ':' + 0..31)
 .key_long				= "Tec.larga", // MaxLen: 11 (with ':' + x.xs fitted)
 .key_repeat				= "Tec.repetir", // MaxLen: 11 (with ':' + x.xs fitted)
 .dmr_filter_timeout		= "Fil. tiempo", // MaxLen: 16 (with ':' + 1..90 + 's')
@@ -151,7 +152,9 @@ const stringsTable_t spanishLanguage =
 .dmr_beep				= "DMR beep", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
 .start					= "Inicio", // MaxLen 16 (with ':' + .dmr_beep)
 .both					= "Ambos", // MaxLen 16 (with ':' + .dmr_beep)
-.tone					= "Tone SQL"
+.tone					= "Tone SQL",
+.vox_threshold			= "VOX Gan.", // MaxLen 16 (with ':' + .off or 1..30)
+.vox_tail				= "VOX Ret." // MaxLen 16 (with ':' + .n_a or '0.0s')
 };
 /********************************************************************
  *

@@ -27,7 +27,7 @@
 
 static const int STORAGE_BASE_ADDRESS 		= 0x6000;
 
-static const int STORAGE_MAGIC_NUMBER 		= 0x6007;
+static const int STORAGE_MAGIC_NUMBER 		= 0x6009;
 
 // Bit patterns for DMR Beep
 const uint8_t BEEP_TX_NONE  = 0x00;
@@ -131,14 +131,16 @@ void settingsRestoreDefaultSettings(void)
 	nonVolatileSettings.displayContrast =
 #if defined(PLATFORM_DM1801)
 			0x0e; // 14
+#elif defined (PLATFORM_RD5R)
+			0x06;
 #else
 			0x12; // 18
 #endif
 	nonVolatileSettings.initialMenuNumber =
 #if defined(PLATFORM_GD77S)
-			MENU_CHANNEL_MODE;
+			UI_CHANNEL_MODE;
 #else
-			MENU_VFO_MODE;
+			UI_VFO_MODE;
 #endif
 	nonVolatileSettings.displayBacklightPercentage=100U;// 100% brightness
 	nonVolatileSettings.displayBacklightPercentageOff=0U;// 0% brightness
@@ -159,6 +161,7 @@ void settingsRestoreDefaultSettings(void)
 			1; // no reduction in volume
 #endif
 	nonVolatileSettings.micGainDMR = 11;// Normal value used by the official firmware
+	nonVolatileSettings.micGainFM = 17; // Default (from all of my cals, datasheet default: 16)
 	nonVolatileSettings.tsManualOverride = 0; // No manual TS override using the Star key
 	nonVolatileSettings.keypadTimerLong = 5;
 	nonVolatileSettings.keypadTimerRepeat = 3;
@@ -200,6 +203,9 @@ void settingsRestoreDefaultSettings(void)
 			BEEP_TX_STOP |
 #endif
 			BEEP_TX_START;
+	// VOX related
+	nonVolatileSettings.voxThreshold = 20;
+	nonVolatileSettings.voxTailUnits = 4; // 2 seconds tail
 
 	currentChannelData = &settingsVFOChannel[nonVolatileSettings.currentVFONumber];// Set the current channel data to point to the VFO data since the default screen will be the VFO
 

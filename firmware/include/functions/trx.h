@@ -26,6 +26,7 @@
 
 typedef struct frequencyBand
 {
+	int calTableMinFreq;
 	int minFreq;
 	int maxFreq;
 } frequencyBand_t;
@@ -62,12 +63,17 @@ extern int trx_measure_count;
 extern int txstopdelay;
 extern volatile uint8_t trxRxSignal;
 extern volatile uint8_t trxRxNoise;
+extern volatile uint8_t trxTxVox;
+extern volatile uint8_t trxTxMic;
 extern volatile bool trxIsTransmittingTone;
 extern calibrationPowerValues_t trxPowerSettings;
 extern int trxCurrentBand[2];
 
-int trx_carrier_detected(void);
-void trx_check_analog_squelch(void);
+void I2C_AT1846_set_register_with_mask(uint8_t reg, uint16_t mask, uint16_t value, uint8_t shift);
+
+bool trxCarrierDetected(void);
+void trxCheckDigitalSquelch(void);
+void trxCheckAnalogSquelch(void);
 int	trxGetMode(void);
 int	trxGetBandwidthIs25kHz(void);
 int	trxGetFrequency(void);
@@ -93,12 +99,13 @@ bool trxCheckCTCSSFlag(void);
 bool trxCheckFrequencyInAmateurBand(int tmp_frequency);
 int trxGetBandFromFrequency(int frequency);
 int trxGetNextOrPrevBandFromFrequency(int frequency, bool nextBand);
+void trxReadVoxAndMicStrength(void);
 void trxReadRSSIAndNoise(void);
+uint8_t trxGetCalibrationVoiceGainTx(void);
 void trxSelectVoiceChannel(uint8_t channel);
 void trxSetTone1(int toneFreq);
 void trxSetTone2(int toneFreq);
 void trxSetDTMF(int code);
 void trxUpdateTsForCurrentChannelWithSpecifiedContact(struct_codeplugContact_t *contactData);
-void trxCheckDigitalSquelch(void);
 
 #endif /* _FW_TRX_H_ */

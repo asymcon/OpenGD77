@@ -66,15 +66,18 @@ int menuTxScreen(uiEvent_t *ev, bool isFirstRun)
 			// But this would require some sort of timer callback system, which we don't currently have.
 			//
 			ucClearBuf();
-			ucDrawRoundRectWithDropShadow(4, 4, 120, 58, 5, true);
-			ucPrintCentered(4, currentLanguage->error, FONT_16x32);
+
+			ucDrawRoundRectWithDropShadow(4, 4, 120, (DISPLAY_SIZE_Y - 6), 5, true);
+			ucPrintCentered(4, currentLanguage->error, FONT_SIZE_4);
+
 			if ((currentChannelData->flag4 & 0x04) != 0x00)
 			{
-				ucPrintCentered(40, currentLanguage->rx_only, FONT_8x16);
+
+				ucPrintCentered((DISPLAY_SIZE_Y - 24), currentLanguage->rx_only, FONT_SIZE_3);
 			}
 			else
 			{
-				ucPrintCentered(40, currentLanguage->out_of_band, FONT_8x16);
+				ucPrintCentered((DISPLAY_SIZE_Y - 24), currentLanguage->out_of_band, FONT_SIZE_3);
 			}
 			ucRender();
 			displayLightOverrideTimeout(-1);
@@ -114,11 +117,13 @@ int menuTxScreen(uiEvent_t *ev, bool isFirstRun)
 				if ((currentChannelData->tot != 0) && (timeInSeconds == 0))
 				{
 					set_melody(melody_tx_timeout_beep);
+
 					ucClearBuf();
-					ucPrintCentered(20, currentLanguage->timeout, FONT_16x32);
+					ucPrintCentered(20, currentLanguage->timeout, FONT_SIZE_4);
 					ucRender();
 					PTTToggledDown = false;
 					mto = ev->time;
+					voxReset();
 				}
 				else
 				{
@@ -132,21 +137,32 @@ int menuTxScreen(uiEvent_t *ev, bool isFirstRun)
 			}
 			else
 			{
-				if (trxGetMode() == RADIO_MODE_DIGITAL)
+				int mode = trxGetMode();
+
+				if (mode == RADIO_MODE_DIGITAL)
 				{
 					if ((nonVolatileSettings.beepOptions & BEEP_TX_START) &&
 							(slot_state == DMR_STATE_TX_START_1) && (melody_play == NULL))
 					{
 						set_melody(melody_dmr_tx_start_beep);
 					}
+				}
 
-					if ((ev->time - micm) > 100)
+				if ((ev->time - micm) > 100)
+				{
+					if (mode == RADIO_MODE_DIGITAL)
 					{
 						drawDMRMicLevelBarGraph();
-						ucRenderRows(1,2);
-						micm = ev->time;
 					}
+					else
+					{
+						drawFMMicLevelBarGraph();
+					}
+
+					ucRenderRows(1,2);
+					micm = ev->time;
 				}
+
 			}
 		}
 
@@ -175,14 +191,14 @@ int menuTxScreen(uiEvent_t *ev, bool isFirstRun)
 static void updateScreen(void)
 {
 	menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
-	if (menuControlData.stack[0] == MENU_VFO_MODE)
+	if (menuControlData.stack[0] == UI_VFO_MODE)
 	{
-		menuVFOModeUpdateScreen(timeInSeconds);
+		uiVFOModeUpdateScreen(timeInSeconds);
 		displayLightOverrideTimeout(-1);
 	}
 	else
 	{
-		menuChannelModeUpdateScreen(timeInSeconds);
+		uiChannelModeUpdateScreen(timeInSeconds);
 		displayLightOverrideTimeout(-1);
 	}
 }
@@ -231,6 +247,13 @@ static void handleEvent(uiEvent_t *ev)
 				}
 
 				GPIO_PinWrite(GPIO_LEDred, Pin_LEDred, 0);
+
+				// If there is a signal, lit the Green LED
+				if ((GPIO_PinRead(GPIO_LEDgreen, Pin_LEDgreen) == 0) && (trxCarrierDetected() || (getAudioAmpStatus() & AUDIO_AMP_MODE_RF)))
+				{
+					GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 1);
+				}
+
 				menuSystemPopPreviousMenu();
 			}
 		}

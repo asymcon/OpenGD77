@@ -35,6 +35,7 @@ int menuPrivateCall(uiEvent_t *ev, bool isFirstRun)
 		uiPrivateCallState = PRIVATE_CALL_ACCEPT;
 		menuUtilityReceivedPcId = LinkHead->id;
 
+		displayLightTrigger();
 		updateScreen();
 	}
 	else
@@ -60,9 +61,9 @@ static void updateScreen(void)
 		strncpy(buffer, currentRec.text, 16);
 		buffer[16] = 0;
 	}
-	ucPrintCentered(32, buffer, FONT_8x16);
+	ucPrintCentered(32, buffer, FONT_SIZE_3);
 
-	ucPrintCentered(16, currentLanguage->accept_call, FONT_8x16);
+	ucPrintCentered(16, currentLanguage->accept_call, FONT_SIZE_3);
 	ucDrawChoice(CHOICE_YESNO, false);
 	ucRender();
 
@@ -70,6 +71,8 @@ static void updateScreen(void)
 
 static void handleEvent(uiEvent_t *ev)
 {
+	displayLightTrigger();
+
 	if (ev->events & KEY_EVENT)
 	{
 		if (KEYCHECK_SHORTUP(ev->keys, KEY_RED))
@@ -86,8 +89,6 @@ static void handleEvent(uiEvent_t *ev)
 			return;
 		}
 	}
-
-	displayLightTrigger();
 }
 
 void menuClearPrivateCall(void )

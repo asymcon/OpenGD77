@@ -111,6 +111,7 @@ const stringsTable_t portuguesLanguage =
 .band_limits			= "Limites banda",
 .beep_volume			= "Volume beep",
 .dmr_mic_gain			= "Micro DMR",
+.fm_mic_gain				= "Micro FM", // MaxLen: 16 (with ':' + 0..31)
 .key_long				= "Key long",
 .key_repeat				= "Key rpt",
 .dmr_filter_timeout		= "Filtro DMR",
@@ -151,7 +152,9 @@ const stringsTable_t portuguesLanguage =
 .dmr_beep				= "DMR beep", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
 .start					= "Start", // MaxLen 16 (with ':' + .dmr_beep)
 .both					= "Both", // MaxLen 16 (with ':' + .dmr_beep)
-.tone					= "Tone SQL"
+.tone					= "Tone SQL",
+.vox_threshold                          = "VOX Thres.", // MaxLen 16 (with ':' + .off or 1..30)
+.vox_tail                               = "VOX Tail" // MaxLen 16 (with ':' + .n_a or '0.0s')
 };
 /********************************************************************
  *

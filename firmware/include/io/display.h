@@ -73,15 +73,36 @@
 #define BOARD_FTM_BASEADDR FTM0
 #define BOARD_FTM_CHANNEL kFTM_Chnl_3
 
+#elif defined(PLATFORM_RD5R)
+
+#define Port_Display_Light	PORTC
+#define GPIO_Display_Light	GPIOC
+#define Pin_Display_Light	5
+#define Port_Display_CS		PORTC
+#define GPIO_Display_CS		GPIOC
+#define Pin_Display_CS		11
+#define Port_Display_RST	PORTC
+#define GPIO_Display_RST	GPIOC
+#define Pin_Display_RST		9
+#define Port_Display_RS		PORTC
+#define GPIO_Display_RS		GPIOC
+#define Pin_Display_RS		12
+#define Port_Display_SCK	PORTC
+#define GPIO_Display_SCK 	GPIOC
+#define Pin_Display_SCK		8
+#define Port_Display_SDA    PORTC
+#define GPIO_Display_SDA 	GPIOC
+#define Pin_Display_SDA		10
+
+#define BOARD_FTM_BASEADDR FTM0
+#define BOARD_FTM_CHANNEL kFTM_Chnl_2
+
 #endif
 
 
-void fw_init_display(bool isInverseColour);
-
-void fw_displayEnableBacklight(bool onof);
-bool fw_displayIsBacklightLit(void);
-
-void fw_displaySetBacklightIntensityPercentage(uint8_t intensityPercentage);
-
+void displayInit(bool isInverseColour);
+void displayEnableBacklight(bool enable);
+bool displayIsBacklightLit(void);
+void displaySetBacklightIntensityPercentage(uint8_t intensityPercentage);
 
 #endif /* _FW_DISPLAY_H_ */

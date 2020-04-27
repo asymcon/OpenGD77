@@ -20,7 +20,7 @@
  * Translators: OH1E
  *
  *
- * Rev: 12 
+ * Rev: 13 
  */
 #ifndef USER_INTERFACE_LANGUAGES_FINNISH_H_
 #define USER_INTERFACE_LANGUAGES_FINNISH_H_
@@ -111,6 +111,7 @@ const stringsTable_t finnishLanguage =
 .band_limits		= "Bändi Rajoitu", 	// MaxLen: 16 (with ':' + .on or .off)
 .beep_volume		= "NäpÄäniVoim", 	// MaxLen: 16 (with ':' + -24..6 + 'dB')
 .dmr_mic_gain		= "DMR MicGain", 	// MaxLen: 16 (with ':' + -33..12 + 'dB')
+.fm_mic_gain		= "FM MicGain", 	// MaxLen: 16 (with ':' + 0..31)
 .key_long		= "Näp pitkä",	 	// MaxLen: 11 (with ':' + x.xs fitted)
 .key_repeat		= "Näp toisto", 	// MaxLen: 11 (with ':' + x.xs fitted)
 .dmr_filter_timeout	= "Suodin aika", 	// MaxLen: 16 (with ':' + 1..90 + 's')
@@ -150,8 +151,10 @@ const stringsTable_t finnishLanguage =
 .priority_order		= "Järjest", 		// MaxLen 16 (with ':' + 'Cc/DB/TA')
 .dmr_beep		= "DMR piippi", 	// MaxLen 16 (with ':' + .star/.stop/.both/.none)
 .start			= "Alku", 		// MaxLen 16 (with ':' + .dmr_beep)
-.both			= "Molemm", 		// MaxLen 16 (with ':' + .dmr_beep)
-.tone					= "Tone SQL"
+.both			= "Molemm",		// MaxLen 16 (with ':' + .dmr_beep)
+.tone					= "Tone SQL",
+.vox_threshold          = "VOX Herkk.",		// MaxLen 16 (with ':' + .off or 1..30)
+.vox_tail               = "VOX Viive"		// MaxLen 16 (with ':' + .n_a or '0.0s')
 };
 /********************************************************************
  *

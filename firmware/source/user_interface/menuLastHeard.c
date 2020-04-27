@@ -35,6 +35,7 @@ int menuLastHeard(uiEvent_t *ev, bool isFirstRun)
 		gMenusStartIndex = LinkHead->id;// reuse this global to store the ID of the first item in the list
 		gMenusEndIndex = 0;
 		displayLHDetails = false;
+		displayLightTrigger();
 		menuLastHeardUpdateScreen(true, displayLHDetails);
 		m = ev->time;
 	}
@@ -96,13 +97,13 @@ void menuLastHeardUpdateScreen(bool showTitleOrHeader, bool displayDetails)
 	{
 		if (dmrIDLookup(item->id, &foundRecord))
 		{
-			menuLastHeardDisplayTA(16 + (numDisplayed * 16), foundRecord.text, item->time, now, item->talkGroupOrPcId, 20, displayDetails);
+			menuLastHeardDisplayTA(16 + (numDisplayed * MENU_ENTRY_HEIGHT), foundRecord.text, item->time, now, item->talkGroupOrPcId, 20, displayDetails);
 		}
 		else
 		{
 			if (item->talkerAlias[0] != 0x00)
 			{
-				menuLastHeardDisplayTA(16 + (numDisplayed * 16), item->talkerAlias, item->time, now, item->talkGroupOrPcId, 32, displayDetails);
+				menuLastHeardDisplayTA(16 + (numDisplayed * MENU_ENTRY_HEIGHT), item->talkerAlias, item->time, now, item->talkGroupOrPcId, 32, displayDetails);
 			}
 			else
 			{
@@ -110,7 +111,7 @@ void menuLastHeardUpdateScreen(bool showTitleOrHeader, bool displayDetails)
 
 				snprintf(buffer, 17, "ID:%d", item->id);
 				buffer[16] = 0;
-				menuLastHeardDisplayTA(16 + (numDisplayed * 16), buffer, item->time, now, item->talkGroupOrPcId, 17, displayDetails);
+				menuLastHeardDisplayTA(16 + (numDisplayed * MENU_ENTRY_HEIGHT), buffer, item->time, now, item->talkGroupOrPcId, 17, displayDetails);
 			}
 		}
 
@@ -184,15 +185,18 @@ static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_
 
 		// PC or TG
 		sprintf(buffer, "%s %u", (((TGorPC >> 24) == PC_CALL_FLAG) ? "PC" : "TG"), tg);
-		ucPrintAt(0, y, buffer, FONT_8x16);
+		ucPrintAt(0, y, buffer, FONT_SIZE_3);
 
 		// Time
 		snprintf(buffer, 5, "%d", diffTimeInMins);
 		buffer[5] = 0;
 
-		ucPrintAt((128 - (3 * 6)), (y + 6), "min", FONT_6x8);
-		ucPrintAt((128 - (strlen(buffer) * 8) - (3 * 6) - 1), y, buffer, FONT_8x16);
-
+#if defined(PLATFORM_RD5R)
+		ucPrintAt((DISPLAY_SIZE_X - (3 * 6)), y, "min", FONT_SIZE_1);
+#else
+		ucPrintAt((DISPLAY_SIZE_X - (3 * 6)), (y + 6), "min", FONT_SIZE_1);
+#endif
+		ucPrintAt((DISPLAY_SIZE_X - (strlen(buffer) * 8) - (3 * 6) - 1), y, buffer, FONT_SIZE_3);
 	}
 	else // search for callsign + first name
 	{
@@ -212,7 +216,7 @@ static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_
 					memcpy(buffer, text, cpos);
 					buffer[cpos] = 0;
 
-					ucPrintCentered(y, chomp(buffer), FONT_8x16);
+					ucPrintCentered(y, chomp(buffer), FONT_SIZE_3);
 				}
 				else // Nope, look for first name
 				{
@@ -236,7 +240,7 @@ static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_
 						snprintf(outputBuf, 16, "%s %s", chomp(buffer), chomp(nameBuf));
 						outputBuf[16] = 0;
 
-						ucPrintCentered(y, chomp(outputBuf), FONT_8x16);
+						ucPrintCentered(y, chomp(outputBuf), FONT_SIZE_3);
 					}
 					else
 					{
@@ -250,7 +254,7 @@ static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_
 						snprintf(outputBuf, 16, "%s %s", chomp(buffer), chomp(nameBuf));
 						outputBuf[16] = 0;
 
-						ucPrintCentered(y, chomp(outputBuf), FONT_8x16);
+						ucPrintCentered(y, chomp(outputBuf), FONT_SIZE_3);
 					}
 				}
 			}
@@ -260,7 +264,7 @@ static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_
 				memcpy(buffer, text, 16);
 				buffer[16] = 0;
 
-				ucPrintCentered(y, chomp(buffer), FONT_8x16);
+				ucPrintCentered(y, chomp(buffer), FONT_SIZE_3);
 			}
 		}
 		else // short callsign
@@ -268,7 +272,7 @@ static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_
 			memcpy(buffer, text, strlen(text));
 			buffer[strlen(text)] = 0;
 
-			ucPrintCentered(y, chomp(buffer), FONT_8x16);
+			ucPrintCentered(y, chomp(buffer), FONT_SIZE_3);
 		}
 	}
 }

@@ -92,7 +92,7 @@ const stringsTable_t englishLanguage =
 .tg					= "TG",  // MaxLen: 8
 .pc					= "PC", // MaxLen: 8
 .ts					= "TS", // MaxLen: 8
-.mode					= "Mode",  // MaxLen: 12
+.mode					= "Display",  // MaxLen: 12
 .colour_code				= "Color Code", // MaxLen: 16 (with ':' * .n_a)
 .n_a					= "N/A",// MaxLen: 16 (with ':' * .colour_code)
 .bandwidth				= "Bandwidth", // MaxLen: 16 (with ':' + .n_a, "25kHz" or "12.5kHz")
@@ -111,6 +111,7 @@ const stringsTable_t englishLanguage =
 .band_limits				= "Band Limits", // MaxLen: 16 (with ':' + .on or .off)
 .beep_volume				= "Beep Vol", // MaxLen: 16 (with ':' + -24..6 + 'dB')
 .dmr_mic_gain				= "DMR Mic", // MaxLen: 16 (with ':' + -33..12 + 'dB')
+.fm_mic_gain				= "FM Mic", // MaxLen: 16 (with ':' + 0..31)
 .key_long				= "Key Long", // MaxLen: 11 (with ':' + x.xs fitted)
 .key_repeat				= "Key Rpt", // MaxLen: 11 (with ':' + x.xs fitted)
 .dmr_filter_timeout			= "Filter Time", // MaxLen: 16 (with ':' + 1..90 + 's')
@@ -151,7 +152,9 @@ const stringsTable_t englishLanguage =
 .dmr_beep				= "DMR Beep", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
 .start					= "Start", // MaxLen 16 (with ':' + .dmr_beep)
 .both					= "Both", // MaxLen 16 (with ':' + .dmr_beep)
-.tone					= "Tone SQL"
+.tone					= "Tone SQL",
+.vox_threshold          = "VOX Thresh", // MaxLen 16 (with ':' + .off or 1..30)
+.vox_tail               = "VOX Tail" // MaxLen 16 (with ':' + .n_a or '0.0s')
 };
 /********************************************************************
  *

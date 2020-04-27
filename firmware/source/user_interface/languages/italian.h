@@ -46,7 +46,7 @@ const stringsTable_t italianLanguage =
 .last_heard				= "Ultimi Ricevuti", // MaxLen: 16
 .options				= "Opzioni", // MaxLen: 16
 .display_options		= "Opz. Display", // MaxLen: 16
-.sound_options				= "Opzioni Audio", // MaxLen: 16
+.sound_options			= "Opzioni Audio", // MaxLen: 16
 .channel_details		= "Dettagli canale", // MaxLen: 16
 .new_contact			= "Nuovo Contatto", // MaxLen: 16
 .new_channel			= "Nuovo can.", // MaxLen: 16, leave room for a space and four channel digits after
@@ -111,6 +111,7 @@ const stringsTable_t italianLanguage =
 .band_limits			= "Limiti Banda", // MaxLen: 16 (with ':' + .on or .off)
 .beep_volume			= "Volume Bip", // MaxLen: 16 (with ':' + -24..6 + 'dB')
 .dmr_mic_gain			= "DMR mic", // MaxLen: 16 (with ':' + -33..12 + 'dB')
+.fm_mic_gain			= "FM mic", // MaxLen: 16 (with ':' + 0..31)
 .key_long				= "Key long", // MaxLen: 11 (with ':' + x.xs fitted)
 .key_repeat				= "Key rpt", // MaxLen: 11 (with ':' + x.xs fitted)
 .dmr_filter_timeout		= "Tempo Filtro", // MaxLen: 16 (with ':' + 1..90 + 's')
@@ -151,7 +152,9 @@ const stringsTable_t italianLanguage =
 .dmr_beep				= "DMR bip", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
 .start					= "Inizio", // MaxLen 16 (with ':' + .dmr_beep)
 .both					= "Ambedue", // MaxLen 16 (with ':' + .dmr_beep)
-.tone					= "Tone SQL"
+.tone					= "Tone SQL",
+.vox_threshold          = "Soglia VOX", // MaxLen 16 (with ':' + .off or 1..30)
+.vox_tail               = "Coda VOX" // MaxLen 16 (with ':' + .n_a or '0.0s')
 };
 /********************************************************************
  *

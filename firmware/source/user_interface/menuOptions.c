@@ -151,6 +151,8 @@ static void updateScreen(void)
 
 static void handleEvent(uiEvent_t *ev)
 {
+	displayLightTrigger();
+
 	if (KEYCHECK_PRESS(ev->keys,KEY_DOWN))
 	{
 		MENU_INC(gMenusCurrentItemIndex, NUM_OPTIONS_MENU_ITEMS);
@@ -323,6 +325,7 @@ static void handleEvent(uiEvent_t *ev)
 			settingsRestoreDefaultSettings();
 			watchdogReboot();
 		}
+		SETTINGS_PLATFORM_SPECIFIC_SAVE_SETTINGS(false);// Some platform require the settings to be saved immediately
 		menuSystemPopAllAndDisplayRootMenu();
 		return;
 	}

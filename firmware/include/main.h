@@ -37,7 +37,9 @@
 #include "LEDs.h"
 #include "keyboard.h"
 #include "rotary_switch.h"
+#include "speech_synthesis.h"
 #include "display.h"
+#include "vox.h"
 
 #include "UC1701.h"
 
@@ -55,6 +57,7 @@
 #include "trx.h"
 #include "SPI_Flash.h"
 #include "EEPROM.h"
+
 
 extern int Display_light_Timer;
 extern bool Display_light_Touched;

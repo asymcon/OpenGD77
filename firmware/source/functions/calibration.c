@@ -228,7 +228,7 @@ bool calibrationGetPowerForFrequency(int freq, calibrationPowerValues_t *powerSe
 
 	if (trxCurrentBand[TRX_TX_FREQ_BAND] == RADIO_BAND_UHF)
 	{
-		address =  (freq - RADIO_FREQUENCY_BANDS[RADIO_BAND_UHF].minFreq) / 500000;
+		address =  (freq - RADIO_FREQUENCY_BANDS[RADIO_BAND_UHF].calTableMinFreq) / 500000;
 
 		if (address < 0)
 		{
@@ -246,7 +246,7 @@ bool calibrationGetPowerForFrequency(int freq, calibrationPowerValues_t *powerSe
 	}
 	else
 	{
-		address = (freq - RADIO_FREQUENCY_BANDS[RADIO_BAND_VHF].minFreq) / 500000;
+		address = (freq - RADIO_FREQUENCY_BANDS[RADIO_BAND_VHF].calTableMinFreq) / 500000;
 
 		if (address < 0)
 		{
@@ -307,6 +307,12 @@ const uint8_t MARKER_BYTES[] = {0xA0 ,0x0F ,0xC0 ,0x12 ,0xA0 ,0x0F ,0xC0 ,0x12};
 const uint32_t VARIANT_CALIBRATION_BASE 				= 0x0006F000;
 const int MARKER_BYTES_LENGTH = 2;
 const uint8_t MARKER_BYTES[] = {0xA0 ,0x0F};// DM-1801 only seems to consistently have the first 2 bytes the same.
+
+#elif defined(PLATFORM_RD5R)
+
+const uint32_t VARIANT_CALIBRATION_BASE = 0x00017c00;	// Found by marker bytes matching
+const int MARKER_BYTES_LENGTH = 8;
+const uint8_t MARKER_BYTES[] = {0xA0 ,0x0F ,0xC0 ,0x12 ,0xA0 ,0x0F ,0xC0 ,0x12};
 
 #endif
 

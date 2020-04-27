@@ -31,7 +31,6 @@
  * This file implements software SPI which is messed up if compiler optimisation is enabled.
  */
 
-
 void UC1701_setCommandMode();
 void UC1701_setDataMode();
 void UC1701_transfer(register uint8_t data1);
@@ -51,8 +50,8 @@ void UC1701_setDataMode()
 void ucRenderRows(int16_t startRow, int16_t endRow)
 {
 #if ! defined(PLATFORM_GD77S)
-	uint8_t *rowPos = (screenBuf + startRow*128);
-	taskENTER_CRITICAL();
+	uint8_t *rowPos = (screenBuf + startRow * DISPLAY_SIZE_X);
+
 	for(int16_t row=startRow;row<endRow;row++)
 	{
 		UC1701_setCommandMode();
@@ -60,18 +59,20 @@ void ucRenderRows(int16_t startRow, int16_t endRow)
 		UC1701_transfer(0x10 | 0); // set X (high MSB)
 
 // Note there are 4 pixels at the left which are no in the hardware of the LCD panel, but are in the RAM buffer of the controller
+#if !defined(PLATFORM_RD5R)
 		UC1701_transfer(0x00 | 4); // set X (low MSB).
+#endif
 
 		UC1701_setDataMode();
 		uint8_t data1;
-		for(int16_t line=0;line<128;line++)
+		for(int16_t line = 0; line < DISPLAY_SIZE_X; line++)
 		{
 			data1= *rowPos;
 			for (register int i=0; i<8; i++)
 			{
-				//__asm volatile( "nop" );
+
 				GPIO_Display_SCK->PCOR = 1U << Pin_Display_SCK;
-				//__asm volatile( "nop" );
+
 				if ((data1&0x80) == 0U)
 				{
 					GPIO_Display_SDA->PCOR = 1U << Pin_Display_SDA;// Hopefully the compiler will optimise this to a value rather than using a shift
@@ -80,7 +81,7 @@ void ucRenderRows(int16_t startRow, int16_t endRow)
 				{
 					GPIO_Display_SDA->PSOR = 1U << Pin_Display_SDA;// Hopefully the compiler will optimise this to a value rather than using a shift
 				}
-				//__asm volatile( "nop" );
+
 				GPIO_Display_SCK->PSOR = 1U << Pin_Display_SCK;// Hopefully the compiler will optimise this to a value rather than using a shift
 
 				data1=data1<<1;
@@ -88,7 +89,6 @@ void ucRenderRows(int16_t startRow, int16_t endRow)
 			rowPos++;
 		}
 	}
-	taskEXIT_CRITICAL();
 #endif // ! PLATFORM_GD77S
 }
 
@@ -143,8 +143,13 @@ void ucBegin(bool isInverted)
 	UC1701_transfer(0x81); // Set Electronic Volume = 15
 	UC1701_transfer(nonVolatileSettings.displayContrast); //
 	UC1701_transfer(0xA2); // Set Bias = 1/9
+#if defined(PLATFORM_RD5R)
+	UC1701_transfer(0xA0); // Set SEG Direction
+	UC1701_transfer(0xC8); // Set COM Direction
+#else
 	UC1701_transfer(0xA1); // A0 Set SEG Direction
 	UC1701_transfer(0xC0); // Set COM Direction
+#endif
 	if (isInverted)
 	{
 		UC1701_transfer(0xA7); // Black background, white pixels

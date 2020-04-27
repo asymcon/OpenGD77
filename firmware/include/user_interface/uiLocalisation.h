@@ -102,6 +102,7 @@ typedef struct stringsTable
    const char *band_limits;
    const char *beep_volume;
    const char *dmr_mic_gain;
+   const char *fm_mic_gain;
    const char *key_long;
    const char *key_repeat;
    const char *dmr_filter_timeout;
@@ -144,6 +145,8 @@ typedef struct stringsTable
    const char *start;
    const char *both;
    const char *tone;
+   const char *vox_threshold;
+   const char *vox_tail;
 } stringsTable_t;
 
 extern const stringsTable_t languages[];

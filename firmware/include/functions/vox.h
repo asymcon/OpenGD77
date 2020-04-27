@@ -17,36 +17,18 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
-#ifndef _ROTARY_SWITCH_H_
-#define _ROTARY_SWITCH_H_
+
+#ifndef _VOX_H_
+#define _VOX_H_
 
 #include <common.h>
 
 
-#if defined(PLATFORM_GD77S)
+void voxInit(void);
+void voxSetParameters(uint8_t threshold, uint8_t tailHalfSecond);
+bool voxIsEnabled(void);
+bool voxIsTriggered(void);
+void voxReset(void);
+void voxTick(void);
 
-#define Port_RotarySW_Line0   PORTD
-#define GPIO_RotarySW_Line0   GPIOD
-#define Pin_RotarySW_Line0    4
-#define Port_RotarySW_Line1   PORTD
-#define GPIO_RotarySW_Line1   GPIOD
-#define Pin_RotarySW_Line1    5
-#define Port_RotarySW_Line2   PORTD
-#define GPIO_RotarySW_Line2   GPIOD
-#define Pin_RotarySW_Line2    6
-#define Port_RotarySW_Line3   PORTD
-#define GPIO_RotarySW_Line3   GPIOD
-#define Pin_RotarySW_Line3    7
-
-#endif // PLATFORM_GD77S
-
-
-void init_rotary_switch(void);
-uint8_t get_rotary_switch_position(void);
-void check_rotary_switch_event(uint32_t *position, int *event);
-
-#define EVENT_ROTARY_NONE   0
-#define EVENT_ROTARY_CHANGE 1
-
-
-#endif // _ROTARY_SWITCH_H_
+#endif /* _VOX_H_ */

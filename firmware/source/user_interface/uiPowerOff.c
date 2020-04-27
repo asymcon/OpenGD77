@@ -22,7 +22,7 @@ static void updateScreen(void);
 static void handleEvent(uiEvent_t *ev);
 
 
-int menuPowerOff(uiEvent_t *ev, bool isFirstRun)
+int uiPowerOff(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
@@ -38,8 +38,8 @@ int menuPowerOff(uiEvent_t *ev, bool isFirstRun)
 static void updateScreen(void)
 {
 	ucClearBuf();
-	ucPrintCentered(12, currentLanguage->power_off, FONT_8x16);
-	ucPrintCentered(32, "73", FONT_8x16);
+	ucPrintCentered(12, currentLanguage->power_off, FONT_SIZE_3);
+	ucPrintCentered(32, "73", FONT_SIZE_3);
 	ucRender();
 	displayLightTrigger();
 }
@@ -48,7 +48,11 @@ static void handleEvent(uiEvent_t *ev)
 {
 	static uint32_t m = 0;
 
+#if defined(PLATFORM_RD5R)
+	if (battery_voltage > CUTOFF_VOLTAGE_LOWER_HYST)
+#else
 	if ((GPIO_PinRead(GPIO_Power_Switch, Pin_Power_Switch) == 0) && (battery_voltage > CUTOFF_VOLTAGE_LOWER_HYST))
+#endif
 	{
 		// I think this is to handle if the power button is turned back on during shutdown
 		menuSystemPopPreviousMenu();

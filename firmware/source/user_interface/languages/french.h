@@ -111,6 +111,7 @@ const stringsTable_t frenchLanguage =
 .band_limits			= "Lim. Bandes",
 .beep_volume			= "Vol. bip",
 .dmr_mic_gain			= "DMR mic",
+.fm_mic_gain				= "FM mic", // MaxLen: 16 (with ':' + 0..31)
 .key_long				= "Appui long",
 .key_repeat				= "Répét°",
 .dmr_filter_timeout		= "Tps filtre",
@@ -151,7 +152,9 @@ const stringsTable_t frenchLanguage =
 .dmr_beep				= "Bip TX", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
 .start					= "Début", // MaxLen 16 (with ':' + .dmr_beep)
 .both					= "Les Deux", // MaxLen 16 (with ':' + .dmr_beep)
-.tone					= "Tone SQL"
+.tone					= "Tone SQL",
+.vox_threshold                          = "Seuil VOX", // MaxLen 16 (with ':' + .off or 1..30)
+.vox_tail                               = "Queue VOX" // MaxLen 16 (with ':' + .n_a or '0.0s')
 };
 /********************************************************************
  *

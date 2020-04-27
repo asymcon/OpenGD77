@@ -72,10 +72,10 @@ const menuItemNew_t * menusData[] = { 	NULL,// splash
 										NULL,// Private Call
 								};
 
-const menuFunctionPointer_t menuFunctions[] = { menuSplashScreen,
-												menuPowerOff,
-												menuVFOMode,
-												menuChannelMode,
+const menuFunctionPointer_t menuFunctions[] = { uiSplashScreen,
+												uiPowerOff,
+												uiVFOMode,
+												uiChannelMode,
 												menuDisplayMenuList,
 												menuDisplayMenuList,
 												menuZoneList,
@@ -91,9 +91,9 @@ const menuFunctionPointer_t menuFunctions[] = { menuSplashScreen,
 												menuCredits,
 												menuChannelDetails,
 												menuHotspotMode,
-												menuCPS,
-												menuChannelModeQuickMenu,
-												menuVFOModeQuickMenu,
+												uiCPS,
+												uiChannelModeQuickMenu,
+												uiVFOModeQuickMenu,
                                                 menuLockScreen,
 												menuContactList,
 												menuContactList,
@@ -190,24 +190,32 @@ void menuSystemCallCurrentMenuTick(uiEvent_t *ev)
 
 void displayLightTrigger(void)
 {
-	if ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO) ||
-			((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_MANUAL) && fw_displayIsBacklightLit()))
+	if ((menuSystemGetCurrentMenuNumber() != UI_TX_SCREEN) &&
+			((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO)
+					|| ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_MANUAL) && displayIsBacklightLit())))
 	{
 		if (nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO)
 		{
 			menuDisplayLightTimer = nonVolatileSettings.backLightTimeout * 1000;
 		}
-		fw_displayEnableBacklight(true);
+		displayEnableBacklight(true);
 	}
 }
 
 // use -1 to force LED on all the time
 void displayLightOverrideTimeout(int timeout)
 {
+	int prevTimer = menuDisplayLightTimer;
+
+	menuDisplayLightTimer = timeout;
+
 	if (nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO)
 	{
-		menuDisplayLightTimer = timeout;
-		fw_displayEnableBacklight(true);
+		// Backlight is OFF, or timeout override (-1) as just been set
+		if ((displayIsBacklightLit() == false) || ((timeout == -1) && (prevTimer != -1)))
+		{
+			displayEnableBacklight(true);
+		}
 	}
 }
 
@@ -216,7 +224,7 @@ void menuInitMenuSystem(void)
 	uiEvent_t ev = { .buttons = 0, .keys = NO_KEYCODE, .rotary = 0, .function = 0, .events = NO_EVENT, .hasEvent = false, .time = fw_millis() };
 
 	menuDisplayLightTimer = -1;
-	menuControlData.stack[menuControlData.stackPosition]  = MENU_SPLASH_SCREEN;// set the very first screen as the splash screen
+	menuControlData.stack[menuControlData.stackPosition]  = UI_SPLASH_SCREEN;// set the very first screen as the splash screen
 	gMenusCurrentItemIndex = 0;
 	menuFunctions[menuControlData.stack[menuControlData.stackPosition]](&ev,true);// Init and display this screen
 }
@@ -224,39 +232,8 @@ void menuInitMenuSystem(void)
 void menuSystemLanguageHasChanged(void)
 {
 	// Force full update of menuChannelMode() on next call (if isFirstRun arg. is true)
-	menuChannelColdStart();
+	uiChannelModeColdStart();
 }
-
-
-/*
-const char menuStringTable[32][17] = { "",//0
-                                         "Menu",//1
-                                         "Contacts",//2
-                                         "Message",//3
-                                         "Call Logs",//4
-                                         "Set",//5
-                                         "Zone",//6
-                                         "New Contact",//7
-                                         "Manual Dial",//8
-                                         "InBox",//9
-                                         "New Message",//10
-                                         "Manual Dial",//11
-                                         "OutBox",//12
-                                         "Draft",//13
-                                         "Quick test",//14
-										 "Battery",//15
-										 "Firmware",//16
-										 "RSSI",//17
-										 "Last Heard",//18
-										 "Options",//19
-										 "Display",//20
-										 "Credits",//21
-										 "Channel",//22
-										 "Hotspot mode",//23
-										 "Contact List",//24
-										 "Contact Details",//25
-};
-*/
 
 const menuItemNew_t menuDataMainMenu[] = {
 	{ 12, 12 }, // Special entry: number of menus entries, both member must be set to the same number
@@ -294,18 +271,31 @@ const menuItemNew_t menuDataContactContact [] = {
 
 void menuDisplayTitle(const char *title)
 {
-	ucDrawFastHLine(0, 13, 128, true);
-	ucPrintCore(0, 3, title, FONT_8x8, TEXT_ALIGN_CENTER, false);
+	ucDrawFastHLine(0, 13, DISPLAY_SIZE_X, true);
+	ucPrintCore(0, 3, title, FONT_SIZE_2, TEXT_ALIGN_CENTER, false);
 }
 
 void menuDisplayEntry(int loopOffset, int focusedItem,const char *entryText)
 {
+#if defined(PLATFORM_RD5R)
+const int MENU_START_Y = 25;
+const int HIGHLIGHT_START_Y = 24;
+const int MENU_SPACING_Y = FONT_SIZE_3_HEIGHT+2;
+#else
+const int MENU_START_Y = 32;
+const int HIGHLIGHT_START_Y = 32;
+const int MENU_SPACING_Y = FONT_SIZE_3_HEIGHT;
+#endif
+
 	bool focused = (focusedItem == gMenusCurrentItemIndex);
 
 	if (focused)
-		ucFillRoundRect(0, (loopOffset + 2) * 16, 128, 16, 2, true);
+	{
+		ucFillRoundRect(0, HIGHLIGHT_START_Y +  (loopOffset * MENU_SPACING_Y), DISPLAY_SIZE_X, MENU_SPACING_Y, 2, true);
+	}
 
-	ucPrintCore(0, (loopOffset + 2) * 16, entryText, FONT_8x16, TEXT_ALIGN_LEFT, focused);
+	ucPrintCore(0,  MENU_START_Y +  (loopOffset * MENU_SPACING_Y), entryText, FONT_SIZE_3, TEXT_ALIGN_LEFT, focused);
+
 }
 
 int menuGetMenuOffset(int maxMenuEntries, int loopOffset)

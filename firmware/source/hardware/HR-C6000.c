@@ -21,9 +21,11 @@
 #include <hotspot/dmrDefines.h>
 #include <HR-C6000.h>
 #include <settings.h>
+#if defined(USE_SEGGER_RTT)
 #include <SeggerRTT/RTT/SEGGER_RTT.h>
+#endif
 #include <trx.h>
-#include <user_interface/menuHotspot.h>
+#include <hotspot/uiHotspot.h>
 #include <user_interface/uiUtilities.h>
 
 
@@ -367,6 +369,18 @@ bool checkTalkGroupFilter(void)
 		case DMR_FILTER_CC_TS_DC:
 			return codeplugContactsContainsPC(receivedSrcId);
 			break;
+		case DMR_FILTER_CC_TS_RXG:
+			{
+				for(int i=0; i< currentRxGroupData.NOT_IN_CODEPLUG_numTGsInGroup;i++)
+				{
+					if (currentRxGroupData.NOT_IN_CODEPLUG_contactsTG[i]==receivedTgOrPcId)
+					{
+						return true;
+					}
+				}
+				return false;
+			}
+			break;
 		default:
 			return true;
 	}
@@ -389,7 +403,8 @@ void transmitTalkerAlias(void)
 	{
 		uint8_t TA_LCBuf[12]={0,0,0,0,0,0,0,0,0,0,0,0};
 		int taPosition=2;
-		int taOffset = 0,taLength = 0;
+		int taOffset, taLength;
+
 		switch(TAPhase/2)
 		{
 		case 0:
@@ -410,13 +425,16 @@ void transmitTalkerAlias(void)
 			taOffset	= 20;
 			taLength	= 7;
 			break;
+		default:
+			taOffset	= 0;
+			taLength	= 0;
+			break;
 		}
 
 		TA_LCBuf[0]= (TAPhase/2) + 0x04;
 		memcpy(&TA_LCBuf[taPosition],&talkAliasText[taOffset],taLength);
 
 		write_SPI_page_reg_bytearray_SPI0(0x02, 0x00, (uint8_t*)TA_LCBuf, taPosition+taLength);// put LC into hardware
-
 	}
 	TAPhase++;
 	if (TAPhase>8)
@@ -1265,12 +1283,12 @@ void init_digital_DMR_RX(void)
 void init_digital(void)
 {
 	disableAudioAmp(AUDIO_AMP_MODE_RF);
-    GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, false);
-    timeCode = -1;// Clear current timecode synchronisation
-    tsLockCount = 0;
+	GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 0);
+	timeCode = -1;// Clear current timecode synchronisation
+	tsLockCount = 0;
 	init_digital_DMR_RX();
 	init_digital_state();
-    NVIC_EnableIRQ(PORTC_IRQn);
+	NVIC_EnableIRQ(PORTC_IRQn);
 	init_codec();
 }
 
@@ -1315,19 +1333,19 @@ void init_hrc6000_task(void)
 
 void fw_hrc6000_task(void *data)
 {
-    while (1U)
-    {
-    	taskENTER_CRITICAL();
-    	uint32_t tmp_timer_hrc6000task=timer_hrc6000task;
-    	taskEXIT_CRITICAL();
-    	if (tmp_timer_hrc6000task==0)
-    	{
-        	taskENTER_CRITICAL();
-        	timer_hrc6000task=10;
-        	alive_hrc6000task=true;
-        	taskEXIT_CRITICAL();
+	while (1U)
+	{
+		taskENTER_CRITICAL();
+		uint32_t tmp_timer_hrc6000task=timer_hrc6000task;
+		taskEXIT_CRITICAL();
+		if (tmp_timer_hrc6000task==0)
+		{
+			taskENTER_CRITICAL();
+			timer_hrc6000task=10;
+			alive_hrc6000task=true;
+			taskEXIT_CRITICAL();
 
-        	if (trxGetMode() == RADIO_MODE_DIGITAL)
+			if (trxGetMode() == RADIO_MODE_DIGITAL)
 			{
 				tick_HR_C6000();
 			}
@@ -1335,15 +1353,15 @@ void fw_hrc6000_task(void *data)
 			{
 				if (trxGetMode() == RADIO_MODE_ANALOG && melody_play==NULL)
 				{
-		        	taskENTER_CRITICAL();
-					trx_check_analog_squelch();
-		        	taskEXIT_CRITICAL();
+					taskENTER_CRITICAL();
+					trxCheckAnalogSquelch();
+					taskEXIT_CRITICAL();
 				}
 			}
-    	}
+		}
 
 		vTaskDelay(0);
-    }
+	}
 }
 
 void setupPcOrTGHeader(void)

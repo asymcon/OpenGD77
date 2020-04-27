@@ -26,8 +26,14 @@ static void handleEvent(uiEvent_t *ev);
 static void updateBacklightMode(uint8_t mode);
 
 static const int BACKLIGHT_MAX_TIMEOUT = 30;
-static const int CONTRAST_MAX_VALUE = 30;// Maximum value which still seems to be readable
-static const int CONTRAST_MIN_VALUE = 5;// Minimum value which still seems to be readable
+#if defined (PLATFORM_RD5R)
+	static const int CONTRAST_MAX_VALUE = 10;// Maximum value which still seems to be readable
+	static const int CONTRAST_MIN_VALUE = 0;// Minimum value which still seems to be readable
+#else
+	static const int CONTRAST_MAX_VALUE = 30;// Maximum value which still seems to be readable
+	static const int CONTRAST_MIN_VALUE = 5;// Minimum value which still seems to be readable
+#endif
+
 static const int BACKLIGHT_TIMEOUT_STEP = 5;
 static const int BACKLIGHT_MAX_PERCENTAGE = 100;
 static const int BACKLIGHT_PERCENTAGE_STEP = 10;
@@ -46,6 +52,7 @@ int menuDisplayOptions(uiEvent_t *ev, bool isFirstRun)
 	{
 		// Store original settings, used on cancel event.
 		memcpy(&originalNonVolatileSettings, &nonVolatileSettings, sizeof(settingsStruct_t));
+
 		updateScreen();
 	}
 	else
@@ -61,7 +68,7 @@ static void updateScreen(void)
 	int mNum = 0;
 	static const int bufferLen = 17;
 	char buf[bufferLen];
-	const char *backlightModes[] = { currentLanguage->Auto, currentLanguage->manual, currentLanguage->none };
+	const char *backlightModes[] = { currentLanguage->Auto, currentLanguage->manual, currentLanguage->off };
 
 	ucClearBuf();
 	menuDisplayTitle(currentLanguage->display_options);
@@ -132,6 +139,8 @@ static void updateScreen(void)
 
 static void handleEvent(uiEvent_t *ev)
 {
+	displayLightTrigger();
+
 	if (ev->events & FUNCTION_EVENT)
 	{
 		if (ev->function == DEC_BRIGHTNESS)
@@ -176,6 +185,8 @@ static void handleEvent(uiEvent_t *ev)
 	}
 	if (ev->events & KEY_EVENT)
 	{
+		bool displayIsLit = displayIsBacklightLit();
+
 		if (KEYCHECK_PRESS(ev->keys,KEY_DOWN))
 		{
 			MENU_INC(gMenusCurrentItemIndex, NUM_DISPLAY_MENU_ITEMS);
@@ -224,6 +235,11 @@ static void handleEvent(uiEvent_t *ev)
 						{
 							nonVolatileSettings.displayBacklightPercentageOff = nonVolatileSettings.displayBacklightPercentage;
 						}
+
+						if ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_MANUAL) && (!displayIsLit))
+						{
+							displaySetBacklightIntensityPercentage(nonVolatileSettings.displayBacklightPercentageOff);
+						}
 					}
 					break;
 				case DISPLAY_MENU_CONTRAST:
@@ -248,7 +264,7 @@ static void handleEvent(uiEvent_t *ev)
 					break;
 				case DISPLAY_MENU_COLOUR_INVERT:
 					nonVolatileSettings.displayInverseVideo = !nonVolatileSettings.displayInverseVideo;
-					fw_init_display(nonVolatileSettings.displayInverseVideo);// Need to perform a full reset on the display to change back to non-inverted
+					displayInit(nonVolatileSettings.displayInverseVideo);// Need to perform a full reset on the display to change back to non-inverted
 					break;
 				case DISPLAY_MENU_CONTACT_DISPLAY_ORDER:
 					if (nonVolatileSettings.contactDisplayPriority < CONTACT_DISPLAY_PRIO_TA_DB_CC)
@@ -302,6 +318,11 @@ static void handleEvent(uiEvent_t *ev)
 					{
 						nonVolatileSettings.displayBacklightPercentageOff = 0;
 					}
+
+					if ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_MANUAL) && (!displayIsLit))
+					{
+						displaySetBacklightIntensityPercentage(nonVolatileSettings.displayBacklightPercentageOff);
+					}
 					break;
 				case DISPLAY_MENU_CONTRAST:
 					if (nonVolatileSettings.displayContrast > CONTRAST_MIN_VALUE)
@@ -324,7 +345,7 @@ static void handleEvent(uiEvent_t *ev)
 					break;
 				case DISPLAY_MENU_COLOUR_INVERT:
 					nonVolatileSettings.displayInverseVideo = !nonVolatileSettings.displayInverseVideo;
-					fw_init_display(nonVolatileSettings.displayInverseVideo);// Need to perform a full reset on the display to change back to non-inverted
+					displayInit(nonVolatileSettings.displayInverseVideo);// Need to perform a full reset on the display to change back to non-inverted
 					break;
 				case DISPLAY_MENU_CONTACT_DISPLAY_ORDER:
 					if (nonVolatileSettings.contactDisplayPriority > CONTACT_DISPLAY_PRIO_CC_DB_TA)
@@ -343,11 +364,14 @@ static void handleEvent(uiEvent_t *ev)
 		else if (KEYCHECK_SHORTUP(ev->keys,KEY_GREEN))
 		{
 			// All parameters has already been applied
+			SETTINGS_PLATFORM_SPECIFIC_SAVE_SETTINGS(false);// Some platform require the settings to be saved immediately
 			menuSystemPopAllAndDisplayRootMenu();
 			return;
 		}
 		else if (KEYCHECK_SHORTUP(ev->keys,KEY_RED))
 		{
+			bool displayIsLit = displayIsBacklightLit();
+
 			if (nonVolatileSettings.displayContrast != originalNonVolatileSettings.displayContrast)
 			{
 				nonVolatileSettings.displayContrast = originalNonVolatileSettings.displayContrast;
@@ -357,7 +381,7 @@ static void handleEvent(uiEvent_t *ev)
 			if (nonVolatileSettings.displayInverseVideo != originalNonVolatileSettings.displayInverseVideo)
 			{
 				nonVolatileSettings.displayInverseVideo = originalNonVolatileSettings.displayInverseVideo;
-				fw_init_display(nonVolatileSettings.displayInverseVideo);// Need to perform a full reset on the display to change back to non-inverted
+				displayInit(nonVolatileSettings.displayInverseVideo);// Need to perform a full reset on the display to change back to non-inverted
 			}
 
 			nonVolatileSettings.displayBacklightPercentage = originalNonVolatileSettings.displayBacklightPercentage;
@@ -367,6 +391,11 @@ static void handleEvent(uiEvent_t *ev)
 			if (nonVolatileSettings.backlightMode != originalNonVolatileSettings.backlightMode)
 			{
 				updateBacklightMode(originalNonVolatileSettings.backlightMode);
+			}
+
+			if ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_MANUAL) && (!displayIsLit))
+			{
+				displaySetBacklightIntensityPercentage(nonVolatileSettings.displayBacklightPercentageOff);
 			}
 
 			menuSystemPopPreviousMenu();
@@ -384,8 +413,7 @@ static void updateBacklightMode(uint8_t mode)
 	{
 		case BACKLIGHT_MODE_MANUAL:
 		case BACKLIGHT_MODE_NONE:
-			if (fw_displayIsBacklightLit())
-				fw_displayEnableBacklight(false);
+			displayEnableBacklight(false); // Could be MANUAL previously, but in OFF state, so turn it OFF blindly.
 			break;
 		case BACKLIGHT_MODE_AUTO:
 			displayLightTrigger();

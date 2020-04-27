@@ -62,6 +62,20 @@ static const uint32_t keyMap[] = {
 		KEY_STAR, KEY_0, KEY_HASH, KEY_RED, KEY_LEFT
 };
 
+#elif defined(PLATFORM_RD5R)
+
+static const uint32_t keyMap[] = {
+		// MENU as KEY_GREEN
+		// EXIT as KEY_RED
+		// A/B  as KEY_RIGHT
+		// BAND as KEY_LEFT
+
+		KEY_1, KEY_4, KEY_7, KEY_GREEN, KEY_VFO_MR,
+		KEY_2, KEY_5, KEY_8, KEY_UP, KEY_RIGHT,
+		KEY_3, KEY_6, KEY_9, KEY_DOWN, KEY_LEFT,
+		KEY_STAR, KEY_0, KEY_HASH, KEY_RED, (uint32_t)NULL
+};
+
 #endif
 
 
@@ -270,10 +284,10 @@ void fw_check_key_event(keyboardCode_t *keys, int *event)
 		keys->event = KEY_MOD_DOWN | KEY_MOD_PRESS;
 		*event = EVENT_KEY_CHANGE;
 
-			taskENTER_CRITICAL();
-			timer_keypad=keypadTimerLong;
+		taskENTER_CRITICAL();
+		timer_keypad=keypadTimerLong;
 		timer_keypad_timeout = 10000;
-			taskEXIT_CRITICAL();
+		taskEXIT_CRITICAL();
 		keyState = KEY_WAITLONG;
 
 		if (keypadAlphaEnable == true)

@@ -24,7 +24,12 @@
 #include "codeplug.h"
 #include "trx.h"
 
-#define VFO_COUNT 4
+#if defined(PLATFORM_RD5R)
+#define SETTINGS_PLATFORM_SPECIFIC_SAVE_SETTINGS(includeVFOs) do { settingsSaveSettings(includeVFOs); } while(0)
+#else
+#define SETTINGS_PLATFORM_SPECIFIC_SAVE_SETTINGS(includeVFOs) do {} while(0)
+#endif
+
 enum USB_MODE { USB_MODE_CPS, USB_MODE_HOTSPOT, USB_MODE_DEBUG};
 enum SETTINGS_UI_MODE { SETTINGS_CHANNEL_MODE=0, SETTINGS_VFO_A_MODE, SETTINGS_VFO_B_MODE};
 enum BACKLIGHT_MODE { BACKLIGHT_MODE_AUTO = 0, BACKLIGHT_MODE_MANUAL = 1, BACKLIGHT_MODE_NONE = 2};
@@ -65,6 +70,7 @@ typedef struct settingsStruct
 	uint8_t			txTimeoutBeepX5Secs;
 	uint8_t			beepVolumeDivider;
 	uint8_t			micGainDMR;
+	uint8_t			micGainFM;
 	uint8_t			tsManualOverride;
 	uint16_t		keypadTimerLong;
 	uint16_t		keypadTimerRepeat;
@@ -82,10 +88,13 @@ typedef struct settingsStruct
 	uint8_t			contactDisplayPriority;
 	uint8_t			splitContact;
 	uint8_t			beepOptions;
+	uint8_t			voxThreshold; // 0: disabled
+	uint8_t			voxTailUnits; // 500ms units
+
 
 } settingsStruct_t;
 
-typedef enum DMR_FILTER_TYPE {DMR_FILTER_NONE = 0, DMR_FILTER_CC, DMR_FILTER_CC_TS, DMR_FILTER_CC_TS_TG, DMR_FILTER_CC_TS_DC ,
+typedef enum DMR_FILTER_TYPE {DMR_FILTER_NONE = 0, DMR_FILTER_CC, DMR_FILTER_CC_TS, DMR_FILTER_CC_TS_TG, DMR_FILTER_CC_TS_DC, DMR_FILTER_CC_TS_RXG ,
 								NUM_DMR_FILTER_LEVELS} dmrFilter_t;
 typedef enum ANALOG_FILTER_TYPE {ANALOG_FILTER_NONE = 0, ANALOG_FILTER_CTCSS, NUM_ANALOG_FILTER_LEVELS} analogFilter_t;
 
@@ -100,5 +109,6 @@ bool settingsSaveSettings(bool includeVFOs);
 bool settingsLoadSettings(void);
 void settingsRestoreDefaultSettings(void);
 void settingsInitVFOChannel(int vfoNumber);
+bool settingsPlatformSpecificSaveSettings(bool includeVFOs);
 
 #endif

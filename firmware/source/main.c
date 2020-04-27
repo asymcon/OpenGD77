@@ -30,7 +30,7 @@
 #endif
 
 #ifdef NDEBUG
-#error A firmware compiled in Releae mode will not work, yet
+#error A firmware compiled in Release mode will not work, yet
 #error Change target build to Debug then Clean the build and recompile
 #endif
 
@@ -40,6 +40,11 @@ void fw_main_task(void *data);
 
 const char *FIRMWARE_VERSION_STRING = "VK3KYY";//"V0.3.5";
 TaskHandle_t fwMainTaskHandle;
+
+#if defined(PLATFORM_GD77S)
+static uint32_t lowbatteryTimerForGD77S = 0;
+static const int LOW_BATTERY_INTERVAL_GD77S = ((1000 * 60) * 5); // 5 minutes;
+#endif
 
 void fw_init(void)
 {
@@ -80,25 +85,27 @@ void fw_powerOffFinalStage(void)
 		}
 	}
 
+#if !defined(PLATFORM_RD5R)
 	// This turns the power off to the CPU.
 	GPIO_PinWrite(GPIO_Keep_Power_On, Pin_Keep_Power_On, 0);
 
 	// Death trap
 	while(1U) {}
+#endif
 }
 
 
 static void show_lowbattery(void)
 {
 	ucClearBuf();
-	ucPrintCentered(32, currentLanguage->low_battery, FONT_8x16);
+	ucPrintCentered(32, currentLanguage->low_battery, FONT_SIZE_3);
 	ucRender();
 }
 
 static void showErrorMessage(char *message)
 {
 	ucClearBuf();
-	ucPrintCentered(32, message, FONT_8x16);
+	ucPrintCentered(32, message, FONT_SIZE_3);
 	ucRender();
 }
 
@@ -134,7 +141,7 @@ void fw_main_task(void *data)
 
     settingsLoadSettings();
 
-	fw_init_display(nonVolatileSettings.displayInverseVideo);
+	displayInit(nonVolatileSettings.displayInverseVideo);
 
     // Init SPI
     init_SPI();
@@ -175,6 +182,12 @@ void fw_main_task(void *data)
     // Init HR-C6000 interrupts
     init_HR_C6000_interrupts();
 
+    // Speech Synthesis (GD77S Only)
+    speechSynthesisInit();
+
+    // VOX init
+    voxInit();
+
     // Small startup delay after initialization to stabilize system
   //  vTaskDelay(portTICK_PERIOD_MS * 500);
 
@@ -185,7 +198,9 @@ void fw_main_task(void *data)
 	if (get_battery_voltage()<CUTOFF_VOLTAGE_UPPER_HYST)
 	{
 		show_lowbattery();
+#if !defined(PLATFORM_RD5R)
 		GPIO_PinWrite(GPIO_Keep_Power_On, Pin_Keep_Power_On, 0);
+#endif
 		while(1U) {};
 	}
 
@@ -204,6 +219,10 @@ void fw_main_task(void *data)
     lastheardInitList();
     codeplugInitContactsCache();
     dmrIDCacheInit();
+
+    // Should be initialized before the splash screen, as we don't want melodies when VOX is enabled
+    voxSetParameters(nonVolatileSettings.voxThreshold, nonVolatileSettings.voxTailUnits);
+
     menuInitMenuSystem();
 
 #if defined(PLATFORM_GD77S)
@@ -234,6 +253,44 @@ void fw_main_task(void *data)
 
 			check_rotary_switch_event(&rotary, &rotary_event); // Rotary switch state and event (GD-77S only)
 
+			// VOX Checking
+			if (voxIsEnabled())
+			{
+				// if a key/button event happen, reset the VOX.
+				if ((key_event == EVENT_KEY_CHANGE) || (button_event == EVENT_BUTTON_CHANGE) || (keys.key != 0) || (buttons != BUTTON_NONE))
+				{
+					voxReset();
+				}
+				else
+				{
+					if (!trxIsTransmitting && voxIsTriggered() && ((buttons & BUTTON_PTT) == 0))
+					{
+						button_event = EVENT_BUTTON_CHANGE;
+						buttons |= BUTTON_PTT;
+					}
+					else if (trxIsTransmitting && ((voxIsTriggered() == false) || (keys.event & KEY_MOD_PRESS)))
+					{
+						button_event = EVENT_BUTTON_CHANGE;
+						buttons &= ~BUTTON_PTT;
+					}
+					else if (trxIsTransmitting && voxIsTriggered())
+					{
+						// Any key/button event reset the vox
+						if ((button_event != EVENT_BUTTON_NONE) || (keys.event != EVENT_KEY_NONE))
+						{
+							voxReset();
+							button_event = EVENT_BUTTON_CHANGE;
+							buttons &= ~BUTTON_PTT;
+						}
+						else
+						{
+							buttons |= BUTTON_PTT;
+						}
+					}
+				}
+			}
+
+
 			// EVENT_*_CHANGED can be cleared later, so check this now as hasEvent has to be set anyway.
 			keyOrButtonChanged = ((key_event != NO_EVENT) || (button_event != NO_EVENT) || (rotary_event != NO_EVENT));
 
@@ -241,9 +298,13 @@ void fw_main_task(void *data)
 			{
 				int currentMenu = menuSystemGetCurrentMenuNumber();
 
-				if ((currentMenu == MENU_CHANNEL_MODE) || (currentMenu == MENU_VFO_MODE))
+				if ((currentMenu == UI_CHANNEL_MODE) || (currentMenu == UI_VFO_MODE))
 				{
+#if defined(PLATFORM_RD5R)
+					ucFillRect(0, 0, 128, 8, true);
+#else
 					ucClearRows(0, 2, false);
+#endif
 					menuUtilityRenderHeader();
 					ucRenderRows(0, 2);
 				}
@@ -257,9 +318,9 @@ void fw_main_task(void *data)
 				{
 					if (key_event == EVENT_KEY_CHANGE)
 					{
-						if ((PTTToggledDown == false) && (menuSystemGetCurrentMenuNumber() != MENU_LOCK_SCREEN))
+						if ((PTTToggledDown == false) && (menuSystemGetCurrentMenuNumber() != UI_LOCK_SCREEN))
 						{
-							menuSystemPushNewMenu(MENU_LOCK_SCREEN);
+							menuSystemPushNewMenu(UI_LOCK_SCREEN);
 						}
 
 						key_event = EVENT_KEY_NONE;
@@ -271,11 +332,15 @@ void fw_main_task(void *data)
 					}
 
 					// Lockout ORANGE AND BLUE (BLACK stay active regardless lock status, useful to trigger backlight)
+#if defined(PLATFORM_RD5R)
+					if (button_event == EVENT_BUTTON_CHANGE && (buttons & BUTTON_SK2))
+#else
 					if (button_event == EVENT_BUTTON_CHANGE && ((buttons & BUTTON_ORANGE) || (buttons & BUTTON_SK2)))
+#endif
 					{
-						if ((PTTToggledDown == false) && (menuSystemGetCurrentMenuNumber() != MENU_LOCK_SCREEN))
+						if ((PTTToggledDown == false) && (menuSystemGetCurrentMenuNumber() != UI_LOCK_SCREEN))
 						{
-							menuSystemPushNewMenu(MENU_LOCK_SCREEN);
+							menuSystemPushNewMenu(UI_LOCK_SCREEN);
 						}
 
 						button_event = EVENT_BUTTON_NONE;
@@ -292,9 +357,9 @@ void fw_main_task(void *data)
 					{
 						set_melody(melody_ERROR_beep);
 
-						if (menuSystemGetCurrentMenuNumber() != MENU_LOCK_SCREEN)
+						if (menuSystemGetCurrentMenuNumber() != UI_LOCK_SCREEN)
 						{
-							menuSystemPushNewMenu(MENU_LOCK_SCREEN);
+							menuSystemPushNewMenu(UI_LOCK_SCREEN);
 						}
 
 						button_event = EVENT_BUTTON_NONE;
@@ -303,9 +368,9 @@ void fw_main_task(void *data)
 					}
 					else if ((buttons & BUTTON_SK2) && KEYCHECK_DOWN(keys, KEY_STAR))
 					{
-						if (menuSystemGetCurrentMenuNumber() != MENU_LOCK_SCREEN)
+						if (menuSystemGetCurrentMenuNumber() != UI_LOCK_SCREEN)
 						{
-							menuSystemPushNewMenu(MENU_LOCK_SCREEN);
+							menuSystemPushNewMenu(UI_LOCK_SCREEN);
 						}
 					}
 				}
@@ -317,17 +382,21 @@ void fw_main_task(void *data)
 				// Do not send any beep while scanning, otherwise enabling the AMP will be handled as a valid signal detection.
 				if (keys.event & KEY_MOD_PRESS)
 				{
-					if ((PTTToggledDown == false) && (((menuSystemGetCurrentMenuNumber() == MENU_VFO_MODE) && menuVFOModeIsScanning()) == false))
+					if ((PTTToggledDown == false) && (((menuSystemGetCurrentMenuNumber() == UI_VFO_MODE) && uiVFOModeIsScanning()) == false))
+					{
 						set_melody(melody_key_beep);
+					}
 				}
 				else if ((keys.event & (KEY_MOD_LONG | KEY_MOD_DOWN)) == (KEY_MOD_LONG | KEY_MOD_DOWN))
 				{
-					if ((PTTToggledDown == false) && (((menuSystemGetCurrentMenuNumber() == MENU_VFO_MODE) && menuVFOModeIsScanning()) == false))
+					if ((PTTToggledDown == false) && (((menuSystemGetCurrentMenuNumber() == UI_VFO_MODE) && uiVFOModeIsScanning()) == false))
+					{
 						set_melody(melody_key_long_beep);
+					}
 				}
 
 				if (KEYCHECK_LONGDOWN(keys, KEY_RED) &&
-						(((menuSystemGetCurrentMenuNumber() == MENU_VFO_MODE) && menuVFOModeIsScanning()) == false))
+						(((menuSystemGetCurrentMenuNumber() == UI_VFO_MODE) && uiVFOModeIsScanning()) == false))
 				{
 					contactListContactIndex = 0;
 					menuSystemPopAllAndDisplayRootMenu();
@@ -360,9 +429,15 @@ void fw_main_task(void *data)
 			// PTT toggle feature
 			//
 			// PTT is locked down, but any button but SK1 is pressed, virtually release PTT
+#if defined(PLATFORM_RD5R)
+			if ((nonVolatileSettings.pttToggle && PTTToggledDown) &&
+							(((buttons & BUTTON_SK2)) ||
+									((keys.key != 0) && (keys.event & KEY_MOD_UP))))
+#else
 			if ((nonVolatileSettings.pttToggle && PTTToggledDown) &&
 					(((button_event & EVENT_BUTTON_CHANGE) && ((buttons & BUTTON_ORANGE) || (buttons & BUTTON_SK2))) ||
 							((keys.key != 0) && (keys.event & KEY_MOD_UP))))
+#endif
 			{
 				PTTToggledDown = false;
 				button_event = EVENT_BUTTON_CHANGE;
@@ -400,7 +475,9 @@ void fw_main_task(void *data)
 			else
 			{
 				if (PTTToggledDown)
+				{
 					PTTToggledDown = false;
+				}
 			}
 #endif
 
@@ -418,33 +495,33 @@ void fw_main_task(void *data)
 					 */
 					if (	trxGetMode() != RADIO_MODE_NONE &&
 							settingsUsbMode != USB_MODE_HOTSPOT &&
-							currentMenu != MENU_POWER_OFF &&
-							currentMenu != MENU_SPLASH_SCREEN &&
-							currentMenu != MENU_TX_SCREEN )
+							currentMenu != UI_POWER_OFF &&
+							currentMenu != UI_SPLASH_SCREEN &&
+							currentMenu != UI_TX_SCREEN )
 					{
 						bool wasScanning = false;
 						if (scanActive)
 						{
-							if (currentMenu == MENU_VFO_MODE)
+							if (currentMenu == UI_VFO_MODE)
 							{
-								menuVFOModeStopScanning();
+								uiVFOModeStopScanning();
 							}
 							else
 							{
-								menuChannelModeStopScanning();
+								uiChannelModeStopScanning();
 							}
 							wasScanning = true;
 						}
 						else
 						{
-							if (currentMenu == MENU_LOCK_SCREEN)
+							if (currentMenu == UI_LOCK_SCREEN)
 							{
 								menuLockScreenPop();
 							}
 						}
 						if (!wasScanning)
 						{
-							menuSystemPushNewMenu(MENU_TX_SCREEN);
+							menuSystemPushNewMenu(UI_TX_SCREEN);
 						}
 					}
 				}
@@ -457,7 +534,7 @@ void fw_main_task(void *data)
     			// Toggle backlight
         		if ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_MANUAL) && (buttons & BUTTON_SK1))
         		{
-        			fw_displayEnableBacklight(! fw_displayIsBacklightLit());
+        			displayEnableBacklight(! displayIsBacklightLit());
         		}
         	}
 
@@ -485,7 +562,7 @@ void fw_main_task(void *data)
     					{
     						if ((HRC6000GetReceivedSrcId() & 0xFFFFFF) >= 1000000)
     						{
-    							menuSystemPushNewMenu(MENU_PRIVATE_CALL);
+    							menuSystemPushNewMenu(UI_PRIVATE_CALL);
     						}
     					}
     				}
@@ -512,7 +589,7 @@ void fw_main_task(void *data)
 					keyFunction = ( MENU_LAST_HEARD << 8);
 					break;
 				case '4':
-					keyFunction = ( MENU_CHANNEL_DETAILS << 8) | 2;
+					keyFunction = ( MENU_CHANNEL_DETAILS << 8);
 					break;
 				case '5':
 					keyFunction = ( MENU_OPTIONS << 8) | 2;
@@ -567,22 +644,51 @@ void fw_main_task(void *data)
 
         	menuSystemCallCurrentMenuTick(&ev);
 
+#if defined(PLATFORM_RD5R)
+        	if (keyFunction == TOGGLE_TORCH)
+        	{
+        		toggle_torch();
+        	}
+#endif
+
+#if defined(PLATFORM_GD77S)
+        	if ((battery_voltage < (CUTOFF_VOLTAGE_LOWER_HYST + 6))
+        			&& ((lowbatteryTimerForGD77S == 0) || ((fw_millis() - lowbatteryTimerForGD77S) > LOW_BATTERY_INTERVAL_GD77S)))
+        	{
+        		uint8_t buf[2];
+
+        		lowbatteryTimerForGD77S = fw_millis();
+
+        		buf[0U] = 1;
+        		buf[1U] = SPEECH_SYNTHESIS_PLEASE_CHARGE_THE_BATTERY;
+        		speechSynthesisSpeak(buf);
+        	}
+#endif
+
+#if defined(PLATFORM_RD5R)
+        	if ((battery_voltage < CUTOFF_VOLTAGE_LOWER_HYST)
+        			&& (menuSystemGetCurrentMenuNumber() != UI_POWER_OFF))
+#else
         	if (((GPIO_PinRead(GPIO_Power_Switch, Pin_Power_Switch) != 0)
         			|| (battery_voltage < CUTOFF_VOLTAGE_LOWER_HYST))
-        			&& (menuSystemGetCurrentMenuNumber() != MENU_POWER_OFF))
+        			&& (menuSystemGetCurrentMenuNumber() != UI_POWER_OFF))
+#endif
         	{
         		if (battery_voltage < CUTOFF_VOLTAGE_LOWER_HYST)
         		{
         			show_lowbattery();
-
+#if defined(PLATFORM_RD5R)
+        			fw_powerOffFinalStage();
+#else
         			if (GPIO_PinRead(GPIO_Power_Switch, Pin_Power_Switch) != 0)
         			{
         				fw_powerOffFinalStage();
         			}
+#endif
         		}
         		else
         		{
-        			menuSystemPushNewMenu(MENU_POWER_OFF);
+        			menuSystemPushNewMenu(UI_POWER_OFF);
         		}
         		GPIO_PinWrite(GPIO_audio_amp_enable, Pin_audio_amp_enable, 0);
         		set_melody(NULL);
@@ -593,10 +699,12 @@ void fw_main_task(void *data)
     			menuDisplayLightTimer--;
     			if (menuDisplayLightTimer==0)
     			{
-    				fw_displayEnableBacklight(false);
+    				displayEnableBacklight(false);
     			}
     		}
     		tick_melody();
+    		speechSynthesisTick();
+    		voxTick();
     	}
 		vTaskDelay(0);
     }

@@ -20,7 +20,7 @@
  * Translators: DG3GSP, DL4LEX
  *
  *
- * Rev: 3.7
+ * Rev: 3.8
  */
 #ifndef USER_INTERFACE_LANGUAGES_GERMAN_H_
 #define USER_INTERFACE_LANGUAGES_GERMAN_H_
@@ -111,6 +111,7 @@ const stringsTable_t germanLanguage =
 .band_limits			= "Band Limit", // MaxLen: 16 (with ':' + .on or .off)
 .beep_volume			= "Beep Lauts", // MaxLen: 16 (with ':' + -24..6 + 'dB')
 .dmr_mic_gain			= "DMR Mikro", // MaxLen: 16 (with ':' + -33..12 + 'dB')
+.fm_mic_gain				= "FM Mikro", // MaxLen: 16 (with ':' + 0..31)
 .key_long				= "Key lang", // MaxLen: 11 (with ':' + x.xs fitted)
 .key_repeat				= "Key wied", // MaxLen: 11 (with ':' + x.xs fitted)
 .dmr_filter_timeout		= "DMR Filter", // MaxLen: 16 (with ':' + 1..90 + 's')
@@ -151,7 +152,9 @@ const stringsTable_t germanLanguage =
 .dmr_beep				= "DMR TX Ton", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
 .start					= "Start", // MaxLen 16 (with ':' + .dmr_beep)
 .both					= "Beide", // MaxLen 16 (with ':' + .dmr_beep)
-.tone					= "Tone SQL"
+.tone					= "Tone SQL",
+.vox_threshold                          = "VOX Empf.", // MaxLen 16 (with ':' + .off or 1..30)
+.vox_tail                               = "VOX Dauer" // MaxLen 16 (with ':' + .n_a or '0.0s')
 };
 /********************************************************************
  *

@@ -32,13 +32,14 @@ int txstopdelay = 0;
 volatile bool trxIsTransmittingTone = false;
 static uint16_t txPower;
 static bool analogSignalReceived = false;
+static bool digitalSignalReceived = false;
 
 int trxCurrentBand[2] = {RADIO_BAND_VHF,RADIO_BAND_VHF};// Rx and Tx band.
 
+#if USE_DATASHEET_RANGES
 const frequencyBand_t RADIO_FREQUENCY_BANDS[RADIO_BANDS_TOTAL_NUM] =  {
 													{
 														.minFreq=13400000,
-
 														.maxFreq=17400000
 													},// VHF
 													{
@@ -50,6 +51,25 @@ const frequencyBand_t RADIO_FREQUENCY_BANDS[RADIO_BANDS_TOTAL_NUM] =  {
 														.maxFreq=52000000
 													}// UHF
 };
+#else
+const frequencyBand_t RADIO_FREQUENCY_BANDS[RADIO_BANDS_TOTAL_NUM] =  {
+													{
+														.calTableMinFreq = 13400000,
+														.minFreq=12700000,
+														.maxFreq=17800000
+													},// VHF
+													{
+														.calTableMinFreq = 13400000,
+														.minFreq=19000000,
+														.maxFreq=28200000
+													},// 220Mhz
+													{
+														.calTableMinFreq = 40000000,
+														.minFreq=38000000,
+														.maxFreq=56400000
+													}// UHF
+};
+#endif
 
 static const int TRX_SQUELCH_MAX = 70;
 const int TRX_CTCSS_TONE_NONE = 65535;
@@ -91,9 +111,12 @@ static uint8_t tx_fh_h;
 
 volatile uint8_t trxRxSignal;
 volatile uint8_t trxRxNoise;
+volatile uint8_t trxTxVox;
+volatile uint8_t trxTxMic;
 
 static uint8_t trxSaveVoiceGainTx = 0xff;
 static uint16_t trxSaveDeviation = 0xff;
+static uint8_t voice_gain_tx = 0x31; // default voice_gain_tx fro calibration, needs to be declared here in case calibration:OFF
 
 int trxDMRMode = DMR_MODE_ACTIVE;// Active is for simplex
 static volatile bool txPAEnabled=false;
@@ -149,8 +172,8 @@ void trxSetModeAndBandwidth(int mode, bool bandwidthIs25kHz)
 			trxUpdateAT1846SCalibration();
 			break;
 		case RADIO_MODE_DIGITAL:
-			I2C_AT1846_SetMode();
-			I2C_AT1846_SetBandwidth();
+			I2C_AT1846_SetMode();// Also sets the bandwidth to 12.5kHz which is the standard for DMR
+
 			trxUpdateC6000Calibration();
 			trxUpdateAT1846SCalibration();
 			GPIO_PinWrite(GPIO_TX_audio_mux, Pin_TX_audio_mux, 1); // Connect mic to MIC_P input of HR-C6000
@@ -204,6 +227,7 @@ int trxGetBandFromFrequency(int frequency)
 			return i;
 		}
 	}
+
 	return -1;
 }
 
@@ -214,38 +238,57 @@ bool trxCheckFrequencyInAmateurBand(int tmp_frequency)
 			((tmp_frequency >= BAND_222_MIN) && (tmp_frequency <= BAND_222_MAX));
 }
 
+void trxReadVoxAndMicStrength(void)
+{
+	taskENTER_CRITICAL();
+	read_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x1a, (uint8_t *)&trxTxVox, (uint8_t *)&trxTxMic);
+	taskEXIT_CRITICAL();
+	}
+
 void trxReadRSSIAndNoise(void)
 {
 	taskENTER_CRITICAL();
-	read_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x1b,(uint8_t *)&trxRxSignal,(uint8_t *)&trxRxNoise);
+	read_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x1b, (uint8_t *)&trxRxSignal, (uint8_t *)&trxRxNoise);
 	taskEXIT_CRITICAL();
 }
 
-int trx_carrier_detected(void)
+bool trxCarrierDetected(void)
 {
-	uint8_t squelch;
+	uint8_t squelch = 0;
 
 	trxReadRSSIAndNoise();
 
-	// check for variable squelch control
-	if (currentChannelData->sql!=0)
+	switch(currentMode)
 	{
-		squelch =  TRX_SQUELCH_MAX - (((currentChannelData->sql-1)*11)>>2);
-	}
-	else
-	{
-		squelch =  TRX_SQUELCH_MAX - (((nonVolatileSettings.squelchDefaults[trxCurrentBand[TRX_RX_FREQ_BAND]])*11)>>2);
+		case RADIO_MODE_NONE:
+			break;
+
+		case RADIO_MODE_ANALOG:
+			if (currentChannelData->sql != 0)
+			{
+				squelch =  TRX_SQUELCH_MAX - (((currentChannelData->sql-1)*11)>>2);
+			}
+			else
+			{
+				squelch =  TRX_SQUELCH_MAX - (((nonVolatileSettings.squelchDefaults[trxCurrentBand[TRX_RX_FREQ_BAND]])*11)>>2);
+			}
+			break;
+
+		case RADIO_MODE_DIGITAL:
+			// Don't check for variable squelch, as some people seem to have this set to fully open on their DMR channels.
+			/*
+			if (currentChannelData->sql!=0)
+			{
+				squelch =  TRX_SQUELCH_MAX - (((currentChannelData->sql-1)*11)>>2);
+			}
+			else*/
+			{
+				squelch =  TRX_SQUELCH_MAX - (((nonVolatileSettings.squelchDefaults[trxCurrentBand[TRX_RX_FREQ_BAND]])*11)>>2);
+			}
+			break;
 	}
 
-	if (trxRxNoise < squelch)
-	{
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
-
+	return (trxRxNoise < squelch);
 }
 
 void trxCheckDigitalSquelch(void)
@@ -269,13 +312,28 @@ void trxCheckDigitalSquelch(void)
 			squelch =  TRX_SQUELCH_MAX - (((nonVolatileSettings.squelchDefaults[trxCurrentBand[TRX_RX_FREQ_BAND]])*11)>>2);
 		}
 
-		GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, (trxRxNoise < squelch));
+		if (trxRxNoise < squelch)
+		{
+			if(!digitalSignalReceived)
+			{
+				digitalSignalReceived = true;
+				GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 1);
+			}
+		}
+		else
+		{
+			if (digitalSignalReceived)
+			{
+				digitalSignalReceived = false;
+				GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 0);
+			}
+		}
 
 		trx_measure_count=0;
 	}
 }
 
-void trx_check_analog_squelch(void)
+void trxCheckAnalogSquelch(void)
 {
 	trx_measure_count++;
 	if (trx_measure_count==25)
@@ -296,7 +354,6 @@ void trx_check_analog_squelch(void)
 
 		if (trxRxNoise < squelch)
 		{
-
 			if(!analogSignalReceived)
 			{
 				analogSignalReceived = true;
@@ -306,13 +363,16 @@ void trx_check_analog_squelch(void)
 		}
 		else
 		{
-			analogSignalReceived=false;
-			GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 0);
+			if(analogSignalReceived)
+			{
+				analogSignalReceived=false;
+				GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 0);
+			}
 		}
 
 
 
-		if(((!rxCTCSSactive) && (trxRxNoise < squelch)) || ((rxCTCSSactive) && (trxCheckCTCSSFlag())))
+		if((trxRxNoise < squelch) && (((rxCTCSSactive) && (trxCheckCTCSSFlag())) || (!rxCTCSSactive)))
 		{
 			GPIO_PinWrite(GPIO_RX_audio_mux, Pin_RX_audio_mux, 1);// Set the audio path to AT1846 -> audio amp.
 			enableAudioAmp(AUDIO_AMP_MODE_RF);
@@ -414,15 +474,15 @@ void trxSetFrequency(int fRx,int fTx, int dmrMode)
 
 		if (!txPAEnabled)
 		{
-			if (trxCurrentBand[TRX_RX_FREQ_BAND] == RADIO_BAND_UHF)
-			{
-				GPIO_PinWrite(GPIO_VHF_RX_amp_power, Pin_VHF_RX_amp_power, 0);
-				GPIO_PinWrite(GPIO_UHF_RX_amp_power, Pin_UHF_RX_amp_power, 1);
-			}
-			else
+			if (trxCurrentBand[TRX_RX_FREQ_BAND] == RADIO_BAND_VHF)
 			{
 				GPIO_PinWrite(GPIO_VHF_RX_amp_power, Pin_VHF_RX_amp_power, 1);
 				GPIO_PinWrite(GPIO_UHF_RX_amp_power, Pin_UHF_RX_amp_power, 0);
+			}
+			else
+			{
+				GPIO_PinWrite(GPIO_VHF_RX_amp_power, Pin_VHF_RX_amp_power, 0);
+				GPIO_PinWrite(GPIO_UHF_RX_amp_power, Pin_UHF_RX_amp_power, 1);
 			}
 		}
 		else
@@ -462,13 +522,13 @@ void trx_setRX(void)
 
 void trx_setTX(void)
 {
-	trxIsTransmitting=true;
+	trxIsTransmitting = true;
 
 	// RX pre-amp off
 	GPIO_PinWrite(GPIO_VHF_RX_amp_power, Pin_VHF_RX_amp_power, 0);
 	GPIO_PinWrite(GPIO_UHF_RX_amp_power, Pin_UHF_RX_amp_power, 0);
 
-//	set_clear_I2C_reg_2byte_with_mask(0x30, 0xFF, 0x1F, 0x00, 0x00);
+	//	set_clear_I2C_reg_2byte_with_mask(0x30, 0xFF, 0x1F, 0x00, 0x00);
 	if (currentMode == RADIO_MODE_ANALOG)
 	{
 		trxActivateTx();
@@ -497,16 +557,15 @@ void trxActivateRx(void)
 
 	txPAEnabled=false;
 
-
-    if (trxCurrentBand[TRX_RX_FREQ_BAND] == RADIO_BAND_UHF)
-	{
-		GPIO_PinWrite(GPIO_VHF_RX_amp_power, Pin_VHF_RX_amp_power, 0);// VHF pre-amp off
-		GPIO_PinWrite(GPIO_UHF_RX_amp_power, Pin_UHF_RX_amp_power, 1);// UHF pre-amp on
-	}
-    else
+    if (trxCurrentBand[TRX_RX_FREQ_BAND] == RADIO_BAND_VHF)
 	{
 		GPIO_PinWrite(GPIO_VHF_RX_amp_power, Pin_VHF_RX_amp_power, 1);// VHF pre-amp on
 		GPIO_PinWrite(GPIO_UHF_RX_amp_power, Pin_UHF_RX_amp_power, 0);// UHF pre-amp off
+	}
+    else
+	{
+		GPIO_PinWrite(GPIO_VHF_RX_amp_power, Pin_VHF_RX_amp_power, 0);// VHF pre-amp off
+		GPIO_PinWrite(GPIO_UHF_RX_amp_power, Pin_UHF_RX_amp_power, 1);// UHF pre-amp on
 	}
 
 	if (currentBandWidthIs25kHz)
@@ -542,6 +601,7 @@ void trxActivateTx(void)
 	{
 		set_clear_I2C_reg_2byte_with_mask(0x30, 0xFF, 0x1F, 0x00, 0x40); // analog TX
 		trxSelectVoiceChannel(AT1846_VOICE_CHANNEL_MIC);// For 1750 tone burst
+		setMicGainFM(nonVolatileSettings.micGainFM);
 	}
 	else
 	{
@@ -549,15 +609,15 @@ void trxActivateTx(void)
 	}
 
 	// TX PA on
-	if (trxCurrentBand[TRX_TX_FREQ_BAND] == RADIO_BAND_UHF)
-	{
-		GPIO_PinWrite(GPIO_VHF_TX_amp_power, Pin_VHF_TX_amp_power, 0);// I can't see why this would be needed. Its probably just for safety.
-		GPIO_PinWrite(GPIO_UHF_TX_amp_power, Pin_UHF_TX_amp_power, 1);
-	}
-	else
+	if (trxCurrentBand[TRX_TX_FREQ_BAND] == RADIO_BAND_VHF)
 	{
 		GPIO_PinWrite(GPIO_UHF_TX_amp_power, Pin_UHF_TX_amp_power, 0);// I can't see why this would be needed. Its probably just for safety.
 		GPIO_PinWrite(GPIO_VHF_TX_amp_power, Pin_VHF_TX_amp_power, 1);
+	}
+	else
+	{
+		GPIO_PinWrite(GPIO_VHF_TX_amp_power, Pin_VHF_TX_amp_power, 0);// I can't see why this would be needed. Its probably just for safety.
+		GPIO_PinWrite(GPIO_UHF_TX_amp_power, Pin_UHF_TX_amp_power, 1);
 	}
     DAC_SetBufferValue(DAC0, 0U, txPower);	// PA drive to appropriate level
 }
@@ -653,8 +713,10 @@ void trxCalcBandAndFrequencyOffset(uint32_t *band_offset, uint32_t *freq_offset)
 
 void trxUpdateC6000Calibration(void)
 {
-	uint32_t band_offset=0x00000000;
-	uint32_t freq_offset=0x00000000;
+	uint8_t highByte;
+	uint8_t lowByte;
+	uint32_t band_offset;
+	uint32_t freq_offset;
 
 	if (nonVolatileSettings.useCalibration==false)
 	{
@@ -665,23 +727,23 @@ void trxUpdateC6000Calibration(void)
 
 	write_SPI_page_reg_byte_SPI0(0x04, 0x00, 0x3F); // Reset HR-C6000 state
 
-	uint8_t val_shift;
-	read_val_DACDATA_shift(band_offset,&val_shift);
-	write_SPI_page_reg_byte_SPI0(0x04, 0x37, val_shift); // DACDATA shift (LIN_VOL)
+	read_val_DACDATA_shift(band_offset,&lowByte);
+	write_SPI_page_reg_byte_SPI0(0x04, 0x37, lowByte); // DACDATA shift (LIN_VOL)
 
-	uint8_t val_0x04;
-	read_val_Q_MOD2_offset(band_offset,&val_0x04);
-	write_SPI_page_reg_byte_SPI0(0x04, 0x04, val_0x04); // MOD2 offset
+	read_val_Q_MOD2_offset(band_offset,&lowByte);
+	write_SPI_page_reg_byte_SPI0(0x04, 0x04, lowByte); // MOD2 offset
 
-	uint8_t val_0x46;
-	read_val_phase_reduce(band_offset+freq_offset,&val_0x46);
-	write_SPI_page_reg_byte_SPI0(0x04, 0x46, val_0x46); // phase reduce
+	read_val_phase_reduce(band_offset+freq_offset,&lowByte);
+	write_SPI_page_reg_byte_SPI0(0x04, 0x46, lowByte); // phase reduce
 
-	uint8_t val_0x47;
-	uint8_t val_0x48;
-	read_val_twopoint_mod(band_offset,&val_0x47, &val_0x48);
-	write_SPI_page_reg_byte_SPI0(0x04, 0x48, val_0x48); // bit 0 to 1 = upper 2 bits of 10-bit twopoint mod
-	write_SPI_page_reg_byte_SPI0(0x04, 0x47, val_0x47); // bit 0 to 7 = lower 8 bits of 10-bit twopoint mod
+	read_val_twopoint_mod(band_offset,&lowByte, &highByte);
+	uint16_t refOscOffset = (highByte<<8)+lowByte;
+	if (refOscOffset>1023)
+	{
+		refOscOffset=1023;
+	}
+	write_SPI_page_reg_byte_SPI0(0x04, 0x48, (refOscOffset>>8) & 0x03); // bit 0 to 1 = upper 2 bits of 10-bit twopoint mod
+	write_SPI_page_reg_byte_SPI0(0x04, 0x47, (refOscOffset & 0xFF)); // bit 0 to 7 = lower 8 bits of 10-bit twopoint mod
 }
 
 void I2C_AT1846_set_register_with_mask(uint8_t reg, uint16_t mask, uint16_t value, uint8_t shift)
@@ -702,7 +764,6 @@ void trxUpdateAT1846SCalibration(void)
 	trxCalcBandAndFrequencyOffset(&band_offset, &freq_offset);
 
 	uint8_t val_pga_gain;
-	uint8_t voice_gain_tx;
 	uint8_t gain_tx;
 	uint8_t padrv_ibit;
 
@@ -808,7 +869,7 @@ void trxUpdateTsForCurrentChannelWithSpecifiedContact(struct_codeplugContact_t *
 
 	// nonVolatileSettings.tsManualOverride stores separate TS overrides for VFO and Channel mode
 	// Lower nibble is the Channel screen override and upper nibble if the VFO
-	if (nonVolatileSettings.initialMenuNumber == MENU_CHANNEL_MODE)
+	if (nonVolatileSettings.initialMenuNumber == UI_CHANNEL_MODE)
 	{
 		if ((nonVolatileSettings.tsManualOverride & 0x0F) != 0)
 		{
@@ -846,7 +907,7 @@ void trxUpdateTsForCurrentChannelWithSpecifiedContact(struct_codeplugContact_t *
 void trxSetTxCTCSS(int toneFreqX10)
 {
 	taskENTER_CRITICAL();
-	if (toneFreqX10 == 0xFFFF)
+	if (!codeplugChannelToneIsCTCSS(toneFreqX10))
 	{
 		// tone value of 0xffff in the codeplug seem to be a flag that no tone has been selected
         write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x4a, 0x00,0x00); //Zero the CTCSS1 Register
@@ -866,7 +927,7 @@ void trxSetTxCTCSS(int toneFreqX10)
 void trxSetRxCTCSS(int toneFreqX10)
 {
 	taskENTER_CRITICAL();
-	if (toneFreqX10 == 0xFFFF)
+	if (!codeplugChannelToneIsCTCSS(toneFreqX10))
 	{
 		// tone value of 0xffff in the codeplug seem to be a flag that no tone has been selected
         write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x4d, 0x00,0x00); //Zero the CTCSS2 Register
@@ -921,6 +982,11 @@ void trxUpdateDeviation(int channel)
 		break;
 	}
 	taskEXIT_CRITICAL();
+}
+
+uint8_t trxGetCalibrationVoiceGainTx(void)
+{
+	return voice_gain_tx;
 }
 
 void trxSelectVoiceChannel(uint8_t channel) {
