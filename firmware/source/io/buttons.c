@@ -30,7 +30,7 @@ static bool orangeButtonPressed;
 static bool orangeButtonReleased;
 #endif
 
-void fw_init_buttons(void)
+void buttonsInit(void)
 {
     PORT_SetPinMux(Port_PTT, Pin_PTT, kPORT_MuxAsGpio);
     PORT_SetPinMux(Port_SK1, Pin_SK1, kPORT_MuxAsGpio);
@@ -58,7 +58,7 @@ void fw_init_buttons(void)
     old_button_state = 0;
 }
 
-uint32_t fw_read_buttons(void)
+uint32_t buttonsRead(void)
 {
 	uint32_t result = BUTTON_NONE;
 
@@ -101,9 +101,9 @@ uint32_t fw_read_buttons(void)
 	return result;
 }
 
-void fw_check_button_event(uint32_t *buttons, int *event)
+void buttonsCheckButtonsEvent(uint32_t *buttons, int *event)
 {
-	*buttons = fw_read_buttons();
+	*buttons = buttonsRead();
 
 #if defined(PLATFORM_GD77S)
 	taskENTER_CRITICAL();

@@ -635,7 +635,7 @@ static void handleEvent(uiEvent_t *ev)
 				}
 				scanTimer = SCAN_SKIP_CHANNEL_INTERVAL;//force scan to continue;
 				scanState=SCAN_SCANNING;
-				fw_reset_keyboard();
+				keyboardReset();
 				return;
 			}
 
@@ -643,7 +643,7 @@ static void handleEvent(uiEvent_t *ev)
 			if (scanState == SCAN_SCANNING && ev->keys.key == KEY_LEFT)
 			{
 				scanDirection *= -1;
-				fw_reset_keyboard();
+				keyboardReset();
 				return;
 			}
 		}
@@ -653,7 +653,7 @@ static void handleEvent(uiEvent_t *ev)
 		if (ev->keys.key != KEY_GREEN)
 		{
 			uiVFOModeStopScanning();
-			fw_reset_keyboard();
+			keyboardReset();
 			return;
 		}
 	}

@@ -324,7 +324,7 @@ int menuContactListSubMenu(uiEvent_t *ev, bool isFirstRun)
 	if (isFirstRun)
 	{
 		updateSubMenuScreen();
-		fw_init_keyboard();
+		keyboardInit();
 	}
 	else
 	{

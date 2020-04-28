@@ -110,7 +110,7 @@ void menuSystemPushNewMenu(int menuNumber)
 	{
 		uiEvent_t ev = { .buttons = 0, .keys = NO_KEYCODE, .rotary = 0, .function = 0, .events = NO_EVENT, .hasEvent = false, .time = fw_millis() };
 
-		fw_reset_keyboard();
+		keyboardReset();
 		menuControlData.itemIndex[menuControlData.stackPosition] = gMenusCurrentItemIndex;
 		menuControlData.stackPosition++;
 		menuControlData.stack[menuControlData.stackPosition] = menuNumber;
@@ -125,7 +125,7 @@ void menuSystemPushNewMenuWithQuickFunction(int menuNumber, int quickFunction)
 	{
 		uiEvent_t ev = { .buttons = 0, .keys = NO_KEYCODE, .rotary = 0, .function = quickFunction, .events = FUNCTION_EVENT, .hasEvent = false, .time = fw_millis() };
 
-		fw_reset_keyboard();
+		keyboardReset();
 		menuControlData.itemIndex[menuControlData.stackPosition] = gMenusCurrentItemIndex;
 		menuControlData.stackPosition++;
 		menuControlData.stack[menuControlData.stackPosition] = menuNumber;
@@ -138,7 +138,7 @@ void menuSystemPopPreviousMenu(void)
 {
 	uiEvent_t ev = { .buttons = 0, .keys = NO_KEYCODE, .rotary = 0, .function = 0, .events = NO_EVENT, .hasEvent = false, .time = fw_millis() };
 
-	fw_reset_keyboard();
+	keyboardReset();
 	menuControlData.itemIndex[menuControlData.stackPosition] = 0;
 	menuControlData.stackPosition -= (menuControlData.stackPosition > 0) ? 1 : 0; // Avoid crashing if something goes wrong.
 	gMenusCurrentItemIndex = menuControlData.itemIndex[menuControlData.stackPosition];
@@ -149,7 +149,7 @@ void menuSystemPopAllAndDisplayRootMenu(void)
 {
 	uiEvent_t ev = { .buttons = 0, .keys = NO_KEYCODE, .rotary = 0, .function = 0, .events = NO_EVENT, .hasEvent = false, .time = fw_millis() };
 
-	fw_reset_keyboard();
+	keyboardReset();
 	memset(menuControlData.itemIndex, 0, sizeof(menuControlData.itemIndex));
 	menuControlData.stackPosition = 0;
 	gMenusCurrentItemIndex = 0;
@@ -160,7 +160,7 @@ void menuSystemPopAllAndDisplaySpecificRootMenu(int newRootMenu)
 {
 	uiEvent_t ev = { .buttons = 0, .keys = NO_KEYCODE, .rotary = 0, .function = 0, .events = NO_EVENT, .hasEvent = false, .time = fw_millis() };
 
-	fw_reset_keyboard();
+	keyboardReset();
 	memset(menuControlData.itemIndex, 0, sizeof(menuControlData.itemIndex));
 	menuControlData.stack[0]  = newRootMenu;
 	menuControlData.stackPosition = 0;
@@ -172,7 +172,7 @@ void menuSystemSetCurrentMenu(int menuNumber)
 {
 	uiEvent_t ev = { .buttons = 0, .keys = NO_KEYCODE, .rotary = 0, .function = 0, .events = NO_EVENT, .hasEvent = false, .time = fw_millis() };
 
-	fw_reset_keyboard();
+	keyboardReset();
 	menuControlData.stack[menuControlData.stackPosition] = menuNumber;
 	gMenusCurrentItemIndex = menuControlData.itemIndex[menuControlData.stackPosition];
 	menuFunctions[menuControlData.stack[menuControlData.stackPosition]](&ev,true);

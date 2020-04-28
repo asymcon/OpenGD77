@@ -85,6 +85,9 @@ void fw_powerOffFinalStage(void)
 		}
 	}
 
+	nonVolatileSettings.displayBacklightPercentageOff = 0;
+	displayEnableBacklight(false);
+
 #if !defined(PLATFORM_RD5R)
 	// This turns the power off to the CPU.
 	GPIO_PinWrite(GPIO_Keep_Power_On, Pin_Keep_Power_On, 0);
@@ -128,12 +131,12 @@ void fw_main_task(void *data)
     init_I2C0a();
     setup_I2C0();
 	fw_init_common();
-	fw_init_buttons();
+	buttonsInit();
 	fw_init_LEDs();
-	fw_init_keyboard();
-	init_rotary_switch();
+	keyboardInit();
+	rotarySwitchInit();
 
-	fw_check_button_event(&buttons, &button_event);// Read button state and event
+	buttonsCheckButtonsEvent(&buttons, &button_event);// Read button state and event
 	if (buttons & BUTTON_SK2)
 	{
 		settingsRestoreDefaultSettings();
@@ -216,6 +219,16 @@ void fw_main_task(void *data)
     SEGGER_RTT_printf(0,"Segger RTT initialised\n");
 #endif
 
+	// Clear boot melody and image
+#if defined(PLATFORM_GD77S)
+    if ((buttons & (BUTTON_SK2 | BUTTON_ORANGE)) == ((BUTTON_SK2 | BUTTON_ORANGE)))
+#else
+    if ((buttons & BUTTON_SK2) && ((keyboardRead() & (SCAN_UP | SCAN_DOWN)) == (SCAN_UP | SCAN_DOWN)))
+#endif
+	{
+		settingsEraseCustomContent();
+	}
+
     lastheardInitList();
     codeplugInitContactsCache();
     dmrIDCacheInit();
@@ -233,6 +246,13 @@ void fw_main_task(void *data)
 	}
 #endif
 
+	// Reset buttons/key states in case some where pressed while booting.
+	button_event = EVENT_BUTTON_NONE;
+	buttons = BUTTON_NONE;
+	key_event = EVENT_KEY_NONE;
+	keys.event = 0;
+	keys.key = 0;
+
     while (1U)
     {
     	taskENTER_CRITICAL();
@@ -247,11 +267,11 @@ void fw_main_task(void *data)
 
 			tick_com_request();
 
-			fw_check_button_event(&buttons, &button_event); // Read button state and event
+			buttonsCheckButtonsEvent(&buttons, &button_event); // Read button state and event
 
-			fw_check_key_event(&keys, &key_event); // Read keyboard state and event
+			keyboardCheckKeyEvent(&keys, &key_event); // Read keyboard state and event
 
-			check_rotary_switch_event(&rotary, &rotary_event); // Rotary switch state and event (GD-77S only)
+			rotarySwitchCheckRotaryEvent(&rotary, &rotary_event); // Rotary switch state and event (GD-77S only)
 
 			// VOX Checking
 			if (voxIsEnabled())
@@ -632,7 +652,7 @@ void fw_main_task(void *data)
 					keys.key = 0;
 					keys.event = 0;
 					function_event = FUNCTION_EVENT;
-					fw_reset_keyboard();
+					keyboardReset();
 				}
 			}
     		ev.buttons = buttons;

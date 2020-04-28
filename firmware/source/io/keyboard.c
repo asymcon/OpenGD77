@@ -94,7 +94,7 @@ static const char keypadAlphaMap[11][31] = {
 		"*"
 };
 
-void fw_init_keyboard(void)
+void keyboardInit(void)
 {
 #if ! defined(PLATFORM_GD77S)
 	port_pin_config_t config = {
@@ -144,7 +144,7 @@ void fw_init_keyboard(void)
 	keypadLocked = false;
 }
 
-void fw_reset_keyboard(void)
+void keyboardReset(void)
 {
 	oldKeyboardCode = 0;
 	keypadAlphaEnable = false;
@@ -153,7 +153,7 @@ void fw_reset_keyboard(void)
 	keyState = KEY_WAIT_RELEASED;
 }
 
-inline uint8_t fw_read_keyboard_col(void)
+static inline uint8_t keyboardReadCol(void)
 {
 #if defined(PLATFORM_GD77S)
 	return 0;
@@ -162,7 +162,7 @@ inline uint8_t fw_read_keyboard_col(void)
 #endif
 }
 
-uint32_t fw_read_keyboard(void)
+uint32_t keyboardRead(void)
 {
 	uint32_t result = 0;
 
@@ -174,7 +174,7 @@ uint32_t fw_read_keyboard(void)
 		for (volatile int i = 0; i < 100; i++)
 			; // small delay to allow voltages to settle. The delay value of 100 is arbitrary.
 
-		result=(result<<5) | fw_read_keyboard_col();
+		result=(result<<5) | keyboardReadCol();
 
 		GPIO_PinWrite(GPIOC, col, 1);
 		GPIO_PinInit(GPIOC, col, &pin_config_input);
@@ -184,7 +184,7 @@ uint32_t fw_read_keyboard(void)
     return result;
 }
 
-bool fw_scan_key(uint32_t scancode, char *keycode)
+bool keyboardScanKey(uint32_t scancode, char *keycode)
 {
 	int col;
 	int row = 0;
@@ -221,9 +221,9 @@ bool fw_scan_key(uint32_t scancode, char *keycode)
 	return (numKeys == 1);
 }
 
-void fw_check_key_event(keyboardCode_t *keys, int *event)
+void keyboardCheckKeyEvent(keyboardCode_t *keys, int *event)
 {
-	uint32_t scancode = fw_read_keyboard();
+	uint32_t scancode = keyboardRead();
 	char keycode;
 	bool validKey;
 	int newAlphaKey;
@@ -235,7 +235,7 @@ void fw_check_key_event(keyboardCode_t *keys, int *event)
 	keys->event = 0;
 	keys->key = 0;
 
-	validKey = fw_scan_key(scancode, &keycode);
+	validKey = keyboardScanKey(scancode, &keycode);
 
 	if (keyState > KEY_DEBOUNCE && !validKey)
 	{

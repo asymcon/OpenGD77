@@ -27,7 +27,7 @@
 
 static const int STORAGE_BASE_ADDRESS 		= 0x6000;
 
-static const int STORAGE_MAGIC_NUMBER 		= 0x6009;
+static const int STORAGE_MAGIC_NUMBER 		= 0x6010;
 
 // Bit patterns for DMR Beep
 const uint8_t BEEP_TX_NONE  = 0x00;
@@ -85,7 +85,7 @@ bool settingsLoadSettings(void)
 	}
 
 	// Added this parameter without changing the magic number, so need to check for default / invalid numbers
-	if (nonVolatileSettings.beepVolumeDivider>10)
+	if (nonVolatileSettings.beepVolumeDivider>15)
 	{
 		nonVolatileSettings.beepVolumeDivider = 2;// no reduction in volume
 	}
@@ -210,4 +210,10 @@ void settingsRestoreDefaultSettings(void)
 	currentChannelData = &settingsVFOChannel[nonVolatileSettings.currentVFONumber];// Set the current channel data to point to the VFO data since the default screen will be the VFO
 
 	settingsSaveSettings(false);
+}
+
+void settingsEraseCustomContent(void)
+{
+	//Erase OpenGD77 custom content
+	SPI_Flash_eraseSector(0);// The first sector (4k) contains the OpenGD77 custom codeplug content e.g. Boot melody and boot image.
 }

@@ -108,6 +108,7 @@ extern int settingsUsbMode;
 bool settingsSaveSettings(bool includeVFOs);
 bool settingsLoadSettings(void);
 void settingsRestoreDefaultSettings(void);
+void settingsEraseCustomContent(void);
 void settingsInitVFOChannel(int vfoNumber);
 bool settingsPlatformSpecificSaveSettings(bool includeVFOs);
 

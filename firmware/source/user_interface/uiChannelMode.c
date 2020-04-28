@@ -111,7 +111,7 @@ int uiChannelMode(uiEvent_t *ev, bool isFirstRun)
 		if (firstRunGD77S)
 		{
 			firstRunGD77S = false;
-			checkAndUpdateSelectedChannelForGD77S(get_rotary_switch_position(), true);
+			checkAndUpdateSelectedChannelForGD77S(rotarySwitchGetPosition(), true);
 		}
 #endif
 		displayLightTrigger();
@@ -136,9 +136,9 @@ int uiChannelMode(uiEvent_t *ev, bool isFirstRun)
 #if defined(PLATFORM_GD77S)
 			// Just ensure rotary's selected channel is matching the already loaded one
 			// as rotary selector could be turned while the GD is OFF, or in hotspot mode.
-			if (get_rotary_switch_position() != getCurrentChannelInCurrentZoneForGD77S())
+			if (rotarySwitchGetPosition() != getCurrentChannelInCurrentZoneForGD77S())
 			{
-				checkAndUpdateSelectedChannelForGD77S(get_rotary_switch_position(), false);
+				checkAndUpdateSelectedChannelForGD77S(rotarySwitchGetPosition(), false);
 			}
 #endif
 
@@ -1043,7 +1043,7 @@ static void handleEvent(uiEvent_t *ev)
 				}
 				scanTimer = SCAN_SKIP_CHANNEL_INTERVAL;	//force scan to continue;
 				scanState=SCAN_SCANNING;
-				fw_reset_keyboard();
+				keyboardReset();
 				return;
 			}
 
@@ -1051,7 +1051,7 @@ static void handleEvent(uiEvent_t *ev)
 			if (scanState == SCAN_SCANNING && ev->keys.key == KEY_LEFT)
 			{
 				scanDirection *= -1;
-				fw_reset_keyboard();
+				keyboardReset();
 				return;
 			}
 		}
@@ -1060,7 +1060,7 @@ static void handleEvent(uiEvent_t *ev)
 		if (((ev->keys.key == KEY_UP) && (ev->buttons & BUTTON_SK2) == 0) == false)
 		{
 			uiChannelModeStopScanning();
-			fw_reset_keyboard();
+			keyboardReset();
 			menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
 			uiChannelModeUpdateScreen(0);
 			return;

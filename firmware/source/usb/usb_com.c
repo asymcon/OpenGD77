@@ -21,6 +21,7 @@
 #include <user_interface/menuSystem.h>
 #include <stdarg.h>
 #include <usb_com.h>
+#include <ticks.h>
 #include <wdog.h>
 
 static void handleCPSRequest(void);
@@ -238,13 +239,26 @@ static void handleCPSRequest(void)
 				break;
 			case 6:
 				{
-					int subCommand= com_requestbuffer[2];
+					int subCommand = com_requestbuffer[2];
+					uint32_t m = fw_millis();
+
 					// Do some other processing
 					switch(subCommand)
 					{
 						case 0:
 							// save current settings and reboot
+							m = fw_millis();
 							settingsSaveSettings(false);// Need to save these channels prior to reboot, as reboot does not save
+
+							// Give it a bit of time before pulling the plug as DM-1801 EEPROM looks slower
+							// than GD-77 to write, then quickly power cycling triggers settings reset.
+							while (1U)
+							{
+								if ((fw_millis() - m) > 50)
+								{
+									break;
+								}
+							}
 							watchdogReboot();
 						break;
 						case 1:

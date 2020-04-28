@@ -26,7 +26,7 @@
 static uint8_t prevPosition;
 #endif
 
-void init_rotary_switch(void)
+void rotarySwitchInit(void)
 {
 #if defined(PLATFORM_GD77S)
 	PORT_SetPinMux(Port_RotarySW_Line0, Pin_RotarySW_Line0, kPORT_MuxAsGpio);
@@ -43,7 +43,7 @@ void init_rotary_switch(void)
 #endif
 }
 
-uint8_t get_rotary_switch_position(void)
+uint8_t rotarySwitchGetPosition(void)
 {
 #if defined(PLATFORM_GD77S)
 	static const uint8_t rsPositions[] = { 1, 8, 2, 7, 4, 5, 3, 6, 16, 9, 15, 10, 13, 12, 14, 11 };
@@ -53,13 +53,13 @@ uint8_t get_rotary_switch_position(void)
 #endif
 }
 
-void check_rotary_switch_event(uint32_t *position, int *event)
+void rotarySwitchCheckRotaryEvent(uint32_t *position, int *event)
 {
 #if ! defined(PLATFORM_GD77S)
 	*position = 0;
 	*event = EVENT_ROTARY_NONE;
 #else
-	uint8_t value = get_rotary_switch_position();
+	uint8_t value = rotarySwitchGetPosition();
 
 	*position = value; // set it anyway, as it could be checked even on no event
 

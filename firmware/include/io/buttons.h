@@ -82,8 +82,8 @@
 
 extern volatile bool PTTLocked;
 
-void fw_init_buttons(void);
-uint32_t fw_read_buttons(void);
-void fw_check_button_event(uint32_t *buttons, int *event);
+void buttonsInit(void);
+uint32_t buttonsRead(void);
+void buttonsCheckButtonsEvent(uint32_t *buttons, int *event);
 
 #endif /* _FW_BUTTONS_H_ */

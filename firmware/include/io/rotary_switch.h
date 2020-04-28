@@ -41,9 +41,9 @@
 #endif // PLATFORM_GD77S
 
 
-void init_rotary_switch(void);
-uint8_t get_rotary_switch_position(void);
-void check_rotary_switch_event(uint32_t *position, int *event);
+void rotarySwitchInit(void);
+uint8_t rotarySwitchGetPosition(void);
+void rotarySwitchCheckRotaryEvent(uint32_t *position, int *event);
 
 #define EVENT_ROTARY_NONE   0
 #define EVENT_ROTARY_CHANGE 1

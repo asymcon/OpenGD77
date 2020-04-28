@@ -194,7 +194,7 @@ static void handleEvent(uiEvent_t *ev)
 					}
 					break;
 				case OPTIONS_MENU_BEEP_VOLUME:
-					if (nonVolatileSettings.beepVolumeDivider < 10)
+					if (nonVolatileSettings.beepVolumeDivider < 15)
 					{
 						nonVolatileSettings.beepVolumeDivider++;
 					}

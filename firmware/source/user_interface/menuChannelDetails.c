@@ -168,7 +168,7 @@ static void updateScreen(void)
 						snprintf(buf, bufferLen, "%s:%d", currentLanguage->timeSlot, ((tmpChannel.flag2 & 0x40) >> 6) + 1);
 					}
 					break;
-				case CH_DETAILS_RXCTCSS:
+				case CH_DETAILS_TXCTCSS:
 					if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 					{
 						if (!codeplugChannelToneIsCTCSS(tmpChannel.txTone))
@@ -185,7 +185,7 @@ static void updateScreen(void)
 						snprintf(buf, bufferLen, "Tx CTCSS:%s", currentLanguage->n_a);
 					}
 					break;
-				case CH_DETAILS_TXCTCSS:
+				case CH_DETAILS_RXCTCSS:
 					if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 					{
 						if (!codeplugChannelToneIsCTCSS(tmpChannel.rxTone))
@@ -380,25 +380,39 @@ static void handleEvent(uiEvent_t *ev)
 			case CH_DETAILS_DMR_TS:
 				tmpChannel.flag2 |= 0x40;// set TS 2 bit
 				break;
-			case CH_DETAILS_RXCTCSS:
+			case CH_DETAILS_TXCTCSS:
 				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 				{
-					CTCSSTxIndex++;
-					if (CTCSSTxIndex >= TRX_NUM_CTCSS)
+					if (ev->keys.event & KEY_MOD_LONG)
 					{
-						CTCSSTxIndex = TRX_NUM_CTCSS-1;
+						CTCSSTxIndex = TRX_NUM_CTCSS - 1;
+					}
+					else
+					{
+						CTCSSTxIndex++;
+						if (CTCSSTxIndex >= TRX_NUM_CTCSS)
+						{
+							CTCSSTxIndex = TRX_NUM_CTCSS - 1;
+						}
 					}
 					tmpChannel.txTone = TRX_CTCSSTones[CTCSSTxIndex];
 					trxSetTxCTCSS(tmpChannel.txTone);
 				}
 				break;
-			case CH_DETAILS_TXCTCSS:
+			case CH_DETAILS_RXCTCSS:
 				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 				{
-					CTCSSRxIndex++;
-					if (CTCSSRxIndex >= TRX_NUM_CTCSS)
+					if (ev->keys.event & KEY_MOD_LONG)
 					{
-						CTCSSRxIndex = TRX_NUM_CTCSS-1;
+						CTCSSRxIndex = TRX_NUM_CTCSS - 1;
+					}
+					else
+					{
+						CTCSSRxIndex++;
+						if (CTCSSRxIndex >= TRX_NUM_CTCSS)
+						{
+							CTCSSRxIndex = TRX_NUM_CTCSS - 1;
+						}
 					}
 					tmpChannel.rxTone = TRX_CTCSSTones[CTCSSRxIndex];
 					trxSetRxCTCSS(tmpChannel.rxTone);
@@ -478,25 +492,39 @@ static void handleEvent(uiEvent_t *ev)
 			case CH_DETAILS_DMR_TS:
 				tmpChannel.flag2 &= 0xBF;// Clear TS 2 bit
 				break;
-			case CH_DETAILS_RXCTCSS:
+			case CH_DETAILS_TXCTCSS:
 				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 				{
-					CTCSSTxIndex--;
-					if (CTCSSTxIndex < 0)
+					if (ev->keys.event & KEY_MOD_LONG)
 					{
 						CTCSSTxIndex = 0;
+					}
+					else
+					{
+						CTCSSTxIndex--;
+						if (CTCSSTxIndex < 0)
+						{
+							CTCSSTxIndex = 0;
+						}
 					}
 					tmpChannel.txTone = TRX_CTCSSTones[CTCSSTxIndex];
 					trxSetTxCTCSS(tmpChannel.txTone);
 				}
 				break;
-			case CH_DETAILS_TXCTCSS:
+			case CH_DETAILS_RXCTCSS:
 				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 				{
-					CTCSSRxIndex--;
-					if (CTCSSRxIndex < 0)
+					if (ev->keys.event & KEY_MOD_LONG)
 					{
 						CTCSSRxIndex = 0;
+					}
+					else
+					{
+						CTCSSRxIndex--;
+						if (CTCSSRxIndex < 0)
+						{
+							CTCSSRxIndex = 0;
+						}
 					}
 					tmpChannel.rxTone = TRX_CTCSSTones[CTCSSRxIndex];
 					trxSetRxCTCSS(tmpChannel.rxTone);

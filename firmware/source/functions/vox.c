@@ -35,14 +35,15 @@ static const uint16_t VOX_SETTLE_TIME = 4000; // Countdown before doing first re
 typedef struct
 {
 	bool     triggered;
+	uint8_t  preTrigger;
 	uint8_t  threshold; // threshold is a super low value, 8 bits are enough
 	uint16_t sampled;
 	uint16_t averaged;
+	uint16_t noiseFloor;
 	uint32_t nextTimeSampling;
 	uint8_t  tailUnits;
 	uint32_t tailTime;
 	uint16_t settleCount;
-	uint8_t  shots;
 } voxData_t;
 
 static voxData_t vox;
@@ -51,6 +52,7 @@ void voxInit(void)
 {
 	voxReset();
 	vox.threshold = 0;
+	vox.noiseFloor = 0;
 	vox.tailUnits = 1;
 	vox.settleCount = VOX_SETTLE_TIME;
 }
@@ -83,11 +85,13 @@ void voxReset(void)
 	vox.nextTimeSampling = PITCounter + PIT_COUNTS_PER_MS; // now + 1ms
 	vox.tailTime = 0;
 	vox.settleCount = VOX_SETTLE_TIME >> 1;
-	vox.shots = 0;
+	vox.preTrigger = 0;
 }
 
 void voxTick(void)
 {
+	static uint16_t sampledNoise = 0;
+
 	if (voxIsEnabled())
 	{
 		if (PITCounter >= vox.nextTimeSampling)
@@ -110,14 +114,26 @@ void voxTick(void)
 				vox.averaged = (vox.sampled + (1 << (2 - 1))) >> 2;
 				vox.sampled -= vox.averaged;
 
-				if (vox.averaged >= vox.threshold)
+				if (vox.averaged >= (vox.noiseFloor + vox.threshold))
 				{
-					vox.shots = MIN((vox.shots + 1), 20);
+					vox.preTrigger = MIN((vox.preTrigger + 1), 100);
 
-					if (vox.shots >= 20)
+					// We need 100ms of level above the noise to trigger the VOX
+					if (vox.preTrigger >= 100)
 					{
 						vox.triggered = true;
 						vox.tailTime = PITCounter + (vox.tailUnits * VOX_TAIL_TIME_UNIT);
+					}
+				}
+				else
+				{
+					// Noise is sampled all the time, when the transceiver is silent, and not XMitting
+					if (vox.triggered == false)
+					{
+						// Noise floor averaging
+						sampledNoise += sample;
+						vox.noiseFloor = (sampledNoise + (1 << (2 - 1))) >> 2;
+						sampledNoise -= vox.noiseFloor;
 					}
 				}
 			}
@@ -129,7 +145,7 @@ void voxTick(void)
 		{
 			vox.triggered = false;
 			vox.tailTime = 0;
-			vox.shots = 0;
+			vox.preTrigger = 0;
 		}
 	}
 

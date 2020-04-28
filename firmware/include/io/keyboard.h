@@ -206,11 +206,10 @@ typedef struct keyboardCode {
 
 #define NO_KEYCODE  { .event = 0, .key = 0 }
 
-void fw_init_keyboard(void);
-void fw_reset_keyboard(void);
-uint8_t fw_read_keyboard_col(void);
-uint32_t fw_read_keyboard(void);
-void fw_check_key_event(keyboardCode_t *keys, int *event);
-bool fw_scan_key(uint32_t scancode, char *keycode);
+void keyboardInit(void);
+void keyboardReset(void);
+uint32_t keyboardRead(void);
+void keyboardCheckKeyEvent(keyboardCode_t *keys, int *event);
+bool heyboardScanKey(uint32_t scancode, char *keycode);
 
 #endif /* _FW_KEYBOARD_H_ */

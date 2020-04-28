@@ -144,7 +144,11 @@ int menuTxScreen(uiEvent_t *ev, bool isFirstRun)
 					if ((nonVolatileSettings.beepOptions & BEEP_TX_START) &&
 							(slot_state == DMR_STATE_TX_START_1) && (melody_play == NULL))
 					{
-						set_melody(melody_dmr_tx_start_beep);
+						// If VOX is running, don't send a beep as it will reset its the trigger status.
+						if ((voxIsEnabled() == false) || (voxIsEnabled() && (voxIsTriggered() == false)))
+						{
+							set_melody(melody_dmr_tx_start_beep);
+						}
 					}
 				}
 
