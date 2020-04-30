@@ -92,7 +92,7 @@ const stringsTable_t englishLanguage =
 .tg					= "TG",  // MaxLen: 8
 .pc					= "PC", // MaxLen: 8
 .ts					= "TS", // MaxLen: 8
-.mode					= "Display",  // MaxLen: 12
+.mode					= "Mode",  // MaxLen: 12
 .colour_code				= "Color Code", // MaxLen: 16 (with ':' * .n_a)
 .n_a					= "N/A",// MaxLen: 16 (with ':' * .colour_code)
 .bandwidth				= "Bandwidth", // MaxLen: 16 (with ':' + .n_a, "25kHz" or "12.5kHz")
@@ -153,6 +153,7 @@ const stringsTable_t englishLanguage =
 .start					= "Start", // MaxLen 16 (with ':' + .dmr_beep)
 .both					= "Both", // MaxLen 16 (with ':' + .dmr_beep)
 .tone					= "Tone SQL",
+.display				= "Display",
 .vox_threshold          = "VOX Thresh", // MaxLen 16 (with ':' + .off or 1..30)
 .vox_tail               = "VOX Tail" // MaxLen 16 (with ':' + .n_a or '0.0s')
 };

@@ -1196,6 +1196,8 @@ void menuUtilityRenderHeader(void)
 		scanBlinkPhase = false;
 	}
 
+	const int MODE_TEXT_X_OFFSET = 1;
+	const int FILTER_TEXT_X_OFFSET = 25;
 	switch(trxGetMode())
 	{
 		case RADIO_MODE_ANALOG:
@@ -1204,11 +1206,11 @@ void menuUtilityRenderHeader(void)
 			{
 				strcat(buffer,"N");
 			}
-			ucPrintCore(0, Y_OFFSET, buffer, ((nonVolatileSettings.hotspotType != HOTSPOT_TYPE_OFF) ? FONT_SIZE_1_BOLD : FONT_SIZE_1), TEXT_ALIGN_LEFT, scanBlinkPhase);
+			ucPrintCore(MODE_TEXT_X_OFFSET, Y_OFFSET, buffer, ((nonVolatileSettings.hotspotType != HOTSPOT_TYPE_OFF) ? FONT_SIZE_1_BOLD : FONT_SIZE_1), TEXT_ALIGN_LEFT, scanBlinkPhase);
 
 			if (codeplugChannelToneIsCTCSS(currentChannelData->txTone) || codeplugChannelToneIsCTCSS(currentChannelData->rxTone))
 			{
-				int rectWidth = 7;
+				int rectWidth = 9;
 				strcpy(buffer, "C");
 				if (codeplugChannelToneIsCTCSS(currentChannelData->txTone))
 				{
@@ -1223,16 +1225,15 @@ void menuUtilityRenderHeader(void)
 				bool isInverted = (nonVolatileSettings.analogFilterLevel == ANALOG_FILTER_NONE);
 				if (isInverted)
 				{
-					ucFillRect(23, Y_OFFSET - 1, rectWidth, 9, false);
+					ucFillRect(FILTER_TEXT_X_OFFSET - 2, Y_OFFSET - 1, rectWidth, 9, false);
 				}
-				ucPrintCore(24, Y_OFFSET, buffer, FONT_SIZE_1, TEXT_ALIGN_LEFT, isInverted);
+				ucPrintCore(FILTER_TEXT_X_OFFSET, Y_OFFSET, buffer, FONT_SIZE_1, TEXT_ALIGN_LEFT, isInverted);
 			}
 			break;
 
 		case RADIO_MODE_DIGITAL:
 			if (settingsUsbMode != USB_MODE_HOTSPOT)
 			{
-				const int DMR_TEXT_X_OFFSET = 1;
 //				(trxGetMode() == RADIO_MODE_DIGITAL && settingsPrivateCallMuteMode == true)?" MUTE":"");// The location that this was displayed is now used for the power level
 				if (!scanBlinkPhase && (nonVolatileSettings.dmrFilterLevel > DMR_FILTER_CC_TS))
 				{
@@ -1241,19 +1242,19 @@ void menuUtilityRenderHeader(void)
 				if (!scanBlinkPhase)
 				{
 					bool isInverted = scanBlinkPhase ^ (nonVolatileSettings.dmrFilterLevel > DMR_FILTER_CC_TS);
-					ucPrintCore(DMR_TEXT_X_OFFSET, Y_OFFSET, "DMR", ((nonVolatileSettings.hotspotType != HOTSPOT_TYPE_OFF) ? FONT_SIZE_1_BOLD : FONT_SIZE_1), TEXT_ALIGN_LEFT, isInverted);
+					ucPrintCore(MODE_TEXT_X_OFFSET, Y_OFFSET, "DMR", ((nonVolatileSettings.hotspotType != HOTSPOT_TYPE_OFF) ? FONT_SIZE_1_BOLD : FONT_SIZE_1), TEXT_ALIGN_LEFT, isInverted);
 				}
 
 				snprintf(buffer, bufferLen, "%s%d", currentLanguage->ts, trxGetDMRTimeSlot() + 1);
 				buffer[bufferLen - 1] = 0;
 				if (nonVolatileSettings.dmrFilterLevel < DMR_FILTER_CC_TS)
 				{
-					ucFillRect(20, Y_OFFSET - 1, 21, 9, false);
-					ucPrintCore(22, Y_OFFSET, buffer, FONT_SIZE_1, TEXT_ALIGN_LEFT, true);
+					ucFillRect(FILTER_TEXT_X_OFFSET - 2, Y_OFFSET - 1, 21, 9, false);
+					ucPrintCore(FILTER_TEXT_X_OFFSET, Y_OFFSET, buffer, FONT_SIZE_1, TEXT_ALIGN_LEFT, true);
 				}
 				else
 				{
-					ucPrintCore(22, Y_OFFSET, buffer, FONT_SIZE_1, TEXT_ALIGN_LEFT, false);
+					ucPrintCore(FILTER_TEXT_X_OFFSET, Y_OFFSET, buffer, FONT_SIZE_1, TEXT_ALIGN_LEFT, false);
 //					if (nonVolatileSettings.tsManualOverride != 0)
 //					{
 //						ucFillRect(34, Y_OFFSET, 7, 8, false);

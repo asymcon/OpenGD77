@@ -36,6 +36,7 @@ const int CODEPLUG_CHANNEL_DATA_SIZE = 56;
 const int CODEPLUG_ADDR_CHANNEL_EEPROM = 0x3790;
 const int CODEPLUG_ADDR_CHANNEL_FLASH = 0x7B1C0;
 
+const int CODEPLUG_ADDR_RX_GROUP_LEN = 0x8D620;  // 76 TG lists
 const int CODEPLUG_ADDR_RX_GROUP = 0x8D6A0;//
 const int CODEPLUG_RX_GROUP_LEN = 0x50;
 
@@ -84,6 +85,7 @@ typedef struct
 
 __attribute__((section(".data.$RAM2"))) codeplugContactsCache_t codeplugContactsCache;
 
+uint8_t codeplugRXGroupCache[77] = { 0 };
 
 uint32_t byteSwap32(uint32_t n)
 {
@@ -450,25 +452,42 @@ bool codeplugChannelSaveDataForIndex(int index, struct_codeplugChannel_t *channe
 	return retVal;
 }
 
-void codeplugRxGroupGetDataForIndex(int index, struct_codeplugRxGroup_t *rxGroupBuf)
+bool codeplugRxGroupGetDataForIndex(int index, struct_codeplugRxGroup_t *rxGroupBuf)
 {
 	struct_codeplugContact_t contactData;
-	int i=0;
-	const int dataSizeInCodeplug = 16 * sizeof(char) + 32 * sizeof(uint16_t);// Calculate the size of the rx group in the codeplug
-	index--; //Index numbers start from 1 not zero
-	// Not our struct contains an extra property to hold the number of TGs in the group
-	SPI_Flash_read(CODEPLUG_ADDR_RX_GROUP + index*(dataSizeInCodeplug),(uint8_t *)rxGroupBuf,dataSizeInCodeplug);
-	for(i=0;i<32;i++)
+	int i = 0;
+	const int dataSizeInCodeplug = 16 * sizeof(char) + 32 * sizeof(uint16_t); // Calculate the size of the rx group in the codeplug
+
+	if (codeplugRXGroupCache[0] == 0)
 	{
-		codeplugContactGetDataForIndex(rxGroupBuf->contacts[i],&contactData);
-		rxGroupBuf->NOT_IN_CODEPLUG_contactsTG[i] = contactData.tgNumber;
-		// Empty groups seem to be filled with zeros
-		if (rxGroupBuf->contacts[i] == 0)
-		{
-			break;
-		}
+		SPI_Flash_read(CODEPLUG_ADDR_RX_GROUP_LEN, (uint8_t*) &codeplugRXGroupCache[1], 76);
 	}
-	rxGroupBuf->NOT_IN_CODEPLUG_numTGsInGroup = i;
+
+	if (codeplugRXGroupCache[index] > 0)
+	{
+		index--; //Index numbers start from 1 not zero
+
+		// Not our struct contains an extra property to hold the number of TGs in the group
+		SPI_Flash_read(CODEPLUG_ADDR_RX_GROUP + index * (dataSizeInCodeplug), (uint8_t*) rxGroupBuf, dataSizeInCodeplug);
+		for (i = 0; i < 32; i++)
+		{
+			codeplugContactGetDataForIndex(rxGroupBuf->contacts[i], &contactData);
+			rxGroupBuf->NOT_IN_CODEPLUG_contactsTG[i] = contactData.tgNumber;
+			// Empty groups seem to be filled with zeros
+			if (rxGroupBuf->contacts[i] == 0)
+			{
+				break;
+			}
+		}
+		rxGroupBuf->NOT_IN_CODEPLUG_numTGsInGroup = i;
+		return true;
+	}
+	else
+	{
+		rxGroupBuf->name[0] = 0;
+		rxGroupBuf->NOT_IN_CODEPLUG_numTGsInGroup = 0;
+		return false;
+	}
 }
 
 

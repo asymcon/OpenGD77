@@ -169,31 +169,31 @@ static void handleEvent(uiEvent_t *ev)
 				doFactoryReset = true;
 				break;
 			case OPTIONS_MENU_USE_CALIBRATION:
-				nonVolatileSettings.useCalibration=true;
+				nonVolatileSettings.useCalibration = true;
 				break;
 			case OPTIONS_MENU_TX_FREQ_LIMITS:
-				nonVolatileSettings.txFreqLimited=true;
+				nonVolatileSettings.txFreqLimited = true;
 				break;
 			case OPTIONS_MENU_KEYPAD_TIMER_LONG:
-				if (nonVolatileSettings.keypadTimerLong<90)
+				if (nonVolatileSettings.keypadTimerLong < 90)
 				{
 					nonVolatileSettings.keypadTimerLong++;
 				}
 				break;
 			case OPTIONS_MENU_KEYPAD_TIMER_REPEAT:
-				if (nonVolatileSettings.keypadTimerRepeat<90)
+				if (nonVolatileSettings.keypadTimerRepeat < 90)
 				{
 					nonVolatileSettings.keypadTimerRepeat++;
 				}
 				break;
 			case OPTIONS_MENU_DMR_MONITOR_CAPTURE_TIMEOUT:
-				if (nonVolatileSettings.dmrCaptureTimeout<90)
+				if (nonVolatileSettings.dmrCaptureTimeout < 90)
 				{
 					nonVolatileSettings.dmrCaptureTimeout++;
 				}
 				break;
 			case OPTIONS_MENU_SCAN_DELAY:
-				if (nonVolatileSettings.scanDelay<30)
+				if (nonVolatileSettings.scanDelay < 30)
 				{
 					nonVolatileSettings.scanDelay++;
 				}
@@ -254,31 +254,31 @@ static void handleEvent(uiEvent_t *ev)
 				doFactoryReset = false;
 				break;
 			case OPTIONS_MENU_USE_CALIBRATION:
-				nonVolatileSettings.useCalibration=false;
+				nonVolatileSettings.useCalibration = false;
 				break;
 			case OPTIONS_MENU_TX_FREQ_LIMITS:
-				nonVolatileSettings.txFreqLimited=false;
+				nonVolatileSettings.txFreqLimited = false;
 				break;
 			case OPTIONS_MENU_KEYPAD_TIMER_LONG:
-				if (nonVolatileSettings.keypadTimerLong>1)
+				if (nonVolatileSettings.keypadTimerLong > 1)
 				{
 					nonVolatileSettings.keypadTimerLong--;
 				}
 				break;
 			case OPTIONS_MENU_KEYPAD_TIMER_REPEAT:
-				if (nonVolatileSettings.keypadTimerRepeat>0)
+				if (nonVolatileSettings.keypadTimerRepeat > 1) // Don't set it to zero, otherwise watchdog may kicks in.
 				{
 					nonVolatileSettings.keypadTimerRepeat--;
 				}
 				break;
 			case OPTIONS_MENU_DMR_MONITOR_CAPTURE_TIMEOUT:
-				if (nonVolatileSettings.dmrCaptureTimeout>1)
+				if (nonVolatileSettings.dmrCaptureTimeout > 1)
 				{
 					nonVolatileSettings.dmrCaptureTimeout--;
 				}
 				break;
 			case OPTIONS_MENU_SCAN_DELAY:
-				if (nonVolatileSettings.scanDelay>1)
+				if (nonVolatileSettings.scanDelay > 1)
 				{
 					nonVolatileSettings.scanDelay--;
 				}

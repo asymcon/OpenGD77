@@ -90,6 +90,7 @@ extern const int SCAN_SKIP_CHANNEL_INTERVAL;		//This is actually just an implici
 extern ScanState_t scanState;
 extern int scanTimer;
 extern bool scanActive;
+extern bool toneScanActive;
 extern bool displaySquelch;
 extern int scanDirection;
 

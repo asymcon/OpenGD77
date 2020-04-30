@@ -153,6 +153,7 @@ const stringsTable_t finnishLanguage =
 .start			= "Alku", 		// MaxLen 16 (with ':' + .dmr_beep)
 .both			= "Molemm",		// MaxLen 16 (with ':' + .dmr_beep)
 .tone					= "Tone SQL",
+.display				= "Display",
 .vox_threshold          = "VOX Herkk.",		// MaxLen 16 (with ':' + .off or 1..30)
 .vox_tail               = "VOX Viive"		// MaxLen 16 (with ':' + .n_a or '0.0s')
 };

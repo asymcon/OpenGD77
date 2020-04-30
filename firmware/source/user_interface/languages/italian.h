@@ -153,6 +153,7 @@ const stringsTable_t italianLanguage =
 .start					= "Inizio", // MaxLen 16 (with ':' + .dmr_beep)
 .both					= "Ambedue", // MaxLen 16 (with ':' + .dmr_beep)
 .tone					= "Tone SQL",
+.display				= "Display",
 .vox_threshold          = "Soglia VOX", // MaxLen 16 (with ':' + .off or 1..30)
 .vox_tail               = "Coda VOX" // MaxLen 16 (with ':' + .n_a or '0.0s')
 };

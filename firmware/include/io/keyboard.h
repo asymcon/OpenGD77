@@ -187,11 +187,12 @@
 //#define KEYCHECK_KEYMOD(keys, k, mask, mod) (((((keys) & 0xffffff) == (k)) && ((keys) & (mask)) == (mod)))
 //#define KEYCHECK_MOD(keys, mask, mod) (((keys) & (mask)) == (mod))
 
-#define KEYCHECK_UP(keys, k)       ((keys.key == k) && ((keys.event & KEY_MOD_UP) == KEY_MOD_UP))
-#define KEYCHECK_SHORTUP(keys, k)  ((keys.key == k) && ((keys.event & (KEY_MOD_UP | KEY_MOD_LONG)) == KEY_MOD_UP))
-#define KEYCHECK_DOWN(keys, k)     ((keys.key == k) && ((keys.event & KEY_MOD_DOWN) == KEY_MOD_DOWN))
-#define KEYCHECK_PRESS(keys, k)    ((keys.key == k) && ((keys.event & KEY_MOD_PRESS) == KEY_MOD_PRESS))
-#define KEYCHECK_LONGDOWN(keys, k) ((keys.key == k) && ((keys.event & (KEY_MOD_DOWN | KEY_MOD_LONG)) == (KEY_MOD_DOWN | KEY_MOD_LONG)))
+#define KEYCHECK_UP(keys, k)              ((keys.key == k) && ((keys.event & KEY_MOD_UP) == KEY_MOD_UP))
+#define KEYCHECK_SHORTUP(keys, k)         ((keys.key == k) && ((keys.event & (KEY_MOD_UP | KEY_MOD_LONG)) == KEY_MOD_UP))
+#define KEYCHECK_DOWN(keys, k)            ((keys.key == k) && ((keys.event & KEY_MOD_DOWN) == KEY_MOD_DOWN))
+#define KEYCHECK_PRESS(keys, k)           ((keys.key == k) && ((keys.event & KEY_MOD_PRESS) == KEY_MOD_PRESS))
+#define KEYCHECK_LONGDOWN(keys, k)        ((keys.key == k) && ((keys.event & (KEY_MOD_DOWN | KEY_MOD_LONG)) == (KEY_MOD_DOWN | KEY_MOD_LONG)))
+#define KEYCHECK_LONGDOWN_REPEAT(keys, k) ((keys.key == k) && ((keys.event & (KEY_MOD_PRESS | KEY_MOD_LONG)) == (KEY_MOD_PRESS | KEY_MOD_LONG)))
 
 
 //#define KEYCHAR(keys)              ((char)(keys & 0xff))

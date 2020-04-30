@@ -153,6 +153,7 @@ const stringsTable_t spanishLanguage =
 .start					= "Inicio", // MaxLen 16 (with ':' + .dmr_beep)
 .both					= "Ambos", // MaxLen 16 (with ':' + .dmr_beep)
 .tone					= "Tone SQL",
+.display				= "Display",
 .vox_threshold			= "VOX Gan.", // MaxLen 16 (with ':' + .off or 1..30)
 .vox_tail				= "VOX Ret." // MaxLen 16 (with ':' + .n_a or '0.0s')
 };

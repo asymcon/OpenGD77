@@ -27,7 +27,7 @@
 
 static const int STORAGE_BASE_ADDRESS 		= 0x6000;
 
-static const int STORAGE_MAGIC_NUMBER 		= 0x6010;
+static const int STORAGE_MAGIC_NUMBER 		= 0x6013;
 
 // Bit patterns for DMR Beep
 const uint8_t BEEP_TX_NONE  = 0x00;
@@ -127,7 +127,7 @@ void settingsRestoreDefaultSettings(void)
 #else
 			BACKLIGHT_MODE_AUTO;
 #endif
-	nonVolatileSettings.backLightTimeout = 0;//0 = never timeout. 1 - 255 time in seconds
+	nonVolatileSettings.backLightTimeout = 5;//0 = never timeout. 1 - 255 time in seconds
 	nonVolatileSettings.displayContrast =
 #if defined(PLATFORM_DM1801)
 			0x0e; // 14
@@ -142,7 +142,7 @@ void settingsRestoreDefaultSettings(void)
 #else
 			UI_VFO_MODE;
 #endif
-	nonVolatileSettings.displayBacklightPercentage=100U;// 100% brightness
+	nonVolatileSettings.displayBacklightPercentage=5U;// 100% brightness
 	nonVolatileSettings.displayBacklightPercentageOff=0U;// 0% brightness
 	nonVolatileSettings.displayInverseVideo=false;// Not inverse video
 	nonVolatileSettings.useCalibration = true;// enable the new calibration system
@@ -158,13 +158,13 @@ void settingsRestoreDefaultSettings(void)
 #if defined(PLATFORM_GD77S)
 			5; // -9dB: Beeps are way too loud on the GD77S
 #else
-			1; // no reduction in volume
+			15; // no reduction in volume
 #endif
 	nonVolatileSettings.micGainDMR = 11;// Normal value used by the official firmware
 	nonVolatileSettings.micGainFM = 17; // Default (from all of my cals, datasheet default: 16)
 	nonVolatileSettings.tsManualOverride = 0; // No manual TS override using the Star key
-	nonVolatileSettings.keypadTimerLong = 5;
-	nonVolatileSettings.keypadTimerRepeat = 3;
+	nonVolatileSettings.keypadTimerLong = 3;
+	nonVolatileSettings.keypadTimerRepeat = 1;
 	nonVolatileSettings.currentVFONumber = 0;
 	nonVolatileSettings.dmrFilterLevel = DMR_FILTER_CC_TS;
 	nonVolatileSettings.dmrCaptureTimeout=10;// Default to holding 10 seconds after a call ends

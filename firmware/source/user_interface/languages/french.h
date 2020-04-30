@@ -153,6 +153,7 @@ const stringsTable_t frenchLanguage =
 .start					= "Début", // MaxLen 16 (with ':' + .dmr_beep)
 .both					= "Les Deux", // MaxLen 16 (with ':' + .dmr_beep)
 .tone					= "Tone SQL",
+.display				= "Display",
 .vox_threshold                          = "Seuil VOX", // MaxLen 16 (with ':' + .off or 1..30)
 .vox_tail                               = "Queue VOX" // MaxLen 16 (with ':' + .n_a or '0.0s')
 };

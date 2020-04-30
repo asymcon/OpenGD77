@@ -24,6 +24,7 @@
 static void updateScreen(void);
 static void handleEvent(uiEvent_t *ev);
 static void updateBacklightMode(uint8_t mode);
+static void setDisplayInvert(bool invert);
 
 static const int BACKLIGHT_MAX_TIMEOUT = 30;
 #if defined (PLATFORM_RD5R)
@@ -34,7 +35,7 @@ static const int BACKLIGHT_MAX_TIMEOUT = 30;
 	static const int CONTRAST_MIN_VALUE = 5;// Minimum value which still seems to be readable
 #endif
 
-static const int BACKLIGHT_TIMEOUT_STEP = 5;
+static const int BACKLIGHT_TIMEOUT_STEP = 1;
 static const int BACKLIGHT_MAX_PERCENTAGE = 100;
 static const int BACKLIGHT_PERCENTAGE_STEP = 10;
 static const int BACKLIGHT_PERCENTAGE_STEP_SMALL = 1;
@@ -68,7 +69,7 @@ static void updateScreen(void)
 	int mNum = 0;
 	static const int bufferLen = 17;
 	char buf[bufferLen];
-	const char *backlightModes[] = { currentLanguage->Auto, currentLanguage->manual, currentLanguage->off };
+	const char *backlightModes[] = { currentLanguage->Auto, currentLanguage->squelch, currentLanguage->manual, currentLanguage->off };
 
 	ucClearBuf();
 	menuDisplayTitle(currentLanguage->display_options);
@@ -91,10 +92,10 @@ static void updateScreen(void)
 				snprintf(buf, bufferLen, "%s:%d", currentLanguage->contrast, nonVolatileSettings.displayContrast);
 				break;
 			case DISPLAY_MENU_BACKLIGHT_MODE:
-				snprintf(buf, bufferLen, "%s:%s", currentLanguage->mode, backlightModes[nonVolatileSettings.backlightMode]);
+				snprintf(buf, bufferLen, "%s:%s", currentLanguage->display, backlightModes[nonVolatileSettings.backlightMode]);
 				break;
 			case DISPLAY_MENU_TIMEOUT:
-				if (nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO)
+				if ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO) || (nonVolatileSettings.backlightMode == BACKLIGHT_MODE_SQUELCH))
 				{
 					if (nonVolatileSettings.backLightTimeout == 0)
 						snprintf(buf, bufferLen, "%s:%s", currentLanguage->backlight_timeout, currentLanguage->off);
@@ -256,15 +257,18 @@ static void handleEvent(uiEvent_t *ev)
 					}
 					break;
 				case DISPLAY_MENU_TIMEOUT:
-					nonVolatileSettings.backLightTimeout += BACKLIGHT_TIMEOUT_STEP;
-					if (nonVolatileSettings.backLightTimeout > BACKLIGHT_MAX_TIMEOUT)
+					if ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO) || (nonVolatileSettings.backlightMode == BACKLIGHT_MODE_SQUELCH))
 					{
-						nonVolatileSettings.backLightTimeout = BACKLIGHT_MAX_TIMEOUT;
+						nonVolatileSettings.backLightTimeout += BACKLIGHT_TIMEOUT_STEP;
+						if (nonVolatileSettings.backLightTimeout > BACKLIGHT_MAX_TIMEOUT)
+						{
+							nonVolatileSettings.backLightTimeout = BACKLIGHT_MAX_TIMEOUT;
+						}
 					}
+
 					break;
 				case DISPLAY_MENU_COLOUR_INVERT:
-					nonVolatileSettings.displayInverseVideo = !nonVolatileSettings.displayInverseVideo;
-					displayInit(nonVolatileSettings.displayInverseVideo);// Need to perform a full reset on the display to change back to non-inverted
+					setDisplayInvert(true);
 					break;
 				case DISPLAY_MENU_CONTACT_DISPLAY_ORDER:
 					if (nonVolatileSettings.contactDisplayPriority < CONTACT_DISPLAY_PRIO_TA_DB_CC)
@@ -338,14 +342,14 @@ static void handleEvent(uiEvent_t *ev)
 					}
 					break;
 				case DISPLAY_MENU_TIMEOUT:
-					if (nonVolatileSettings.backLightTimeout >= BACKLIGHT_TIMEOUT_STEP)
+					if (((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO) && (nonVolatileSettings.backLightTimeout >= BACKLIGHT_TIMEOUT_STEP)) ||
+							((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_SQUELCH) && (nonVolatileSettings.backLightTimeout >= (BACKLIGHT_TIMEOUT_STEP * 2))))
 					{
 						nonVolatileSettings.backLightTimeout -= BACKLIGHT_TIMEOUT_STEP;
 					}
 					break;
 				case DISPLAY_MENU_COLOUR_INVERT:
-					nonVolatileSettings.displayInverseVideo = !nonVolatileSettings.displayInverseVideo;
-					displayInit(nonVolatileSettings.displayInverseVideo);// Need to perform a full reset on the display to change back to non-inverted
+					setDisplayInvert(false);
 					break;
 				case DISPLAY_MENU_CONTACT_DISPLAY_ORDER:
 					if (nonVolatileSettings.contactDisplayPriority > CONTACT_DISPLAY_PRIO_CC_DB_TA)
@@ -415,8 +419,31 @@ static void updateBacklightMode(uint8_t mode)
 		case BACKLIGHT_MODE_NONE:
 			displayEnableBacklight(false); // Could be MANUAL previously, but in OFF state, so turn it OFF blindly.
 			break;
+		case BACKLIGHT_MODE_SQUELCH:
+			if (nonVolatileSettings.backLightTimeout < BACKLIGHT_TIMEOUT_STEP)
+			{
+				nonVolatileSettings.backLightTimeout = BACKLIGHT_TIMEOUT_STEP;
+			}
 		case BACKLIGHT_MODE_AUTO:
 			displayLightTrigger();
 			break;
+	}
+}
+
+static void setDisplayInvert(bool invert)
+{
+	if (invert==nonVolatileSettings.displayInverseVideo)
+	{
+		return;// Don't update unless the setting is actually changing
+	}
+	bool isLit = displayIsBacklightLit();
+
+	nonVolatileSettings.displayInverseVideo = invert;//!nonVolatileSettings.displayInverseVideo;
+	displayInit(nonVolatileSettings.displayInverseVideo);// Need to perform a full reset on the display to change back to non-inverted
+	// Need to cycle the backlight
+	if (nonVolatileSettings.backlightMode != BACKLIGHT_MODE_NONE)
+	{
+		displayEnableBacklight(! isLit);
+		displayEnableBacklight(isLit);
 	}
 }

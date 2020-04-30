@@ -79,7 +79,7 @@ typedef struct struct_codeplugRxGroup
 	char name[16];
 	uint16_t contacts[32];
 	int	NOT_IN_CODEPLUG_numTGsInGroup;// NOT IN THE
-	uint16_t NOT_IN_CODEPLUG_contactsTG[32];
+	uint32_t NOT_IN_CODEPLUG_contactsTG[32];
 } struct_codeplugRxGroup_t;
 
 typedef struct struct_codeplugContact
@@ -122,7 +122,7 @@ uint32_t byteSwap32(uint32_t n);
 uint32_t bcd2int(uint32_t in);
 int int2bcd(int i);
 
-void codeplugRxGroupGetDataForIndex(int index, struct_codeplugRxGroup_t *rxGroupBuf);
+bool codeplugRxGroupGetDataForIndex(int index, struct_codeplugRxGroup_t *rxGroupBuf);
 bool codeplugContactGetDataForIndex(int index, struct_codeplugContact_t *contact);
 void codeplugDTMFContactGetDataForIndex(struct_codeplugDTMFContactList_t *contactList);
 int codeplugGetUserDMRID(void);

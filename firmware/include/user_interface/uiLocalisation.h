@@ -145,6 +145,7 @@ typedef struct stringsTable
    const char *start;
    const char *both;
    const char *tone;
+   const char *display;
    const char *vox_threshold;
    const char *vox_tail;
 } stringsTable_t;

@@ -63,11 +63,7 @@ static const uint8_t spi_init_values_5[] = { 0x00, 0x00, 0xeb, 0x78, 0x67 };
 static const uint8_t spi_init_values_6[] = { 0x32, 0xef, 0x00, 0x31, 0xef, 0x00, 0x12, 0xef, 0x00, 0x13, 0xef, 0x00, 0x14, 0xef, 0x00, 0x15, 0xef, 0x00, 0x16, 0xef, 0x00, 0x17, 0xef, 0x00, 0x18, 0xef, 0x00, 0x19, 0xef, 0x00, 0x1a, 0xef, 0x00, 0x1b, 0xef, 0x00, 0x1c, 0xef, 0x00, 0x1d, 0xef, 0x00, 0x1e, 0xef, 0x00, 0x1f, 0xef, 0x00, 0x20, 0xef, 0x00, 0x21, 0xef, 0x00, 0x22, 0xef, 0x00, 0x23, 0xef, 0x00, 0x24, 0xef, 0x00, 0x25, 0xef, 0x00, 0x26, 0xef, 0x00, 0x27, 0xef, 0x00, 0x28, 0xef, 0x00, 0x29, 0xef, 0x00, 0x2a, 0xef, 0x00, 0x2b, 0xef, 0x00, 0x2c, 0xef, 0x00, 0x2d, 0xef, 0x00, 0x2e, 0xef, 0x00, 0x2f, 0xef, 0x00 };
 
 
-volatile uint8_t tmp_val_0x50;
 volatile uint8_t tmp_val_0x51;
-volatile uint8_t tmp_val_0x52;
-volatile uint8_t tmp_val_0x57;
-volatile uint8_t tmp_val_0x5f;
 volatile uint8_t tmp_val_0x82;
 volatile uint8_t tmp_val_0x84;
 volatile uint8_t tmp_val_0x86;
@@ -110,11 +106,7 @@ volatile bool updateLastHeard=false;
 volatile int dmrMonitorCapturedTS = -1;
 static volatile int dmrMonitorCapturedTimeout;
 static volatile int TAPhase=0;
-//static const int TABlockSizes[] = {6,7,7,7};
-//static const int TAOffsets[] = {0,6,13,20};
 char talkAliasText[33];
-
-
 
 static bool callAcceptFilter(void);
 static void setupPcOrTGHeader(void);
@@ -124,9 +116,6 @@ static inline void HRC6000RxInterruptHandler(void);
 static inline void HRC6000TxInterruptHandler(void);
 static void HRC6000TransitionToTx(void);
 static void triggerQSOdataDisplay(void);
-
-
-
 
 enum RXSyncClass { SYNC_CLASS_HEADER = 0, SYNC_CLASS_VOICE = 1, SYNC_CLASS_DATA = 2, SYNC_CLASS_RC = 3};
 
@@ -191,8 +180,8 @@ void SPI_HR_C6000_init(void)
 	write_SPI_page_reg_byte_SPI0(0x04, 0x28, 0x7D);   //Undocumented Register
 	write_SPI_page_reg_byte_SPI0(0x04, 0x29, 0x40);   //Undocumented Register
 	write_SPI_page_reg_byte_SPI0(0x04, 0x2A, 0x0B);   //Set spi_clk_cnt to default value
-	write_SPI_page_reg_byte_SPI0(0x04, 0x2B, 0x0B);   //According to Datashhet this is a Read only register For FM Squelch
-	write_SPI_page_reg_byte_SPI0(0x04, 0x2C, 0x17);   //According to Datashhet this is a Read only register For FM Squelch
+	write_SPI_page_reg_byte_SPI0(0x04, 0x2B, 0x0B);   //According to Datasheet this is a Read only register For FM Squelch
+	write_SPI_page_reg_byte_SPI0(0x04, 0x2C, 0x17);   //According to Datasheet this is a Read only register For FM Squelch
 	write_SPI_page_reg_byte_SPI0(0x04, 0x2D, 0x05);   //Set FM Compression and Decompression points (?)
 	write_SPI_page_reg_byte_SPI0(0x04, 0x2E, 0x04);   //Set tx_pre_on (DMR Transmission advance) to 400us
 	write_SPI_page_reg_byte_SPI0(0x04, 0x2F, 0x0B);   //Set I2S Clock Frequency
@@ -481,7 +470,6 @@ inline static void HRC6000SysSendRejectedInt(void)
 		Bit7: In DMR mode: indicates that the transmission request rejects the interrupt without a sub-status register.
 		In DMR mode, it indicates that this transmission request is rejected because the channel is busy;
 	 */
-//	SEGGER_RTT_printf(0, "%d SYS_INT_SEND_REQUEST_REJECTED\n",PITCounter);
 }
 
 inline static void HRC6000SysSendStartInt(void)
@@ -492,8 +480,6 @@ inline static void HRC6000SysSendStartInt(void)
 	 */
 
 	read_SPI_page_reg_byte_SPI0(0x04, 0x84, &tmp_val_0x84);  //Read sub status register
-
-//	SEGGER_RTT_printf(0, "%d SYS_INT_SEND_START 0x%02x 0x%02x\n",PITCounter,tmp_val_0x84);
 
 	/*
 		The sub-status registers indicate
@@ -529,7 +515,6 @@ inline static void HRC6000SysSendEndInt(void)
 	*/
 //	read_SPI_page_reg_byte_SPI0(0x04, 0x86, &tmp_val_0x86);  //Read Interrupt Flag Register2
 
-//	SEGGER_RTT_printf(0, "%d SYS_INT_SEND_END 0x%02x\n",PITCounter,tmp_val_0x86);
 	/*
 		In DMR mode, there is a sub-status register 0x86 at the end of the transmission, and the
 		corresponding interrupt can be masked by 0x87. The sub-status register indicates six interrupts that
@@ -579,7 +564,7 @@ inline static void HRC6000SysPostAccessInt(void)
 
 	// Late entry into ongoing RX
 	if (slot_state == DMR_STATE_IDLE)
-{
+	{
 		init_codec();
 		GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 1);
 
@@ -600,7 +585,6 @@ inline static void HRC6000SysPostAccessInt(void)
 
 inline static void HRC6000SysReceivedDataInt(void)
 {
-	//SEGGER_RTT_printf(0, "%d SYS_INT_RECEIVED_DATA\n",PITCounter);
 	/*
 		Bit3: 	In DMR mode: indicates that the control frame parsing completion interrupt;
 				In MSK mode: indicates the receive interrupt.
@@ -630,12 +614,6 @@ inline static void HRC6000SysReceivedDataInt(void)
 	rxCRCStatus = (((tmp_val_0x51 >> 2) & 0x01)==0);// CRC is OK if its 0
 	rpi = (tmp_val_0x51 >> 3) & 0x01;
 
-	/*
-	read_SPI_page_reg_byte_SPI0(0x04, 0x52, &tmp_val_0x52);  //Read Received CC and CACH Register
-	rxColorCode 	= (tmp_val_0x52 >> 4) & 0x0f;
-	timeCode =  ((tmp_val_0x52 & 0x04) >> 2);
-*/
-	//SEGGER_RTT_printf(0, "\t\tRXDT\taf:%d\tsc:%02x\tcrc:%02x\trpi:%02x\tcc:%d\ttc:%d\t\n",(rxDataType&0x07),rxSyncClass,rxCRCStatus,rpi,rxColorCode,timeCode);
 
 	if ((slot_state == DMR_STATE_RX_1 || slot_state == DMR_STATE_RX_2) && ( rpi!=0 || rxCRCStatus != true || !checkColourCodeFilter()))
 	{
@@ -661,7 +639,6 @@ inline static void HRC6000SysReceivedDataInt(void)
 
 	if (rxSyncClass==SYNC_CLASS_DATA  && rxDataType == 2)        //Terminator with LC
 	{
-		//SEGGER_RTT_printf(0, "RX_STOP\tTC:%d\n",timeCode);
 		if (trxDMRMode == DMR_MODE_ACTIVE && callAcceptFilter())
 		{
 			slot_state = DMR_STATE_RX_END;
@@ -721,12 +698,11 @@ inline static void HRC6000SysReceivedDataInt(void)
 			int sequenceNumber = (rxDataType & 0x07);
 			// Detect/decode voice packet and transfer it into the output soundbuffer
 
-				if ((skip_count == 0 ||  (receivedSrcId != trxDMRID && receivedSrcId!=0x00)) &&
-				(rxSyncClass!=SYNC_CLASS_DATA) && ( sequenceNumber>= 0x01) && (sequenceNumber <= 0x06) &&
-				(((trxDMRMode == DMR_MODE_PASSIVE) && (checkTimeSlotFilter() && lastTimeCode != timeCode)) || (trxDMRMode == DMR_MODE_ACTIVE &&
-				 (slot_state == DMR_STATE_RX_1))) && checkTalkGroupFilter() && checkColourCodeFilter())
+			if ((skip_count == 0 ||  (receivedSrcId != trxDMRID && receivedSrcId!=0x00)) &&
+			(rxSyncClass!=SYNC_CLASS_DATA) && ( sequenceNumber>= 0x01) && (sequenceNumber <= 0x06) &&
+			(((trxDMRMode == DMR_MODE_PASSIVE) && (checkTimeSlotFilter() && lastTimeCode != timeCode)) || (trxDMRMode == DMR_MODE_ACTIVE &&
+			 (slot_state == DMR_STATE_RX_1))) && checkTalkGroupFilter() && checkColourCodeFilter())
 			{
-				//SEGGER_RTT_printf(0, "Audio frame %d\t%d\n",sequenceNumber,timeCode);
 				ccHold=true;				//don't allow CC to change if we are receiving audio
 				enableAudioAmp(AUDIO_AMP_MODE_RF);
 				if (sequenceNumber == 1)
@@ -755,13 +731,11 @@ inline static void HRC6000SysReceivedDataInt(void)
 
 inline static void HRC6000SysReceivedInformationInt(void)
 {
-	//SEGGER_RTT_printf(0, "%d SYS_INT_RECEIVED_INFORMATION\n",PITCounter);
 }
 
 inline static void HRC6000SysAbnormalExitInt(void)
 {
 	read_SPI_page_reg_byte_SPI0(0x04, 0x98, &tmp_val_0x98);
-//	SEGGER_RTT_printf(0, "%d SYS_INT_ABNORMAL_EXIT 0x%02x\n",PITCounter,tmp_val_0x98);
 	/*
 		Bit1: In DMR mode: indicates that the voice is abnormally exited;
 		In DMR mode, the cause of the abnormality in DMR mode is the unexpected abnormal voice
@@ -772,7 +746,7 @@ inline static void HRC6000SysAbnormalExitInt(void)
 
 inline static void HRC6000SysPhysicalLayerInt(void)
 {
-//	SEGGER_RTT_printf(0, "%d SYS_INT_PHYSICAL_LAYER 0x02\n",PITCounter);
+
 	/*
 		Bit0: physical layer separate work reception interrupt
 		The physical layer works independently to receive interrupts without a sub-status register. The
@@ -787,7 +761,6 @@ inline static void HRC6000SysInterruptHandler(void)
 {
 	uint8_t reg0x52;
 	read_SPI_page_reg_byte_SPI0(0x04, 0x82, &tmp_val_0x82);  //Read Interrupt Flag Register1
-	//SEGGER_RTT_printf(0, "SYS\t0x%02x\n",tmp_val_0x82);
 	read_SPI_page_reg_byte_SPI0(0x04, 0x52, &reg0x52);  //Read Received CC and CACH
 	rxColorCode 	= (reg0x52 >> 4) & 0x0f;
 
@@ -903,8 +876,6 @@ inline static void HRC6000SysInterruptHandler(void)
 		HRC6000SysPhysicalLayerInt();
 	}
 
-	//SEGGER_RTT_printf(0, "%d\tSYS\t0x%02x\n",PITCounter,tmp_val_0x82);
-
 	write_SPI_page_reg_byte_SPI0(0x04, 0x83, tmp_val_0x82);  //Clear remaining Interrupt Flags
 	timer_hrc6000task=0;
 }
@@ -922,7 +893,6 @@ static void HRC6000TransitionToTx(void)
 
 inline static void HRC6000TimeslotInterruptHandler(void)
 {
-	//SEGGER_RTT_printf(0, "TS\tS:%d\tTC:%d\n",slot_state,timeCode);
 	uint8_t reg0x52;
 	read_SPI_page_reg_byte_SPI0(0x04, 0x52, &reg0x52);  	//Read CACH Register to get the timecode (TS number)
     receivedTimeCode = ((reg0x52 & 0x04) >> 2);				// extract the timecode from the CACH register
@@ -1239,13 +1209,11 @@ inline static void HRC6000TimeslotInterruptHandler(void)
 
 void HRC6000RxInterruptHandler(void)
 {
-	//SEGGER_RTT_printf(0, "RxISR\t%d\n",PITCounter);
 	trxActivateRx();
 }
 
 void HRC6000TxInterruptHandler(void)
 {
-	//SEGGER_RTT_printf(0, "TxISR\t%d \n",PITCounter);
 	trxActivateTx();
 }
 
@@ -1493,7 +1461,6 @@ void tick_HR_C6000(void)
 				clearActiveDMRID();
 				menuDisplayQSODataState= QSO_DISPLAY_DEFAULT_SCREEN;
 				slot_state = DMR_STATE_IDLE;
-				//SEGGER_RTT_printf(0, "INTERRUPT TIMEOUT\n");
 			}
 		}
 	}

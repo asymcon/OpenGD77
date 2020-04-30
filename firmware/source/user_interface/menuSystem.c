@@ -156,11 +156,14 @@ void menuSystemPopAllAndDisplayRootMenu(void)
 	menuFunctions[menuControlData.stack[menuControlData.stackPosition]](&ev,true);
 }
 
-void menuSystemPopAllAndDisplaySpecificRootMenu(int newRootMenu)
+void menuSystemPopAllAndDisplaySpecificRootMenu(int newRootMenu, bool resetKeyboard)
 {
 	uiEvent_t ev = { .buttons = 0, .keys = NO_KEYCODE, .rotary = 0, .function = 0, .events = NO_EVENT, .hasEvent = false, .time = fw_millis() };
 
-	keyboardReset();
+	if (resetKeyboard)
+	{
+		keyboardReset();
+	}
 	memset(menuControlData.itemIndex, 0, sizeof(menuControlData.itemIndex));
 	menuControlData.stack[0]  = newRootMenu;
 	menuControlData.stackPosition = 0;
@@ -191,10 +194,10 @@ void menuSystemCallCurrentMenuTick(uiEvent_t *ev)
 void displayLightTrigger(void)
 {
 	if ((menuSystemGetCurrentMenuNumber() != UI_TX_SCREEN) &&
-			((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO)
+			(((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO) || (nonVolatileSettings.backlightMode == BACKLIGHT_MODE_SQUELCH))
 					|| ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_MANUAL) && displayIsBacklightLit())))
 	{
-		if (nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO)
+		if ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO) || (nonVolatileSettings.backlightMode == BACKLIGHT_MODE_SQUELCH))
 		{
 			menuDisplayLightTimer = nonVolatileSettings.backLightTimeout * 1000;
 		}
@@ -209,7 +212,7 @@ void displayLightOverrideTimeout(int timeout)
 
 	menuDisplayLightTimer = timeout;
 
-	if (nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO)
+	if ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO) || (nonVolatileSettings.backlightMode == BACKLIGHT_MODE_SQUELCH))
 	{
 		// Backlight is OFF, or timeout override (-1) as just been set
 		if ((displayIsBacklightLit() == false) || ((timeout == -1) && (prevTimer != -1)))

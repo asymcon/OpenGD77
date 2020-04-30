@@ -65,16 +65,14 @@ int menuChannelDetails(uiEvent_t *ev, bool isFirstRun)
 			}
 		}
 
-		if (settingsCurrentChannelNumber == -1) // In VFO
+
+		codeplugUtilConvertBufToString(tmpChannel.name, channelName, 16);
+		namePos = strlen(channelName);
+
+		if ((settingsCurrentChannelNumber == -1) && (namePos == 0)) // In VFO, and VFO has no name in the codeplug
 		{
-			snprintf(channelName, 17, "%s", currentLanguage->n_a);
-			channelName[16] = 0;
-			namePos = 0;
-		}
-		else
-		{
-			codeplugUtilConvertBufToString(tmpChannel.name, channelName, 16);
-			namePos = strlen(channelName);
+			snprintf(channelName, 17, "VFO %s", (nonVolatileSettings.currentVFONumber==0?"A":"B"));
+			namePos = 5;
 		}
 
 		updateScreen();
@@ -245,9 +243,16 @@ static void updateScreen(void)
 					break;
 
 				case CH_DETAILS_RXGROUP:
-					codeplugRxGroupGetDataForIndex(tmpChannel.rxGroupList, &rxGroupBuf);
-					codeplugUtilConvertBufToString(rxGroupBuf.name, rxNameBuf, 16);
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->rx_group, rxNameBuf);
+					if (tmpChannel.chMode == RADIO_MODE_DIGITAL)
+					{
+						codeplugRxGroupGetDataForIndex(tmpChannel.rxGroupList, &rxGroupBuf);
+						codeplugUtilConvertBufToString(rxGroupBuf.name, rxNameBuf, 16);
+						snprintf(buf, bufferLen, "%s:%s", currentLanguage->rx_group, rxNameBuf);
+					}
+					else
+					{
+						snprintf(buf, bufferLen, "%s:%s", currentLanguage->rx_group, currentLanguage->n_a);
+					}
 					break;
 				case CH_DETAILS_VOX:
 					snprintf(buf, bufferLen, "VOX:%s",((tmpChannel.flag4 & 0x40) == 0x40) ? currentLanguage->on : currentLanguage->off);
@@ -361,24 +366,26 @@ static void handleEvent(uiEvent_t *ev)
 				}
 				break;
 			case CH_DETAILS_MODE:
-				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
-				{
-					tmpChannel.chMode = RADIO_MODE_DIGITAL;
-				}
-				else
+				if (tmpChannel.chMode == RADIO_MODE_DIGITAL)
 				{
 					tmpChannel.chMode = RADIO_MODE_ANALOG;
 				}
 				break;
 			case CH_DETAILS_DMR_CC:
-				if (tmpChannel.rxColor < 15)
+				if (tmpChannel.chMode == RADIO_MODE_DIGITAL)
 				{
-					tmpChannel.rxColor++;
-					trxSetDMRColourCode(tmpChannel.rxColor);
+					if (tmpChannel.rxColor < 15)
+					{
+						tmpChannel.rxColor++;
+						trxSetDMRColourCode(tmpChannel.rxColor);
+					}
 				}
 				break;
 			case CH_DETAILS_DMR_TS:
-				tmpChannel.flag2 |= 0x40;// set TS 2 bit
+				if (tmpChannel.chMode == RADIO_MODE_DIGITAL)
+				{
+					tmpChannel.flag2 |= 0x40;// set TS 2 bit
+				}
 				break;
 			case CH_DETAILS_TXCTCSS:
 				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
@@ -419,7 +426,10 @@ static void handleEvent(uiEvent_t *ev)
 				}
 				break;
 			case CH_DETAILS_BANDWIDTH:
-				tmpChannel.flag4 |= 0x02;// set 25kHz bit
+				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
+				{
+					tmpChannel.flag4 |= 0x02;// set 25kHz bit
+				}
 				break;
 			case CH_DETAILS_FREQ_STEP:
 				tmpVal = (tmpChannel.VFOflag5>>4) + 1;
@@ -443,16 +453,19 @@ static void handleEvent(uiEvent_t *ev)
 				tmpChannel.flag4 |= 0x10;// set Channel All Skip bit (was Lone Worker)
 				break;				
 			case CH_DETAILS_RXGROUP:
-				tmpVal = tmpChannel.rxGroupList;
-				tmpVal++;
-				while (tmpVal < 76)
+				if (tmpChannel.chMode == RADIO_MODE_DIGITAL)
 				{
-					codeplugRxGroupGetDataForIndex(tmpVal, &rxGroupBuf);
-					if (rxGroupBuf.name[0] != 0) {
-						tmpChannel.rxGroupList = tmpVal;
-						break;
-					}
+					tmpVal = tmpChannel.rxGroupList;
 					tmpVal++;
+					while (tmpVal < 76)
+					{
+						if (codeplugRxGroupGetDataForIndex(tmpVal, &rxGroupBuf))
+						{
+							tmpChannel.rxGroupList = tmpVal;
+							break;
+						}
+						tmpVal++;
+					}
 				}
 				break;
 			case CH_DETAILS_VOX:
@@ -476,21 +489,24 @@ static void handleEvent(uiEvent_t *ev)
 				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 				{
 					tmpChannel.chMode = RADIO_MODE_DIGITAL;
-				}
-				else
-				{
-					tmpChannel.chMode = RADIO_MODE_ANALOG;
+					tmpChannel.flag4 &= ~0x02;// clear 25kHz bit
 				}
 				break;
 			case CH_DETAILS_DMR_CC:
-				if (tmpChannel.rxColor > 0)
+				if (tmpChannel.chMode == RADIO_MODE_DIGITAL)
 				{
-					tmpChannel.rxColor--;
-					trxSetDMRColourCode(tmpChannel.rxColor);
+					if (tmpChannel.rxColor > 0)
+					{
+						tmpChannel.rxColor--;
+						trxSetDMRColourCode(tmpChannel.rxColor);
+					}
 				}
 				break;
 			case CH_DETAILS_DMR_TS:
-				tmpChannel.flag2 &= 0xBF;// Clear TS 2 bit
+				if (tmpChannel.chMode == RADIO_MODE_DIGITAL)
+				{
+					tmpChannel.flag2 &= 0xBF;// Clear TS 2 bit
+				}
 				break;
 			case CH_DETAILS_TXCTCSS:
 				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
@@ -531,7 +547,10 @@ static void handleEvent(uiEvent_t *ev)
 				}
 				break;
 			case CH_DETAILS_BANDWIDTH:
-				tmpChannel.flag4 &= ~0x02;// clear 25kHz bit
+				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
+				{
+					tmpChannel.flag4 &= ~0x02;// clear 25kHz bit
+				}
 				break;
 			case CH_DETAILS_FREQ_STEP:
 				tmpVal = (tmpChannel.VFOflag5>>4) - 1;
@@ -555,17 +574,20 @@ static void handleEvent(uiEvent_t *ev)
 				tmpChannel.flag4 &= ~0x10;// clear Channel All Skip Bit (was Lone Worker bit)
 				break;				
 			case CH_DETAILS_RXGROUP:
+				if (tmpChannel.chMode == RADIO_MODE_DIGITAL)
+				{
 					tmpVal = tmpChannel.rxGroupList;
 					tmpVal--;
 					while (tmpVal > 0)
 					{
-						codeplugRxGroupGetDataForIndex(tmpVal, &rxGroupBuf);
-						if (rxGroupBuf.name[0] != 0) {
+						if (codeplugRxGroupGetDataForIndex(tmpVal, &rxGroupBuf))
+						{
 							tmpChannel.rxGroupList = tmpVal;
 							break;
 						}
 						tmpVal--;
 					}
+				}
 				break;
 			case CH_DETAILS_VOX:
 				tmpChannel.flag4 &= ~0x40;

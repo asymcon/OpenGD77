@@ -111,6 +111,7 @@ const stringsTable_t catalanLanguage=
 .band_limits			= "Límit bandes",
 .beep_volume			= "Volum tons",
 .dmr_mic_gain			= "Mic DMR",
+.fm_mic_gain				= "FM mic", // MaxLen: 16 (with ':' + 0..31)
 .key_long				= "Prem llarg",
 .key_repeat				= "Prem rpt",
 .dmr_filter_timeout		= "Filtre temps",
@@ -152,6 +153,7 @@ const stringsTable_t catalanLanguage=
 .start					= "Inici", // MaxLen 16 (with ':' + .dmr_beep)
 .both					= "Tots", // MaxLen 16 (with ':' + .dmr_beep)
 .tone					= "Tone SQL",
+.display				= "Display",
 .vox_threshold                          = "VOX Thres.", // MaxLen 16 (with ':' + .off or 1..30)
 .vox_tail                               = "VOX Tail" // MaxLen 16 (with ':' + .n_a or '0.0s')
 };

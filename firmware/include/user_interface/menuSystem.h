@@ -75,6 +75,7 @@ void uiVFOModeUpdateScreen(int txTimeSecs);
 void uiVFOModeStopScanning(void);
 bool uiVFOModeIsScanning(void);
 void uiChannelModeStopScanning(void);
+bool uiChannelModeIsScanning(void);
 void uiCPSUpdate(int command,int x, int y, ucFont_t fontSize, ucTextAlign_t alignment, bool isInverted,char *szMsg);
 
 void menuInitMenuSystem(void);
@@ -89,7 +90,7 @@ int menuSystemGetCurrentMenuNumber(void);
 
 void menuSystemPopPreviousMenu(void);
 void menuSystemPopAllAndDisplayRootMenu(void);
-void menuSystemPopAllAndDisplaySpecificRootMenu(int newRootMenu);
+void menuSystemPopAllAndDisplaySpecificRootMenu(int newRootMenu, bool resetKeyboard);
 
 void menuSystemCallCurrentMenuTick(uiEvent_t *ev);
 int menuGetKeypadKeyValue(uiEvent_t *ev, bool digitsOnly);

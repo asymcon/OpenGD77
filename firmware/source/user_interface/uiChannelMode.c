@@ -118,7 +118,7 @@ int uiChannelMode(uiEvent_t *ev, bool isFirstRun)
 
 		uiChannelModeUpdateScreen(0);
 
-		if (scanActive==false)
+		if (scanActive == false)
 		{
 			scanState = SCAN_SCANNING;
 		}
@@ -186,7 +186,7 @@ int uiChannelMode(uiEvent_t *ev, bool isFirstRun)
 				}
 			}
 
-			if(scanActive==true)
+			if (scanActive == true)
 			{
 				scanning();
 			}
@@ -215,16 +215,19 @@ uint16_t byteSwap16(uint16_t in)
 }
 #endif
 
-static void searchNextChannel(void) {
+static void searchNextChannel(void)
+{
 	//bool allZones = strcmp(currentZoneName,currentLanguage->all_channels) == 0;
 	int channel = 0;
+
 	if (currentZone.NOT_IN_MEMORY_isAllChannelsZone)
 	{
-		do {
+		do
+		{
 			nextChannelIndex += scanDirection;
 			if (scanDirection == 1)
 			{
-				if (nextChannelIndex>1024)
+				if (nextChannelIndex > 1024)
 				{
 					nextChannelIndex = 1;
 				}
@@ -239,6 +242,7 @@ static void searchNextChannel(void) {
 				}
 			}
 		} while(!codeplugChannelIndexIsValid(nextChannelIndex));
+
 		channel = nextChannelIndex;
 		codeplugChannelGetDataForIndex(nextChannelIndex,&channelNextChannelData);
 	}
@@ -259,7 +263,7 @@ static void searchNextChannel(void) {
 				nextChannelIndex = currentZone.NOT_IN_MEMORY_numChannelsInZone - 1;
 			}
 		}
-		codeplugChannelGetDataForIndex(currentZone.channels[nextChannelIndex],&channelNextChannelData);
+		codeplugChannelGetDataForIndex(currentZone.channels[nextChannelIndex], &channelNextChannelData);
 		channel = currentZone.channels[nextChannelIndex];
 	}
 
@@ -270,7 +274,7 @@ static void searchNextChannel(void) {
 	}
 	else
 	{
-		for(int i=0;i<MAX_ZONE_SCAN_NUISANCE_CHANNELS;i++)														//check all nuisance delete entries and skip channel if there is a match
+		for (int i = 0; i < MAX_ZONE_SCAN_NUISANCE_CHANNELS; i++)														//check all nuisance delete entries and skip channel if there is a match
 		{
 			if (nuisanceDelete[i] == -1)
 			{
@@ -313,6 +317,8 @@ static void setNextChannel(void)
 
 static void loadChannelData(bool useChannelDataInMemory)
 {
+	bool rxGroupValid;
+
 	if (currentZone.NOT_IN_MEMORY_isAllChannelsZone)
 	{
 		settingsCurrentChannelNumber = nonVolatileSettings.currentChannelIndexInAllZone;
@@ -359,9 +365,9 @@ static void loadChannelData(bool useChannelDataInMemory)
 		nonVolatileSettings.currentIndexInTRxGroupList[SETTINGS_CHANNEL_MODE] = channelScreenChannelData.contact - 1;
 #endif
 
-		codeplugRxGroupGetDataForIndex(channelScreenChannelData.rxGroupList, &currentRxGroupData);
+		rxGroupValid = codeplugRxGroupGetDataForIndex(channelScreenChannelData.rxGroupList, &currentRxGroupData);
 		// Check if this channel has an Rx Group
-		if (currentRxGroupData.name[0]!=0 && nonVolatileSettings.currentIndexInTRxGroupList[SETTINGS_CHANNEL_MODE] < currentRxGroupData.NOT_IN_CODEPLUG_numTGsInGroup)
+		if (rxGroupValid && nonVolatileSettings.currentIndexInTRxGroupList[SETTINGS_CHANNEL_MODE] < currentRxGroupData.NOT_IN_CODEPLUG_numTGsInGroup)
 		{
 			codeplugContactGetDataForIndex(currentRxGroupData.contacts[nonVolatileSettings.currentIndexInTRxGroupList[SETTINGS_CHANNEL_MODE]],&currentContactData);
 		}
@@ -918,7 +924,7 @@ static void handleEventForGD77S(uiEvent_t *ev)
 					channelScreenChannelData.rxFreq = 0x00; // Flag to the Channel screen that the channel data is now invalid and needs to be reloaded
 
 					buildSpeechSettingsFormGD77S(buf, 0U, inGD77SSettings);
-					menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE);
+					menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE, true);
 					break;
 			}
 
@@ -959,7 +965,7 @@ static void handleEventForGD77S(uiEvent_t *ev)
 						channelScreenChannelData.rxFreq = 0x00; // Flag to the Channel screeen that the channel data is now invalid and needs to be reloaded
 
 						buildSpeechSettingsFormGD77S(buf, 0U, inGD77SSettings);
-						menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE);
+						menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE, true);
 						break;
 				}
 
@@ -1031,24 +1037,34 @@ static void handleEvent(uiEvent_t *ev)
 	{
 		// Key pressed during scanning
 
-		if (!(ev->buttons & BUTTON_SK2))
+		if ((ev->buttons & BUTTON_SK2) == 0)
 		{
 			// if we are scanning and down key is pressed then enter current channel into nuisance delete array.
-			if(scanState==SCAN_PAUSED &&  ev->keys.key == KEY_RIGHT)
+			if((scanState == SCAN_PAUSED) && (ev->keys.key == KEY_RIGHT))
 			{
+				// There is no more channel available in the Zone, just stop scanning
+				if (nuisanceDeleteIndex == (currentZone.NOT_IN_MEMORY_numChannelsInZone - 1))
+				{
+					uiChannelModeStopScanning();
+					keyboardReset();
+					menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
+					uiChannelModeUpdateScreen(0);
+					return;
+				}
+
 				nuisanceDelete[nuisanceDeleteIndex++] = settingsCurrentChannelNumber;
 				if(nuisanceDeleteIndex > (MAX_ZONE_SCAN_NUISANCE_CHANNELS - 1))
 				{
 					nuisanceDeleteIndex = 0; //rolling list of last MAX_NUISANCE_CHANNELS deletes.
 				}
 				scanTimer = SCAN_SKIP_CHANNEL_INTERVAL;	//force scan to continue;
-				scanState=SCAN_SCANNING;
+				scanState = SCAN_SCANNING;
 				keyboardReset();
 				return;
 			}
 
 			// Left key reverses the scan direction
-			if (scanState == SCAN_SCANNING && ev->keys.key == KEY_LEFT)
+			if ((scanState == SCAN_SCANNING) && (ev->keys.key == KEY_LEFT))
 			{
 				scanDirection *= -1;
 				keyboardReset();
@@ -1057,7 +1073,7 @@ static void handleEvent(uiEvent_t *ev)
 		}
 		// stop the scan on any button except UP without Shift (allows scan to be manually continued)
 		// or SK2 on its own (allows Backlight to be triggered)
-		if (((ev->keys.key == KEY_UP) && (ev->buttons & BUTTON_SK2) == 0) == false)
+		if (((ev->keys.key == KEY_GREEN) && (ev->buttons & BUTTON_SK2) == 0) == false)
 		{
 			uiChannelModeStopScanning();
 			keyboardReset();
@@ -1320,7 +1336,6 @@ static void handleEvent(uiEvent_t *ev)
 			}
 		}
 		else if (KEYCHECK_PRESS(ev->keys, KEY_RIGHT))
-
 		{
 			if (ev->buttons & BUTTON_SK2)
 			{
@@ -1444,7 +1459,7 @@ static void handleEvent(uiEvent_t *ev)
 		}
 		else if (KEYCHECK_SHORTUP(ev->keys, KEY_STAR))
 		{
-			if (ev->buttons & BUTTON_SK2 )  // Toggle Channel Mode
+			if (ev->buttons & BUTTON_SK2)  // Toggle Channel Mode
 			{
 				if (trxGetMode() == RADIO_MODE_ANALOG)
 				{
@@ -1490,7 +1505,7 @@ static void handleEvent(uiEvent_t *ev)
 				}
 			}
 		}
-		else if (KEYCHECK_LONGDOWN(ev->keys, KEY_STAR))
+		else if (KEYCHECK_LONGDOWN(ev->keys, KEY_STAR) && ((ev->buttons & BUTTON_SK2) == 0))
 		{
 			if (trxGetMode() == RADIO_MODE_DIGITAL)
 			{
@@ -1531,7 +1546,8 @@ static void handleEvent(uiEvent_t *ev)
 			{
 				int numZones = codeplugZonesGetCount();
 
-				if (nonVolatileSettings.currentZone == 0) {
+				if (nonVolatileSettings.currentZone == 0)
+				{
 					nonVolatileSettings.currentZone = numZones-1;
 				}
 				else
@@ -1542,7 +1558,9 @@ static void handleEvent(uiEvent_t *ev)
 				nonVolatileSettings.tsManualOverride &= 0xF0; // remove TS override from channel
 				nonVolatileSettings.currentChannelIndexInZone = 0;// Since we are switching zones the channel index should be reset
 				channelScreenChannelData.rxFreq=0x00; // Flag to the Channel screeen that the channel data is now invalid and needs to be reloaded
-				menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE);
+				menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE, false);
+				SETTINGS_PLATFORM_SPECIFIC_SAVE_SETTINGS(false);
+				return;
 			}
 			else
 			{
@@ -1552,7 +1570,7 @@ static void handleEvent(uiEvent_t *ev)
 					do
 					{
 						nonVolatileSettings.currentChannelIndexInAllZone--;
-						if (nonVolatileSettings.currentChannelIndexInAllZone<1)
+						if (nonVolatileSettings.currentChannelIndexInAllZone < 1)
 						{
 							nonVolatileSettings.currentChannelIndexInAllZone = 1024;
 						}
@@ -1576,6 +1594,11 @@ static void handleEvent(uiEvent_t *ev)
 		{
 			handleUpKey(ev);
 			SETTINGS_PLATFORM_SPECIFIC_SAVE_SETTINGS(false);
+			return;
+		}
+		else if (KEYCHECK_LONGDOWN(ev->keys, KEY_GREEN) && ((ev->buttons & BUTTON_SK2) == 0))
+		{
+			startScan();
 		}
 		else
 		{
@@ -1618,14 +1641,16 @@ static void handleUpKey(uiEvent_t *ev)
 		int numZones = codeplugZonesGetCount();
 
 		nonVolatileSettings.currentZone++;
-		if (nonVolatileSettings.currentZone >= numZones) {
+		if (nonVolatileSettings.currentZone >= numZones)
+		{
 			nonVolatileSettings.currentZone = 0;
 		}
 		nonVolatileSettings.overrideTG = 0; // remove any TG override
 		nonVolatileSettings.tsManualOverride &= 0xF0; // remove TS override from channel
 		nonVolatileSettings.currentChannelIndexInZone = 0;// Since we are switching zones the channel index should be reset
 		channelScreenChannelData.rxFreq=0x00; // Flag to the Channel screen that the channel data is now invalid and needs to be reloaded
-		menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE);
+		menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE, false);
+		return;
 	}
 	else
 	{
@@ -1635,10 +1660,12 @@ static void handleUpKey(uiEvent_t *ev)
 			do
 			{
 				nonVolatileSettings.currentChannelIndexInAllZone++;
+
 				if (nonVolatileSettings.currentChannelIndexInAllZone > 1024)
 				{
 					nonVolatileSettings.currentChannelIndexInAllZone = 1;
 				}
+
 			} while(!codeplugChannelIndexIsValid(nonVolatileSettings.currentChannelIndexInAllZone));
 		}
 		else
@@ -1650,7 +1677,7 @@ static void handleUpKey(uiEvent_t *ev)
 
 			}
 		}
-		scanTimer=500;
+		scanTimer = 500;
 		scanState = SCAN_SCANNING;
 	}
 
@@ -1733,12 +1760,12 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 				break;
 			case CH_SCREEN_QUICK_MENU_COPY2VFO:
 				memcpy(&settingsVFOChannel[nonVolatileSettings.currentVFONumber].rxFreq,&channelScreenChannelData.rxFreq,sizeof(struct_codeplugChannel_t) - 16);// Don't copy the name of channel, which are in the first 16 bytes
-				menuSystemPopAllAndDisplaySpecificRootMenu(UI_VFO_MODE);
+				menuSystemPopAllAndDisplaySpecificRootMenu(UI_VFO_MODE, true);
 				break;
 			case CH_SCREEN_QUICK_MENU_COPY_FROM_VFO:
 				memcpy(&channelScreenChannelData.rxFreq,&settingsVFOChannel[nonVolatileSettings.currentVFONumber].rxFreq,sizeof(struct_codeplugChannel_t)- 16);// Don't copy the name of the vfo, which are in the first 16 bytes
 				codeplugChannelSaveDataForIndex(settingsCurrentChannelNumber,&channelScreenChannelData);
-				menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE);
+				menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE, true);
 				break;
 			case CH_SCREEN_QUICK_MENU_FILTER:
 				if (trxGetMode() == RADIO_MODE_DIGITAL)
@@ -1751,7 +1778,7 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 				{
 					nonVolatileSettings.analogFilterLevel = tmpQuickMenuAnalogFilterLevel;
 				}
-				menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE);
+				menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE, true);
 				break;
 		}
 		return;
@@ -1840,16 +1867,16 @@ static void startScan(void)
 {
 	scanDirection = 1;
 
-	for(int i= 0;i<MAX_ZONE_SCAN_NUISANCE_CHANNELS;i++)						//clear all nuisance delete channels at start of scanning
+	for (int i = 0; i < MAX_ZONE_SCAN_NUISANCE_CHANNELS; i++)						//clear all nuisance delete channels at start of scanning
 	{
-		nuisanceDelete[i]=-1;
+		nuisanceDelete[i] = -1;
 	}
 	nuisanceDeleteIndex=0;
 
 	scanActive = true;
 	scanTimer = SCAN_SHORT_PAUSE_TIME;
 	scanState = SCAN_SCANNING;
-	menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE);
+	menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE, true);
 
 	//get current channel index
 	if (currentZone.NOT_IN_MEMORY_isAllChannelsZone)
@@ -1893,7 +1920,7 @@ static void uiChannelUpdateTrxID(void)
 
 static void scanning(void)
 {
-	if((scanState == SCAN_SCANNING) && (scanTimer > SCAN_SKIP_CHANNEL_INTERVAL) && (scanTimer < ( SCAN_TOTAL_INTERVAL - SCAN_FREQ_CHANGE_SETTLING_INTERVAL)))							    			//after initial settling time
+	if((scanState == SCAN_SCANNING) && (scanTimer > SCAN_SKIP_CHANNEL_INTERVAL) && (scanTimer < (SCAN_TOTAL_INTERVAL - SCAN_FREQ_CHANGE_SETTLING_INTERVAL)))							    			//after initial settling time
 	{
 		//test for presence of RF Carrier.
 		// In FM mode the dmr slot_state will always be DMR_STATE_IDLE
@@ -1979,6 +2006,11 @@ static void scanning(void)
 void uiChannelModeStopScanning(void)
 {
 	scanActive = false;
+}
+
+bool uiChannelModeIsScanning(void)
+{
+	return scanActive;
 }
 
 void uiChannelModeColdStart(void)
