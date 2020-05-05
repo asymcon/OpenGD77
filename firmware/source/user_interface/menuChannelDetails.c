@@ -138,7 +138,7 @@ static void updateScreen(void)
 				case CH_DETAILS_MODE:
 					if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 					{
-						snprintf(buf, bufferLen, "%s:FM", currentLanguage->mode);
+					snprintf(buf, bufferLen, "%s:%s", currentLanguage->mode, ((tmpChannel.flag4 & 0x02) == 0x02) ? "FM" : "FMN");
 					}
 					else
 					{

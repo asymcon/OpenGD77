@@ -148,7 +148,7 @@ void settingsRestoreDefaultSettings(void)
 	nonVolatileSettings.useCalibration = true;// enable the new calibration system
 	nonVolatileSettings.txFreqLimited = true;// Limit Tx frequency to US Amateur bands
 //	#if(PLATFORM_GD-77  || PLATFORM_GD77S)
-	nonVolatileSettings.txPowerLevel=10;// 1W Power level in trx.c must match 1W level case
+	nonVolatileSettings.txPowerLevel=11;// 1W Power level in trx.c must match 1W level case
 //	#elif (PLATFORM_DM1801)
 //	nonVolatileSettings.txPowerLevel=4;// 1 W
 //	#endif

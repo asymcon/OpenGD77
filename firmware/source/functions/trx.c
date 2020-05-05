@@ -627,9 +627,10 @@ void trxSetPowerFromLevel(int powerLevel)
 // Note. Fraction values for 200Mhz are currently the same as the VHF band, because there isn't any way to set the 1W value on 220Mhz as there are only 2 calibration tables
 //#if//defined(PLATFORM_GD77) || defined(PLATFORM_GD77S) // Support ONLY GD-77 in this build
 
-static const float fractionalPowers[9][10] = {	{0.35,0.39,0.42,0.46,0.50,0.53,0.56,0.72,0.85,0.93},// VHF
-												{0.38,0.42,0.45,0.48,0.52,0.55,0.58,0.73,0.86,0.93},// 220Mhz
-												{0.41,0.45,0.48,0.51,0.55,0.58,0.64,0.77,0.86,0.93}};// UHF
+//fractal powers must match last 2 counts of power level
+static const float fractionalPowers[10][11] = {	{0.20,0.35,0.39,0.42,0.46,0.50,0.53,0.56,0.72,0.85,0.93},// VHF
+												{0.20,0.38,0.42,0.45,0.48,0.52,0.55,0.58,0.73,0.86,0.93},// 220Mhz
+												{0.20,0.41,0.45,0.48,0.51,0.55,0.58,0.64,0.77,0.86,0.93}};// UHF
 
 //#elif defined(PLATFORM_DM1801) //Add extra levels at different time
 
@@ -640,37 +641,38 @@ static const float fractionalPowers[9][10] = {	{0.35,0.39,0.42,0.46,0.50,0.53,0.
 
 //#endif
 	int stepPerWatt = (trxPowerSettings.highPower - trxPowerSettings.lowPower)/( 5 - 1);
-
+// must add in new power levels in uiutilities.c
 	switch(powerLevel)
 	{
-		case 0:// 1mW
-		case 1:// 5mW
-		case 2:// 10mW
-		case 3:// 25mW
-		case 4:// 50mW
-		case 5:// 75mW
-		case 6:// 100mW
-		case 7:// 250mW
-		case 8:// 500mW
-		case 9:// 750mW
+		case 0:// <1mW
+		case 1:// 1mW
+		case 2:// 5mW
+		case 3:// 10mW
+		case 4:// 25mW
+		case 5:// 50mW
+		case 6:// 75mW
+		case 7:// 100mW
+		case 8:// 250mW
+		case 9:// 500mW
+		case 10:// 750mW
 			txPower = trxPowerSettings.lowPower * fractionalPowers[trxCurrentBand[TRX_TX_FREQ_BAND]][powerLevel];
 			break;
-		case 10:// 1W
+		case 11:// 1W //Must match case # in Settings.c
 			txPower = trxPowerSettings.lowPower;
 			break;
-		case 11:// 2W
-			txPower = (((powerLevel - 10) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower; // must match number in settings.c
+		case 12:// 2W //Power level minus case below 1W case (750mw)
+			txPower = (((powerLevel - 11) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower; // must match number in settings.c
 			break;
-		case 12:// 3W
-			txPower = (((powerLevel - 10) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;
+		case 13:// 3W
+			txPower = (((powerLevel - 11) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;
 			break;
-		case 13:// 4W
-			txPower = (((powerLevel - 10) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;
+		case 14:// 4W
+			txPower = (((powerLevel - 11) * stepPerWatt) * 0.90) + trxPowerSettings.lowPower;
 			break;
-		case 14:// 5W
+		case 15:// 5W
 			txPower = trxPowerSettings.highPower;
 			break;
-		case 15:// 5W+
+		case 16:// 5W+
 			txPower = 4095;
 			break;
 		default:
