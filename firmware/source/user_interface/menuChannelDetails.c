@@ -28,8 +28,15 @@ static void updateScreen(void);
 static void updateCursor(bool moved);
 static void handleEvent(uiEvent_t *ev);
 
-static int CTCSSRxIndex = 0;
-static int CTCSSTxIndex = 0;
+static int32_t RxCSSIndex = 0;
+static int32_t TxCSSIndex = 0;
+typedef enum {
+	CSS_NONE = 0,
+	CSS_CTCSS,
+	CSS_DCS
+} CSSTypes_t;
+static CSSTypes_t RxCSSType = CSS_NONE;
+static CSSTypes_t TxCSSType = CSS_NONE;
 static struct_codeplugChannel_t tmpChannel;// update a temporary copy of the channel and only write back if green menu is pressed
 static char channelName[17];
 static int namePos;
@@ -45,6 +52,187 @@ enum CHANNEL_DETAILS_DISPLAY_LIST {  CH_DETAILS_RXCTCSS = 0,
 									 CH_DETAILS_TXFREQ, CH_DETAILS_VOX,
 									NUM_CH_DETAILS_ITEMS};// The last item in the list is used so that we automatically get a total number of items in the list
 
+// Returns the index in either the CTCSS or DCS list of the tone (or closest match)
+static int cssIndex(uint16_t tone, CSSTypes_t type)
+{
+	if (type == CSS_DCS)
+	{
+		tone &= 0777;
+		for (int i = 0; i < TRX_NUM_DCS; i++)
+		{
+			if (TRX_DCSCodes[i] >= tone)
+			{
+				return i;
+			}
+		}
+	}
+	else if (type == CSS_CTCSS)
+	{
+		for (int i = 0; i < TRX_NUM_CTCSS; i++)
+		{
+			if (TRX_CTCSSTones[i] >= tone)
+			{
+				return i;
+			}
+		}
+	}
+	return 0;
+}
+
+static void cssIncrement(uint16_t *tone, int32_t *index, CSSTypes_t *type)
+{
+	(*index)++;
+	if (*type == CSS_CTCSS)
+	{
+		if (*index >= TRX_NUM_CTCSS)
+		{
+			*type = CSS_DCS;
+			*index = 0;
+			*tone = TRX_DCSCodes[*index] | 0x8000;
+			return;
+		}
+		*tone = TRX_CTCSSTones[*index];
+	}
+	else if (*type == CSS_DCS)
+	{
+		if (*index >= TRX_NUM_DCS)
+		{
+			*index = TRX_NUM_DCS - 1;
+		}
+		*tone = TRX_DCSCodes[*index] | 0x8000;
+	}
+	else
+	{
+		*type = CSS_CTCSS;
+		*index = 0;
+		*tone = TRX_CTCSSTones[*index];
+	}
+	return;
+}
+
+static void cssIncrementFromEvent(uiEvent_t *ev, uint16_t *tone, int32_t *index, CSSTypes_t *type)
+{
+	if (ev->buttons & BUTTON_SK2)
+	{
+		switch (*type)
+		{
+			case CSS_CTCSS:
+				if (*index < (TRX_NUM_CTCSS - 1))
+				{
+					*index = (TRX_NUM_CTCSS - 1);
+					*tone = TRX_CTCSSTones[*index];
+				}
+				else
+				{
+					*type = CSS_DCS;
+					*index = 0;
+					*tone = TRX_DCSCodes[*index] | 0x8000;
+				}
+				break;
+			case CSS_DCS:
+				if (*index < (TRX_NUM_DCS - 1))
+				{
+					*index = (TRX_NUM_DCS - 1);
+					*tone = TRX_DCSCodes[*index] | 0x8000;
+				}
+				break;
+			case CSS_NONE:
+				*type = CSS_CTCSS;
+				*index = 0;
+				*tone = TRX_CTCSSTones[*index];
+				break;
+		}
+	}
+	else
+	{
+		// Step +5, cssIncrement() handles index overflow
+		if (ev->keys.event & KEY_MOD_LONG)
+		{
+			*index += 2;
+		}
+		cssIncrement(tone, index, type);
+	}
+}
+
+static void cssDecrement(uint16_t *tone, int32_t *index, CSSTypes_t *type)
+{
+	(*index)--;
+	if (*type == CSS_CTCSS)
+	{
+		if (*index < 0)
+		{
+			*type = CSS_NONE;
+			*index = 0;
+			*tone = CODEPLUG_CSS_NONE;
+			return;
+		}
+		*tone = TRX_CTCSSTones[*index];
+	}
+	else if (*type == CSS_DCS)
+	{
+		if (*index < 0)
+		{
+			*type = CSS_CTCSS;
+			*index = TRX_NUM_CTCSS - 1;
+			*tone = TRX_CTCSSTones[*index];
+			return;
+		}
+		*tone = TRX_DCSCodes[*index] | 0x8000;
+	}
+	else
+	{
+		*index = 0;
+		*tone = CODEPLUG_CSS_NONE;
+	}
+}
+
+static void cssDecrementFromEvent(uiEvent_t *ev, uint16_t *tone, int32_t *index, CSSTypes_t *type)
+{
+	if (ev->buttons & BUTTON_SK2)
+	{
+		switch (*type)
+		{
+			case CSS_CTCSS:
+				if (*index > 0)
+				{
+					*index = 0;
+					*tone = TRX_CTCSSTones[*index];
+				}
+				else
+				{
+					*type = CSS_NONE;
+					*index = 0;
+					*tone = CODEPLUG_CSS_NONE;
+				}
+				break;
+			case CSS_DCS:
+				if (*index > 0)
+				{
+					*index = 0;
+					*tone = TRX_DCSCodes[*index] | 0x8000;
+				}
+				else
+				{
+					*type = CSS_CTCSS;
+					*index = (TRX_NUM_CTCSS - 1);
+					*tone = TRX_CTCSSTones[*index];
+				}
+				break;
+			case CSS_NONE:
+				break;
+		}
+	}
+	else
+	{
+		// Step -5, cssDecrement() handles index < 0
+		if (ev->keys.event & KEY_MOD_LONG)
+		{
+			*index -= 2;
+		}
+		cssDecrement(tone, index, type);
+	}
+}
+
 int menuChannelDetails(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
@@ -52,18 +240,25 @@ int menuChannelDetails(uiEvent_t *ev, bool isFirstRun)
 		freq_enter_idx = 0;
 		memcpy(&tmpChannel, currentChannelData,sizeof(struct_codeplugChannel_t));
 
-		for(int i = 0; i < TRX_NUM_CTCSS; i++)
+		if (codeplugChannelToneIsDCS(tmpChannel.txTone))
 		{
-			if (tmpChannel.txTone == TRX_CTCSSTones[i])
-			{
-				CTCSSTxIndex = i;
-			}
-
-			if (tmpChannel.rxTone == TRX_CTCSSTones[i])
-			{
-				CTCSSRxIndex = i;
-			}
+			TxCSSType = CSS_DCS;
 		}
+		else if (codeplugChannelToneIsCTCSS(tmpChannel.txTone))
+		{
+			TxCSSType = CSS_CTCSS;
+		}
+		TxCSSIndex = cssIndex(tmpChannel.txTone, TxCSSType);
+
+		if (codeplugChannelToneIsDCS(tmpChannel.rxTone))
+		{
+			RxCSSType = CSS_DCS;
+		}
+		else if (codeplugChannelToneIsCTCSS(tmpChannel.rxTone))
+		{
+			RxCSSType = CSS_CTCSS;
+		}
+		RxCSSIndex = cssIndex(tmpChannel.rxTone, RxCSSType);
 
 
 		codeplugUtilConvertBufToString(tmpChannel.name, channelName, 16);
@@ -166,38 +361,46 @@ static void updateScreen(void)
 						snprintf(buf, bufferLen, "%s:%d", currentLanguage->timeSlot, ((tmpChannel.flag2 & 0x40) >> 6) + 1);
 					}
 					break;
-				case CH_DETAILS_TXCTCSS:
-					if (tmpChannel.chMode == RADIO_MODE_ANALOG)
-					{
-						if (!codeplugChannelToneIsCTCSS(tmpChannel.txTone))
-						{
-							snprintf(buf, bufferLen, "Tx CTCSS:%s", currentLanguage->none);
-						}
-						else
-						{
-							snprintf(buf, bufferLen, "Tx CTCSS:%d.%dHz", tmpChannel.txTone / 10 , tmpChannel.txTone % 10);
-						}
-					}
-					else
-					{
-						snprintf(buf, bufferLen, "Tx CTCSS:%s", currentLanguage->n_a);
-					}
-					break;
 				case CH_DETAILS_RXCTCSS:
 					if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 					{
-						if (!codeplugChannelToneIsCTCSS(tmpChannel.rxTone))
+						if (codeplugChannelToneIsCTCSS(tmpChannel.rxTone))
 						{
-							snprintf(buf, bufferLen, "Rx CTCSS:%s", currentLanguage->none);
+							snprintf(buf, bufferLen, "Rx CTCSS:%d.%dHz", tmpChannel.rxTone / 10 , tmpChannel.rxTone % 10);
+						}
+						else if (codeplugChannelToneIsDCS(tmpChannel.rxTone))
+						{
+							snprintf(buf, bufferLen, "Rx DCS:D%03oN", tmpChannel.rxTone & 0777);
 						}
 						else
 						{
-							snprintf(buf, bufferLen, "Rx CTCSS:%d.%dHz", tmpChannel.rxTone / 10 , tmpChannel.rxTone % 10);
+							snprintf(buf, bufferLen, "Rx CSS:%s", currentLanguage->off);
 						}
 					}
 					else
 					{
-						snprintf(buf, bufferLen, "Rx CTCSS:%s", currentLanguage->n_a);
+						snprintf(buf, bufferLen, "Rx CSS:%s", currentLanguage->n_a);
+					}
+					break;
+				case CH_DETAILS_TXCTCSS:
+					if (tmpChannel.chMode == RADIO_MODE_ANALOG)
+					{
+						if (codeplugChannelToneIsCTCSS(tmpChannel.txTone))
+						{
+							snprintf(buf, bufferLen, "Tx CTCSS:%d.%dHz", tmpChannel.txTone / 10 , tmpChannel.txTone % 10);
+						}
+						else if (codeplugChannelToneIsDCS(tmpChannel.txTone))
+						{
+							snprintf(buf, bufferLen, "Tx DCS:D%03oN", tmpChannel.txTone & 0777);
+						}
+						else
+						{
+							snprintf(buf, bufferLen, "Tx CSS:%s", currentLanguage->off);
+						}
+					}
+					else
+					{
+						snprintf(buf, bufferLen, "Tx CSS:%s", currentLanguage->n_a);
 					}
 					break;
 				case CH_DETAILS_RXFREQ:
@@ -387,42 +590,17 @@ static void handleEvent(uiEvent_t *ev)
 					tmpChannel.flag2 |= 0x40;// set TS 2 bit
 				}
 				break;
-			case CH_DETAILS_TXCTCSS:
-				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
-				{
-					if (ev->keys.event & KEY_MOD_LONG)
-					{
-						CTCSSTxIndex = TRX_NUM_CTCSS - 1;
-					}
-					else
-					{
-						CTCSSTxIndex++;
-						if (CTCSSTxIndex >= TRX_NUM_CTCSS)
-						{
-							CTCSSTxIndex = TRX_NUM_CTCSS - 1;
-						}
-					}
-					tmpChannel.txTone = TRX_CTCSSTones[CTCSSTxIndex];
-					trxSetTxCTCSS(tmpChannel.txTone);
-				}
-				break;
 			case CH_DETAILS_RXCTCSS:
 				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 				{
-					if (ev->keys.event & KEY_MOD_LONG)
-					{
-						CTCSSRxIndex = TRX_NUM_CTCSS - 1;
-					}
-					else
-					{
-						CTCSSRxIndex++;
-						if (CTCSSRxIndex >= TRX_NUM_CTCSS)
-						{
-							CTCSSRxIndex = TRX_NUM_CTCSS - 1;
-						}
-					}
-					tmpChannel.rxTone = TRX_CTCSSTones[CTCSSRxIndex];
-					trxSetRxCTCSS(tmpChannel.rxTone);
+					cssIncrementFromEvent(ev, &tmpChannel.rxTone, &RxCSSIndex, &RxCSSType);
+					trxSetRxCSS(tmpChannel.rxTone);
+				}
+				break;
+			case CH_DETAILS_TXCTCSS:
+				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
+				{
+					cssIncrementFromEvent(ev, &tmpChannel.txTone, &TxCSSIndex, &TxCSSType);
 				}
 				break;
 			case CH_DETAILS_BANDWIDTH:
@@ -508,42 +686,17 @@ static void handleEvent(uiEvent_t *ev)
 					tmpChannel.flag2 &= 0xBF;// Clear TS 2 bit
 				}
 				break;
-			case CH_DETAILS_TXCTCSS:
-				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
-				{
-					if (ev->keys.event & KEY_MOD_LONG)
-					{
-						CTCSSTxIndex = 0;
-					}
-					else
-					{
-						CTCSSTxIndex--;
-						if (CTCSSTxIndex < 0)
-						{
-							CTCSSTxIndex = 0;
-						}
-					}
-					tmpChannel.txTone = TRX_CTCSSTones[CTCSSTxIndex];
-					trxSetTxCTCSS(tmpChannel.txTone);
-				}
-				break;
 			case CH_DETAILS_RXCTCSS:
 				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 				{
-					if (ev->keys.event & KEY_MOD_LONG)
-					{
-						CTCSSRxIndex = 0;
-					}
-					else
-					{
-						CTCSSRxIndex--;
-						if (CTCSSRxIndex < 0)
-						{
-							CTCSSRxIndex = 0;
-						}
-					}
-					tmpChannel.rxTone = TRX_CTCSSTones[CTCSSRxIndex];
-					trxSetRxCTCSS(tmpChannel.rxTone);
+					cssDecrementFromEvent(ev, &tmpChannel.rxTone, &RxCSSIndex, &RxCSSType);
+					trxSetRxCSS(tmpChannel.rxTone);
+				}
+				break;
+			case CH_DETAILS_TXCTCSS:
+				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
+				{
+					cssDecrementFromEvent(ev, &tmpChannel.txTone, &TxCSSIndex, &TxCSSType);
 				}
 				break;
 			case CH_DETAILS_BANDWIDTH:

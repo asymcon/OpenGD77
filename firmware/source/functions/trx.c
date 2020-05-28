@@ -72,14 +72,96 @@ const frequencyBand_t RADIO_FREQUENCY_BANDS[RADIO_BANDS_TOTAL_NUM] =  {
 #endif
 
 static const int TRX_SQUELCH_MAX = 70;
-const int TRX_CTCSS_TONE_NONE = 65535;
-const int TRX_NUM_CTCSS=52;
-const unsigned int TRX_CTCSSTones[]={65535,625,670,693,719,744,770,797,825,854,
-										885,915,948,974,1000,1035,1072,1109,1148,
-										1188,1230,1273,1318,1365,1413,1462,1514,
-										1567,1598,1622,1655,1679,1713,1738,1773,
-										1799,1835,1862,1899,1928,1966,1995,2035,
-										2065,2107,2181,2257,2291,2336,2418,2503,2541};
+const uint8_t TRX_NUM_CTCSS=50;
+const uint16_t TRX_CTCSSTones[] = {
+	 670,  693,  719,  744,  770,  797,  825,  854,  885,  915,
+	 948,  974, 1000, 1035, 1072, 1109, 1148, 1188, 1230, 1273,
+	1318, 1365, 1413, 1462, 1514, 1567, 1598, 1622, 1655, 1679,
+	1713, 1738, 1773, 1799, 1835, 1862, 1899, 1928, 1966, 1995,
+	2035, 2065, 2107, 2181, 2257, 2291, 2336, 2418, 2503, 2541
+};
+const uint16_t TRX_DCS_TONE = 13440;  // 134.4Hz is the data rate of the DCS bitstream (and a reason not to use that tone for CTCSS)
+const uint8_t TRX_NUM_DCS = 83;
+// There are other possible codes but these are standard and there are mathematical reasons for why they are standard.
+// The CPS supports another larger set of codes. The code should work if one of these is programmed, but FPP doesn't support setting.
+const uint16_t TRX_DCSCodes[] = {
+	0023, 0025, 0026, 0031, 0032, 0043, 0047, 0051, 0054, 0065, 0071, 0072, 0073, 0074,
+	0114, 0115, 0116, 0125, 0131, 0132, 0134, 0143, 0152, 0155, 0156, 0162, 0165, 0172, 0174,
+	0205, 0223, 0226, 0243, 0244, 0245, 0251, 0261, 0263, 0265, 0271,
+	0306, 0311, 0315, 0331, 0343, 0345, 0351, 0364, 0365, 0371,
+	0411, 0412, 0413, 0423, 0431, 0432, 0445, 0464, 0465, 0466,
+	0503, 0506, 0516, 0532, 0546, 0565,
+	0606, 0612, 0624, 0627, 0631, 0632, 0654, 0662, 0664,
+	0703, 0712, 0723, 0731, 0732, 0734, 0743, 0754
+};
+// A DCS code has 04000 added to it to set the highest bit of the twelve encoded bits and is then Golay{23,12} encoded.
+// This table is just the error correcting bits to save space because the rest of the bits are the 04000 plus the DCS code.
+const uint16_t TRX_DCSECCBits[512] = {
+	0x63a, 0x24f, 0x2a5, 0x6d0, 0x371, 0x704, 0x7ee, 0x39b,
+	0x0d9, 0x4ac, 0x446, 0x033, 0x592, 0x1e7, 0x10d, 0x578,
+	0x789, 0x3fc, 0x316, 0x763, 0x2c2, 0x6b7, 0x65d, 0x228,
+	0x16a, 0x51f, 0x5f5, 0x180, 0x421, 0x054, 0x0be, 0x4cb,
+	0x55c, 0x129, 0x1c3, 0x5b6, 0x017, 0x462, 0x488, 0x0fd,
+	0x3bf, 0x7ca, 0x720, 0x355, 0x6f4, 0x281, 0x26b, 0x61e,
+	0x4ef, 0x09a, 0x070, 0x405, 0x1a4, 0x5d1, 0x53b, 0x14e,
+	0x20c, 0x679, 0x693, 0x2e6, 0x747, 0x332, 0x3d8, 0x7ad,
+	0x0f6, 0x483, 0x469, 0x01c, 0x5bd, 0x1c8, 0x122, 0x557,
+	0x615, 0x260, 0x28a, 0x6ff, 0x35e, 0x72b, 0x7c1, 0x3b4,
+	0x145, 0x530, 0x5da, 0x1af, 0x40e, 0x07b, 0x091, 0x4e4,
+	0x7a6, 0x3d3, 0x339, 0x74c, 0x2ed, 0x698, 0x672, 0x207,
+	0x390, 0x7e5, 0x70f, 0x37a, 0x6db, 0x2ae, 0x244, 0x631,
+	0x573, 0x106, 0x1ec, 0x599, 0x038, 0x44d, 0x4a7, 0x0d2,
+	0x223, 0x656, 0x6bc, 0x2c9, 0x768, 0x31d, 0x3f7, 0x782,
+	0x4c0, 0x0b5, 0x05f, 0x42a, 0x18b, 0x5fe, 0x514, 0x161,
+	0x7d7, 0x3a2, 0x348, 0x73d, 0x29c, 0x6e9, 0x603, 0x276,
+	0x134, 0x541, 0x5ab, 0x1de, 0x47f, 0x00a, 0x0e0, 0x495,
+	0x664, 0x211, 0x2fb, 0x68e, 0x32f, 0x75a, 0x7b0, 0x3c5,
+	0x087, 0x4f2, 0x418, 0x06d, 0x5cc, 0x1b9, 0x153, 0x526,
+	0x4b1, 0x0c4, 0x02e, 0x45b, 0x1fa, 0x58f, 0x565, 0x110,
+	0x252, 0x627, 0x6cd, 0x2b8, 0x719, 0x36c, 0x386, 0x7f3,
+	0x502, 0x177, 0x19d, 0x5e8, 0x049, 0x43c, 0x4d6, 0x0a3,
+	0x3e1, 0x794, 0x77e, 0x30b, 0x6aa, 0x2df, 0x235, 0x640,
+	0x11b, 0x56e, 0x584, 0x1f1, 0x450, 0x025, 0x0cf, 0x4ba,
+	0x7f8, 0x38d, 0x367, 0x712, 0x2b3, 0x6c6, 0x62c, 0x259,
+	0x0a8, 0x4dd, 0x437, 0x042, 0x5e3, 0x196, 0x17c, 0x509,
+	0x64b, 0x23e, 0x2d4, 0x6a1, 0x300, 0x775, 0x79f, 0x3ea,
+	0x27d, 0x608, 0x6e2, 0x297, 0x736, 0x343, 0x3a9, 0x7dc,
+	0x49e, 0x0eb, 0x001, 0x474, 0x1d5, 0x5a0, 0x54a, 0x13f,
+	0x3ce, 0x7bb, 0x751, 0x324, 0x685, 0x2f0, 0x21a, 0x66f,
+	0x52d, 0x158, 0x1b2, 0x5c7, 0x066, 0x413, 0x4f9, 0x08c,
+	0x5e0, 0x195, 0x17f, 0x50a, 0x0ab, 0x4de, 0x434, 0x041,
+	0x303, 0x776, 0x79c, 0x3e9, 0x648, 0x23d, 0x2d7, 0x6a2,
+	0x453, 0x026, 0x0cc, 0x4b9, 0x118, 0x56d, 0x587, 0x1f2,
+	0x2b0, 0x6c5, 0x62f, 0x25a, 0x7fb, 0x38e, 0x364, 0x711,
+	0x686, 0x2f3, 0x219, 0x66c, 0x3cd, 0x7b8, 0x752, 0x327,
+	0x065, 0x410, 0x4fa, 0x08f, 0x52e, 0x15b, 0x1b1, 0x5c4,
+	0x735, 0x340, 0x3aa, 0x7df, 0x27e, 0x60b, 0x6e1, 0x294,
+	0x1d6, 0x5a3, 0x549, 0x13c, 0x49d, 0x0e8, 0x002, 0x477,
+	0x32c, 0x759, 0x7b3, 0x3c6, 0x667, 0x212, 0x2f8, 0x68d,
+	0x5cf, 0x1ba, 0x150, 0x525, 0x084, 0x4f1, 0x41b, 0x06e,
+	0x29f, 0x6ea, 0x600, 0x275, 0x7d4, 0x3a1, 0x34b, 0x73e,
+	0x47c, 0x009, 0x0e3, 0x496, 0x137, 0x542, 0x5a8, 0x1dd,
+	0x04a, 0x43f, 0x4d5, 0x0a0, 0x501, 0x174, 0x19e, 0x5eb,
+	0x6a9, 0x2dc, 0x236, 0x643, 0x3e2, 0x797, 0x77d, 0x308,
+	0x1f9, 0x58c, 0x566, 0x113, 0x4b2, 0x0c7, 0x02d, 0x458,
+	0x71a, 0x36f, 0x385, 0x7f0, 0x251, 0x624, 0x6ce, 0x2bb,
+	0x40d, 0x078, 0x092, 0x4e7, 0x146, 0x533, 0x5d9, 0x1ac,
+	0x2ee, 0x69b, 0x671, 0x204, 0x7a5, 0x3d0, 0x33a, 0x74f,
+	0x5be, 0x1cb, 0x121, 0x554, 0x0f5, 0x480, 0x46a, 0x01f,
+	0x35d, 0x728, 0x7c2, 0x3b7, 0x616, 0x263, 0x289, 0x6fc,
+	0x76b, 0x31e, 0x3f4, 0x781, 0x220, 0x655, 0x6bf, 0x2ca,
+	0x188, 0x5fd, 0x517, 0x162, 0x4c3, 0x0b6, 0x05c, 0x429,
+	0x6d8, 0x2ad, 0x247, 0x632, 0x393, 0x7e6, 0x70c, 0x379,
+	0x03b, 0x44e, 0x4a4, 0x0d1, 0x570, 0x105, 0x1ef, 0x59a,
+	0x2c1, 0x6b4, 0x65e, 0x22b, 0x78a, 0x3ff, 0x315, 0x760,
+	0x422, 0x057, 0x0bd, 0x4c8, 0x169, 0x51c, 0x5f6, 0x183,
+	0x372, 0x707, 0x7ed, 0x398, 0x639, 0x24c, 0x2a6, 0x6d3,
+	0x591, 0x1e4, 0x10e, 0x57b, 0x0da, 0x4af, 0x445, 0x030,
+	0x1a7, 0x5d2, 0x538, 0x14d, 0x4ec, 0x099, 0x073, 0x406,
+	0x744, 0x331, 0x3db, 0x7ae, 0x20f, 0x67a, 0x690, 0x2e5,
+	0x014, 0x461, 0x48b, 0x0fe, 0x55f, 0x12a, 0x1c0, 0x5b5,
+	0x6f7, 0x282, 0x268, 0x61d, 0x3bc, 0x7c9, 0x723, 0x356,
+};
 static const int BAND_VHF_MIN 	= 14400000;
 static const int BAND_VHF_MAX 	= 14800000;
 static const int BAND_222_MIN 	= 22200000;
@@ -95,7 +177,7 @@ static int currentRxFrequency = 14400000;
 static int currentTxFrequency = 14400000;
 static int currentCC = 1;
 static uint8_t squelch = 0x00;
-static bool rxCTCSSactive = false;
+static bool rxCSSactive = false;
 
 // AT-1846 native values for Rx
 static uint8_t rx_fl_l;
@@ -173,7 +255,6 @@ void trxSetModeAndBandwidth(int mode, bool bandwidthIs25kHz)
 			break;
 		case RADIO_MODE_DIGITAL:
 			I2C_AT1846_SetMode();// Also sets the bandwidth to 12.5kHz which is the standard for DMR
-
 			trxUpdateC6000Calibration();
 			trxUpdateAT1846SCalibration();
 			GPIO_PinWrite(GPIO_TX_audio_mux, Pin_TX_audio_mux, 1); // Connect mic to MIC_P input of HR-C6000
@@ -371,8 +452,7 @@ void trxCheckAnalogSquelch(void)
 		}
 
 
-
-		if((trxRxNoise < squelch) && (((rxCTCSSactive) && (trxCheckCTCSSFlag())) || (!rxCTCSSactive)))
+		if ((trxRxNoise < squelch) && (((rxCSSactive) && (trxCheckCSSFlag(currentChannelData->rxTone))) || (!rxCSSactive)))
 		{
 			GPIO_PinWrite(GPIO_RX_audio_mux, Pin_RX_audio_mux, 1);// Set the audio path to AT1846 -> audio amp.
 			enableAudioAmp(AUDIO_AMP_MODE_RF);
@@ -740,6 +820,14 @@ void trxUpdateC6000Calibration(void)
 
 	read_val_twopoint_mod(band_offset,&lowByte, &highByte);
 	uint16_t refOscOffset = (highByte<<8)+lowByte;
+
+#if defined(PLATFORM_RD5R)
+	// Hack to bring the RD-5R to the correct frequency
+	// I don't know why the RD-5R calibration seems to result in this firmware being about 1.4khz too high on VHF
+	// This offset value seems to be consistent on various RD-5R radios, as reported by operators on the OpenGD77 forum.
+	refOscOffset -= 38;
+#endif
+
 	if (refOscOffset>1023)
 	{
 		refOscOffset=1023;
@@ -906,58 +994,111 @@ void trxUpdateTsForCurrentChannelWithSpecifiedContact(struct_codeplugContact_t *
 	}
 }
 
-void trxSetTxCTCSS(int toneFreqX10)
+void trxSetTxCSS(uint16_t tone)
 {
 	taskENTER_CRITICAL();
-	if (!codeplugChannelToneIsCTCSS(toneFreqX10))
+	if (tone == CODEPLUG_CSS_NONE)
 	{
 		// tone value of 0xffff in the codeplug seem to be a flag that no tone has been selected
-        write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x4a, 0x00,0x00); //Zero the CTCSS1 Register
-		set_clear_I2C_reg_2byte_with_mask(0x4e,0xF9,0xFF,0x00,0x00);    //disable the transmit CTCSS
+		// Zero the CTCSS1 Register
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x4a, 0x00,0x00);
+		// disable the transmit CTCSS
+		set_clear_I2C_reg_2byte_with_mask(0x4e,0xF9,0xFF,0x00,0x00);
 	}
-	else
+	else if (codeplugChannelToneIsCTCSS(tone))
 	{
-		toneFreqX10 = toneFreqX10*10;// value that is stored is 100 time the tone freq but its stored in the codeplug as freq times 10
-		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	0x4a, (toneFreqX10 >> 8) & 0xff,	(toneFreqX10 & 0xff));
-		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	0x4b, 0x00, 0x00); // init cdcss_code
-		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	0x4c, 0x0A, 0xE3); // init cdcss_code
-		set_clear_I2C_reg_2byte_with_mask(0x4e,0xF9,0xFF,0x06,0x00);    //enable the transmit CTCSS
+		// value that is stored is 100 time the tone freq but its stored in the codeplug as freq times 10
+		tone = tone * 10;
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	0x4a, (tone >> 8) & 0xff, (tone & 0xff));
+		// init cdcss_code
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	0x4b, 0x00, 0x00);
+		// init cdcss_code
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	0x4c, 0x0A, 0xE3);
+		//enable the transmit CTCSS
+		set_clear_I2C_reg_2byte_with_mask(0x4e, 0xF9, 0xFF, 0x06, 0x00);
+	}
+	else if (codeplugChannelToneIsDCS(tone))
+	{
+		// Set the CTCSS1 Register to 134.4Hz (DCS data rate)
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	0x4a, (TRX_DCS_TONE >> 8) & 0xff, TRX_DCS_TONE & 0xff);
+		// Zero the CTCSS2 Register
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x4d, 0x00, 0x00);
+		// The AT1846S wants the Golay{23,12} encoding of the DCS code, rather than just the code itself.
+		uint32_t encoded = trxDCSEncode(tone & ~CODEPLUG_DCS_FLAGS_MASK);
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	0x4b, 0x00, (encoded >> 16) & 0xff);           // init cdcss_code
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	0x4c, (encoded >> 8) & 0xff, encoded & 0xff);  // init cdcss_code
+		set_clear_I2C_reg_2byte_with_mask(0x3a, 0xFF, 0xE0, 0x00, 0x06); // enable receive DCS
+		set_clear_I2C_reg_2byte_with_mask(0x4e, 0x38, 0x3F, 0x04, 0x00); // enable transmit DCS
+		//set_clear_I2C_reg_2byte_with_mask(0x4e, 0xF9, 0xFF, 0x04, 0x00); // enable transmit DCS
 	}
 	taskEXIT_CRITICAL();
 }
 
-void trxSetRxCTCSS(int toneFreqX10)
+void trxSetRxCSS(uint16_t tone)
 {
 	taskENTER_CRITICAL();
-	if (!codeplugChannelToneIsCTCSS(toneFreqX10))
+	if (tone == CODEPLUG_CSS_NONE)
 	{
 		// tone value of 0xffff in the codeplug seem to be a flag that no tone has been selected
-        write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x4d, 0x00,0x00); //Zero the CTCSS2 Register
-        rxCTCSSactive=false;
+		// Zero the CTCSS2 Register
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x4d, 0x00, 0x00);
+		rxCSSactive = false;
 	}
-	else
+	else if (codeplugChannelToneIsCTCSS(tone))
 	{
-		int threshold=(2500-toneFreqX10)/100;   //adjust threshold value to match tone frequency.
-		if(toneFreqX10>2400) threshold=1;
-		toneFreqX10 = toneFreqX10*10;// value that is stored is 100 time the tone freq but its stored in the codeplug as freq times 10
-		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	0x4d, (toneFreqX10 >> 8) & 0xff,	(toneFreqX10 & 0xff));
-		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x5b,(threshold & 0xFF),(threshold & 0xFF)); //set the detection thresholds
-		set_clear_I2C_reg_2byte_with_mask(0x3a,0xFF,0xE0,0x00,0x08);    //set detection to CTCSS2
-		rxCTCSSactive=true;
+		int threshold = (2500 - tone) / 100;  // adjust threshold value to match tone frequency.
+		if (tone > 2400) threshold=1;
+		// value that is stored is 100 time the tone freq but its stored in the codeplug as freq times 10
+		tone = tone * 10;
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	0x4d, (tone >> 8) & 0xff, (tone & 0xff));
+		//set the detection thresholds
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x5b, (threshold & 0xFF), (threshold & 0xFF));
+		//set detection to CTCSS2
+		set_clear_I2C_reg_2byte_with_mask(0x3a, 0xFF, 0xE0, 0x00, 0x08);
+		rxCSSactive = (nonVolatileSettings.analogFilterLevel != ANALOG_FILTER_NONE);
+	}
+	else if (codeplugChannelToneIsDCS(tone))
+	{
+		// Set the CTCSS1 Register to 134.4Hz (DCS data rate)
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	0x4a, (TRX_DCS_TONE >> 8) & 0xff, TRX_DCS_TONE & 0xff);
+		// Zero the CTCSS2 Register
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x4d, 0x00, 0x00);
+		// The AT1846S wants the Golay{23,12} encoding of the DCS code, rather than just the code itself.
+		uint32_t encoded = trxDCSEncode(tone & ~CODEPLUG_DCS_FLAGS_MASK);
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	0x4b, 0x00, (encoded >> 16) & 0xff);           // init cdcss_code
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	0x4c, (encoded >> 8) & 0xff, encoded & 0xff);  // init cdcss_code
+		set_clear_I2C_reg_2byte_with_mask(0x3a, 0xFF, 0xE0, 0x00, 0x06); // enable receive DCS
+		// The cdcss_sel bits have to be set for DCS receive to work
+		set_clear_I2C_reg_2byte_with_mask(0x4e, 0x38, 0x3F, 0x04, 0x00); // enable transmit DCS
+		//set_clear_I2C_reg_2byte_with_mask(0x4e, 0xF9, 0xFF, 0x04, 0x00); // enable transmit DCS
+		rxCSSactive = (nonVolatileSettings.analogFilterLevel != ANALOG_FILTER_NONE);
 	}
 	taskEXIT_CRITICAL();
 }
 
-bool trxCheckCTCSSFlag(void)
+bool trxCheckCSSFlag(uint16_t tone)
 {
 	uint8_t FlagsH;
 	uint8_t FlagsL;
 
 	taskENTER_CRITICAL();
-	read_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x1c,&FlagsH,&FlagsL);
+	read_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x1c, &FlagsH, &FlagsL);
 	taskEXIT_CRITICAL();
-	return (FlagsH & 0x01);
+	// Could instead check both flags in one go?
+	if (codeplugChannelToneIsCTCSS(tone))
+	{
+		return (FlagsH & 0x01);
+	}
+	else if (codeplugChannelToneIsDCS(tone))
+	{
+		if (FlagsL & 0xC4)
+		{
+			return true;
+		}
+	}
+	return false;
 }
+
 
 void trxUpdateDeviation(int channel)
 {
@@ -1054,4 +1195,9 @@ void trxSetDTMF(int code)
 		trxSetTone1(trxDTMFfreq1[code]);
 		trxSetTone2(trxDTMFfreq2[code]);
 	}
+}
+
+uint32_t trxDCSEncode(uint16_t code)
+{
+	return (TRX_DCSECCBits[code] << 12) | 04000 | code;
 }

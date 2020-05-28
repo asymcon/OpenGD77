@@ -50,9 +50,12 @@ enum {TRX_RX_FREQ_BAND = 0,TRX_TX_FREQ_BAND = 1};
 
 extern const frequencyBand_t RADIO_FREQUENCY_BANDS[RADIO_BANDS_TOTAL_NUM];
 
-extern const int TRX_CTCSS_TONE_NONE;
-extern const int TRX_NUM_CTCSS;
-extern const unsigned int TRX_CTCSSTones[];
+extern const uint8_t TRX_NUM_CTCSS;
+extern const uint16_t TRX_CTCSSTones[];
+
+extern const uint16_t TRX_DCS_TONE;
+extern const uint8_t TRX_NUM_DCS;
+extern const uint16_t TRX_DCSCodes[];
 
 extern int trxDMRMode;
 
@@ -93,9 +96,9 @@ void trxSetDMRColourCode(int colourCode);
 int trxGetDMRColourCode(void);
 int trxGetDMRTimeSlot(void);
 void trxSetDMRTimeSlot(int timeslot);
-void trxSetTxCTCSS(int toneFreqX10);
-void trxSetRxCTCSS(int toneFreqX10);
-bool trxCheckCTCSSFlag(void);
+void trxSetTxCSS(uint16_t tone);
+void trxSetRxCSS(uint16_t tone);
+bool trxCheckCSSFlag(uint16_t tone);
 bool trxCheckFrequencyInAmateurBand(int tmp_frequency);
 int trxGetBandFromFrequency(int frequency);
 int trxGetNextOrPrevBandFromFrequency(int frequency, bool nextBand);
@@ -107,5 +110,6 @@ void trxSetTone1(int toneFreq);
 void trxSetTone2(int toneFreq);
 void trxSetDTMF(int code);
 void trxUpdateTsForCurrentChannelWithSpecifiedContact(struct_codeplugContact_t *contactData);
+uint32_t trxDCSEncode(uint16_t dcsCode);
 
 #endif /* _FW_TRX_H_ */

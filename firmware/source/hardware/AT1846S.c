@@ -241,6 +241,9 @@ void I2C_AT1846_SetMode(void)
 	}
 	else
 	{
+		set_clear_I2C_reg_2byte_with_mask(0x30,0xCF,0x9F,0x00,0x00); // Clear the 25Khz Bits and turn off the Rx and Tx
+		set_clear_I2C_reg_2byte_with_mask(0x30,0xFF,0x9F,0x00,0x20); // Turn the Rx On
+		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x3A, 0x44, 0xCB);
 		I2C_AT1846S_send_Settings(AT1846DMRSettings, sizeof(AT1846DMRSettings)/AT1846_BYTES_PER_COMMAND);
 	}
 }

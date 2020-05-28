@@ -63,12 +63,12 @@ static const uint8_t spi_init_values_5[] = { 0x00, 0x00, 0xeb, 0x78, 0x67 };
 static const uint8_t spi_init_values_6[] = { 0x32, 0xef, 0x00, 0x31, 0xef, 0x00, 0x12, 0xef, 0x00, 0x13, 0xef, 0x00, 0x14, 0xef, 0x00, 0x15, 0xef, 0x00, 0x16, 0xef, 0x00, 0x17, 0xef, 0x00, 0x18, 0xef, 0x00, 0x19, 0xef, 0x00, 0x1a, 0xef, 0x00, 0x1b, 0xef, 0x00, 0x1c, 0xef, 0x00, 0x1d, 0xef, 0x00, 0x1e, 0xef, 0x00, 0x1f, 0xef, 0x00, 0x20, 0xef, 0x00, 0x21, 0xef, 0x00, 0x22, 0xef, 0x00, 0x23, 0xef, 0x00, 0x24, 0xef, 0x00, 0x25, 0xef, 0x00, 0x26, 0xef, 0x00, 0x27, 0xef, 0x00, 0x28, 0xef, 0x00, 0x29, 0xef, 0x00, 0x2a, 0xef, 0x00, 0x2b, 0xef, 0x00, 0x2c, 0xef, 0x00, 0x2d, 0xef, 0x00, 0x2e, 0xef, 0x00, 0x2f, 0xef, 0x00 };
 
 
-volatile uint8_t tmp_val_0x51;
-volatile uint8_t tmp_val_0x82;
-volatile uint8_t tmp_val_0x84;
-volatile uint8_t tmp_val_0x86;
-volatile uint8_t tmp_val_0x90;
-volatile uint8_t tmp_val_0x98;
+static volatile uint8_t reg_0x51;
+static volatile uint8_t reg_0x82;
+static volatile uint8_t reg_0x84;
+static volatile uint8_t reg_0x86;
+static volatile uint8_t reg_0x90;
+static volatile uint8_t reg_0x98;
 
 volatile bool hasEncodedAudio=false;
 volatile bool hotspotDMRTxFrameBufferEmpty=false;
@@ -233,8 +233,7 @@ void SPI_HR_C6000_init(void)
 	// --- end sub_1B5A4
 
 	// --- start sub_1B5DC
-	// hard coded 128 * 0xAA
-	uint8_t spi_values[128];
+	uint8_t spi_values[128];// hard coded 128 * 0xAA
 	for (int i=0; i<128;i++)
 	{
 		spi_values[i]=0xaa;
@@ -479,7 +478,7 @@ inline static void HRC6000SysSendStartInt(void)
 		In DMR mode, the sub-status register 0x84 is transmitted at the beginning, and the corresponding interrupt can be masked by 0x85.
 	 */
 
-	read_SPI_page_reg_byte_SPI0(0x04, 0x84, &tmp_val_0x84);  //Read sub status register
+	read_SPI_page_reg_byte_SPI0(0x04, 0x84, &reg_0x84);  //Read sub status register
 
 	/*
 		The sub-status registers indicate
@@ -513,7 +512,7 @@ inline static void HRC6000SysSendEndInt(void)
 	/*
 		Bit5: In DMR mode: indicates the end of transmission; in MSK mode: indicates the end of	transmission.
 	*/
-//	read_SPI_page_reg_byte_SPI0(0x04, 0x86, &tmp_val_0x86);  //Read Interrupt Flag Register2
+//	read_SPI_page_reg_byte_SPI0(0x04, 0x86, &reg_0x86);  //Read Interrupt Flag Register2
 
 	/*
 		In DMR mode, there is a sub-status register 0x86 at the end of the transmission, and the
@@ -605,14 +604,14 @@ inline static void HRC6000SysReceivedDataInt(void)
 	int rpi;
 
 
-	read_SPI_page_reg_byte_SPI0(0x04, 0x51, &tmp_val_0x51);
+	read_SPI_page_reg_byte_SPI0(0x04, 0x51, &reg_0x51);
 
-	//read_SPI_page_reg_byte_SPI0(0x04, 0x57, &tmp_val_0x57);// Kai said that the official firmware uses this register instead of 0x52 for the timecode
+	//read_SPI_page_reg_byte_SPI0(0x04, 0x57, &reg_0x57);// Kai said that the official firmware uses this register instead of 0x52 for the timecode
 
-	rxDataType 	= (tmp_val_0x51 >> 4) & 0x0f;//Data Type or Voice Frame sequence number
-	rxSyncClass = (tmp_val_0x51 >> 0) & 0x03;//Received Sync Class  0=Sync Header 1=Voice 2=data 3=RC
-	rxCRCStatus = (((tmp_val_0x51 >> 2) & 0x01)==0);// CRC is OK if its 0
-	rpi = (tmp_val_0x51 >> 3) & 0x01;
+	rxDataType 	= (reg_0x51 >> 4) & 0x0f;//Data Type or Voice Frame sequence number
+	rxSyncClass = (reg_0x51 >> 0) & 0x03;//Received Sync Class  0=Sync Header 1=Voice 2=data 3=RC
+	rxCRCStatus = (((reg_0x51 >> 2) & 0x01)==0);// CRC is OK if its 0
+	rpi = (reg_0x51 >> 3) & 0x01;
 
 
 	if ((slot_state == DMR_STATE_RX_1 || slot_state == DMR_STATE_RX_2) && ( rpi!=0 || rxCRCStatus != true || !checkColourCodeFilter()))
@@ -735,7 +734,7 @@ inline static void HRC6000SysReceivedInformationInt(void)
 
 inline static void HRC6000SysAbnormalExitInt(void)
 {
-	read_SPI_page_reg_byte_SPI0(0x04, 0x98, &tmp_val_0x98);
+	read_SPI_page_reg_byte_SPI0(0x04, 0x98, &reg_0x98);
 	/*
 		Bit1: In DMR mode: indicates that the voice is abnormally exited;
 		In DMR mode, the cause of the abnormality in DMR mode is the unexpected abnormal voice
@@ -760,7 +759,7 @@ inline static void HRC6000SysPhysicalLayerInt(void)
 inline static void HRC6000SysInterruptHandler(void)
 {
 	uint8_t reg0x52;
-	read_SPI_page_reg_byte_SPI0(0x04, 0x82, &tmp_val_0x82);  //Read Interrupt Flag Register1
+	read_SPI_page_reg_byte_SPI0(0x04, 0x82, &reg_0x82);  //Read Interrupt Flag Register1
 	read_SPI_page_reg_byte_SPI0(0x04, 0x52, &reg0x52);  //Read Received CC and CACH
 	rxColorCode 	= (reg0x52 >> 4) & 0x0f;
 
@@ -778,8 +777,8 @@ inline static void HRC6000SysInterruptHandler(void)
 
 		uint8_t LCBuf[12];
 		read_SPI_page_reg_bytearray_SPI0(0x02, 0x00, LCBuf, 12);// read the LC from the C6000
-		read_SPI_page_reg_byte_SPI0(0x04, 0x51, &tmp_val_0x51);
-		bool rxCRCStatus = (((tmp_val_0x51 >> 2) & 0x01)==0);// CRC is OK if its 0
+		read_SPI_page_reg_byte_SPI0(0x04, 0x51, &reg_0x51);
+		bool rxCRCStatus = (((reg_0x51 >> 2) & 0x01)==0);// CRC is OK if its 0
 
 		if (rxCRCStatus && (LCBuf[0]==TG_CALL_FLAG || LCBuf[0]==PC_CALL_FLAG  || (LCBuf[0]>=FLCO_TALKER_ALIAS_HEADER && LCBuf[0]<=FLCO_GPS_INFO)) &&
 			memcmp((uint8_t *)previousLCBuf,LCBuf,12)!=0)
@@ -820,63 +819,63 @@ inline static void HRC6000SysInterruptHandler(void)
 		ccHold=true;					//prevent CC change when transmitting.
 	}
 
-	if (tmp_val_0x82 & SYS_INT_SEND_REQUEST_REJECTED)
+	if (reg_0x82 & SYS_INT_SEND_REQUEST_REJECTED)
 	{
 		HRC6000SysSendRejectedInt();
 	}
 
-	if (tmp_val_0x82 & SYS_INT_SEND_START)
+	if (reg_0x82 & SYS_INT_SEND_START)
 	{
 		HRC6000SysSendStartInt();
 	}
 	else
 	{
-		tmp_val_0x84=0x00;
+		reg_0x84=0x00;
 	}
 
-	if (tmp_val_0x82 & SYS_INT_SEND_END)// Kai's comment was InterSendStop interrupt
+	if (reg_0x82 & SYS_INT_SEND_END)// Kai's comment was InterSendStop interrupt
 	{
 		HRC6000SysSendEndInt();
 	}
 	else
 	{
-		tmp_val_0x86=0x00;
+		reg_0x86=0x00;
 	}
 
-	if (tmp_val_0x82 & SYS_INT_POST_ACCESS)
+	if (reg_0x82 & SYS_INT_POST_ACCESS)
 	{
 		HRC6000SysPostAccessInt();
 	}
 
-	if (tmp_val_0x82 & SYS_INT_RECEIVED_DATA)
+	if (reg_0x82 & SYS_INT_RECEIVED_DATA)
 	{
 		HRC6000SysReceivedDataInt();
 	}
 
-	if (tmp_val_0x82 & SYS_INT_RECEIVED_INFORMATION)
+	if (reg_0x82 & SYS_INT_RECEIVED_INFORMATION)
 	{
 		HRC6000SysReceivedInformationInt();
 	}
 	else
 	{
-		tmp_val_0x90 = 0x00;
+		reg_0x90 = 0x00;
 	}
 
-	if (tmp_val_0x82 & SYS_INT_ABNORMAL_EXIT)
+	if (reg_0x82 & SYS_INT_ABNORMAL_EXIT)
 	{
 		HRC6000SysAbnormalExitInt();
 	}
 	else
 	{
-		tmp_val_0x98 = 0x00;
+		reg_0x98 = 0x00;
 	}
 
-	if (tmp_val_0x82 & SYS_INT_PHYSICAL_LAYER)
+	if (reg_0x82 & SYS_INT_PHYSICAL_LAYER)
 	{
 		HRC6000SysPhysicalLayerInt();
 	}
 
-	write_SPI_page_reg_byte_SPI0(0x04, 0x83, tmp_val_0x82);  //Clear remaining Interrupt Flags
+	write_SPI_page_reg_byte_SPI0(0x04, 0x83, reg_0x82);  //Clear remaining Interrupt Flags
 	timer_hrc6000task=0;
 }
 
@@ -1322,7 +1321,10 @@ void fw_hrc6000_task(void *data)
 				if (trxGetMode() == RADIO_MODE_ANALOG && melody_play==NULL)
 				{
 					taskENTER_CRITICAL();
-					trxCheckAnalogSquelch();
+					if (!trxIsTransmitting)
+					{
+						trxCheckAnalogSquelch();
+					}
 					taskEXIT_CRITICAL();
 				}
 			}

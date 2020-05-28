@@ -263,8 +263,15 @@ bool calibrationGetPowerForFrequency(int freq, calibrationPowerValues_t *powerSe
 	}
 
 	SPI_Flash_read(address,buffer,2);
-	powerSettings->lowPower 	= buffer[0] * 16;
-	powerSettings->highPower 	= buffer[1] * 16;
+
+#if defined(PLATFORM_RD5R)
+	const int POWER_CAL_MULTIPLIER = 8;
+#else
+	const int POWER_CAL_MULTIPLIER = 16;
+#endif
+
+	powerSettings->lowPower 	= buffer[0] * POWER_CAL_MULTIPLIER;
+	powerSettings->highPower 	= buffer[1] * POWER_CAL_MULTIPLIER;
 
 	return true;
 }

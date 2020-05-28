@@ -27,7 +27,7 @@
 
 static const int STORAGE_BASE_ADDRESS 		= 0x6000;
 
-static const int STORAGE_MAGIC_NUMBER 		= 0x6013;
+static const int STORAGE_MAGIC_NUMBER 		= 0x6014;
 
 // Bit patterns for DMR Beep
 const uint8_t BEEP_TX_NONE  = 0x00;
@@ -70,11 +70,6 @@ bool settingsLoadSettings(void)
 	settingsInitVFOChannel(1);
 
 	trxDMRID = codeplugGetUserDMRID();
-
-	if (nonVolatileSettings.analogFilterLevel == ANALOG_FILTER_NONE)
-	{
-		trxSetRxCTCSS(TRX_CTCSS_TONE_NONE);
-	}
 
 	currentLanguage = &languages[nonVolatileSettings.languageIndex];
 

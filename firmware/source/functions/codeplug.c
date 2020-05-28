@@ -67,6 +67,7 @@ const int VFO_FREQ_STEP_TABLE[8] = {250,500,625,1000,1250,2500,3000,5000};
 const int CODEPLUG_MAX_VARIABLE_SQUELCH = 21;
 const int CODEPLUG_MIN_VARIABLE_SQUELCH = 1;
 
+const uint16_t CODEPLUG_CSS_NONE = 0xFFFF;
 const uint16_t CODEPLUG_DCS_FLAGS_MASK = 0xC000;
 
 typedef struct
@@ -121,9 +122,72 @@ int int2bcd(int i)
     return result;
 }
 
+// Binary-coded Octal encoding to integer conversion
+// DCS codes are stored in the codeplug as binary-coded octal
+uint16_t bco2int(uint16_t i)
+{
+    uint16_t result = 0;
+    uint16_t multiplier = 1;
+    while (i)
+    {
+        result += (i & 0x0f) * multiplier;
+        multiplier *= 8;
+        i = i >> 4;
+    }
+    return result;
+}
+
+uint16_t int2bco(uint16_t i)
+{
+    uint16_t result = 0;
+    uint16_t shift = 0;
+
+    while (i)
+    {
+        result += (i % 8) << shift;
+        i = i / 8;
+        shift += 4;
+    }
+    return result;
+}
+
 bool codeplugChannelToneIsCTCSS(uint16_t tone)
 {
-	return ((tone != TRX_CTCSS_TONE_NONE) && !(tone & CODEPLUG_DCS_FLAGS_MASK));
+	return ((tone != CODEPLUG_CSS_NONE) && !(tone & CODEPLUG_DCS_FLAGS_MASK));
+}
+
+bool codeplugChannelToneIsDCS(uint16_t tone)
+{
+	// Could be improved to validate the rest of the field
+	return ((tone != CODEPLUG_CSS_NONE) && (tone & CODEPLUG_DCS_FLAGS_MASK));
+}
+
+// Converts a codeplug coded-squelch system value to int (with flags if DCS)
+uint16_t codeplugCSSToInt(uint16_t css)
+{
+	if (codeplugChannelToneIsCTCSS(css))
+	{
+		return bcd2int(css);
+	}
+	else if (codeplugChannelToneIsDCS(css))
+	{
+		return bco2int(css & ~CODEPLUG_DCS_FLAGS_MASK) | (css & CODEPLUG_DCS_FLAGS_MASK);
+	}
+	return css;
+}
+
+// Converts an int (with flags if DCS) to codeplug coded-squelch system value
+uint16_t codeplugIntToCSS(uint16_t i)
+{
+	if (codeplugChannelToneIsCTCSS(i))
+	{
+		return int2bcd(i);
+	}
+	else if (codeplugChannelToneIsDCS(i))
+	{
+		return int2bco(i & ~CODEPLUG_DCS_FLAGS_MASK) | (i & CODEPLUG_DCS_FLAGS_MASK);
+	}
+	return i;
 }
 
 void codeplugUtilConvertBufToString(char *inBuf,char *outBuf,int len)
@@ -313,17 +377,11 @@ void codeplugChannelGetDataForIndex(int index, struct_codeplugChannel_t *channel
 	}
 
 	channelBuf->chMode = (channelBuf->chMode==0)?RADIO_MODE_ANALOG:RADIO_MODE_DIGITAL;
-	// Convert the the legacy codeplug tx and rx freq values into normal integers
+	// Convert legacy codeplug tx and rx freq values into normal integers
 	channelBuf->txFreq = bcd2int(channelBuf->txFreq);
 	channelBuf->rxFreq = bcd2int(channelBuf->rxFreq);
-	if (codeplugChannelToneIsCTCSS(channelBuf->rxTone))
-	{
-		channelBuf->rxTone = bcd2int(channelBuf->rxTone);
-	}
-	if (codeplugChannelToneIsCTCSS(channelBuf->txTone))
-	{
-		channelBuf->txTone = bcd2int(channelBuf->txTone);
-	}
+	channelBuf->txTone = codeplugCSSToInt(channelBuf->txTone);
+	channelBuf->rxTone = codeplugCSSToInt(channelBuf->rxTone);
 
 	// Sanity check the sql value, because its not used by the official firmware and may contain random value e.g. 255
 	if (channelBuf->sql>21)
@@ -344,18 +402,11 @@ bool codeplugChannelSaveDataForIndex(int index, struct_codeplugChannel_t *channe
 	bool retVal=true;
 
 	channelBuf->chMode = (channelBuf->chMode==RADIO_MODE_ANALOG)?0:1;
-	// Convert the the legacy codeplug tx and rx freq values into normal integers
+	// Convert normal integers into legacy codeplug tx and rx freq values
 	channelBuf->txFreq = int2bcd(channelBuf->txFreq);
 	channelBuf->rxFreq = int2bcd(channelBuf->rxFreq);
-	if (codeplugChannelToneIsCTCSS(channelBuf->rxTone))
-	{
-		channelBuf->rxTone = int2bcd(channelBuf->rxTone);
-	}
-
-	if (codeplugChannelToneIsCTCSS(channelBuf->txTone))
-	{
-		channelBuf->txTone = int2bcd(channelBuf->txTone);
-	}
+	channelBuf->txTone = codeplugIntToCSS(channelBuf->txTone);
+	channelBuf->rxTone = codeplugIntToCSS(channelBuf->rxTone);
 
 	// lower 128 channels are in EEPROM. Remaining channels are in Flash ! (What a mess...)
 	index--; // I think the channel index numbers start from 1 not zero.
@@ -440,14 +491,8 @@ bool codeplugChannelSaveDataForIndex(int index, struct_codeplugChannel_t *channe
 	// Convert the the legacy codeplug tx and rx freq values into normal integers
 	channelBuf->txFreq = bcd2int(channelBuf->txFreq);
 	channelBuf->rxFreq = bcd2int(channelBuf->rxFreq);
-	if (codeplugChannelToneIsCTCSS(channelBuf->rxTone))
-	{
-		channelBuf->rxTone = bcd2int(channelBuf->rxTone);
-	}
-	if (codeplugChannelToneIsCTCSS(channelBuf->txTone))
-	{
-		channelBuf->txTone = bcd2int(channelBuf->txTone);
-	}
+	channelBuf->txTone = codeplugCSSToInt(channelBuf->txTone);
+	channelBuf->rxTone = codeplugCSSToInt(channelBuf->rxTone);
 
 	return retVal;
 }
@@ -887,14 +932,8 @@ void codeplugGetVFO_ChannelData(struct_codeplugChannel_t *vfoBuf,int VFONumber)
 	vfoBuf->chMode = (vfoBuf->chMode==0)?RADIO_MODE_ANALOG:RADIO_MODE_DIGITAL;
 	vfoBuf->txFreq = bcd2int(vfoBuf->txFreq);
 	vfoBuf->rxFreq = bcd2int(vfoBuf->rxFreq);
-	if (codeplugChannelToneIsCTCSS(vfoBuf->rxTone))
-	{
-		vfoBuf->rxTone = bcd2int(vfoBuf->rxTone);
-	}
-	if (codeplugChannelToneIsCTCSS(vfoBuf->txTone))
-	{
-		vfoBuf->txTone = bcd2int(vfoBuf->txTone);
-	}
+	vfoBuf->txTone = codeplugCSSToInt(vfoBuf->txTone);
+	vfoBuf->rxTone = codeplugCSSToInt(vfoBuf->rxTone);
 }
 
 void codeplugSetVFO_ChannelData(struct_codeplugChannel_t *vfoBuf,int VFONumber)
@@ -904,14 +943,8 @@ void codeplugSetVFO_ChannelData(struct_codeplugChannel_t *vfoBuf,int VFONumber)
 	tmpChannel.chMode = (vfoBuf->chMode==RADIO_MODE_ANALOG)?0:1;
 	tmpChannel.txFreq = int2bcd(vfoBuf->txFreq);
 	tmpChannel.rxFreq = int2bcd(vfoBuf->rxFreq);
-	if (codeplugChannelToneIsCTCSS(vfoBuf->rxTone))
-	{
-		tmpChannel.rxTone = int2bcd(vfoBuf->rxTone);
-	}
-	if (codeplugChannelToneIsCTCSS(vfoBuf->txTone))
-	{
-		tmpChannel.txTone = int2bcd(vfoBuf->txTone);
-	}
+	tmpChannel.txTone = codeplugIntToCSS(vfoBuf->txTone);
+	tmpChannel.rxTone = codeplugIntToCSS(vfoBuf->rxTone);
 	EEPROM_Write(CODEPLUG_ADDR_VFO_A_CHANNEL+(sizeof(struct_codeplugChannel_t)*VFONumber),(uint8_t *)&tmpChannel,sizeof(struct_codeplugChannel_t));
 }
 

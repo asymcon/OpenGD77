@@ -53,6 +53,8 @@ int menuTxScreen(uiEvent_t *ev, bool isFirstRun)
 
 			txstopdelay = 0;
 			clearIsWakingState();
+			if (trxGetMode() == RADIO_MODE_ANALOG)
+				trxSetTxCSS(currentChannelData->txTone);
 			trx_setTX();
 			updateScreen();
 		}
@@ -225,6 +227,7 @@ static void handleEvent(uiEvent_t *ev)
 
 				// Need to wrap this in Task Critical to avoid bus contention on the I2C bus.
 				taskENTER_CRITICAL();
+				trxSetRxCSS(currentChannelData->rxTone);
 				trxActivateRx();
 				taskEXIT_CRITICAL();
 				menuSystemPopPreviousMenu();

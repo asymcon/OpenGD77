@@ -105,17 +105,9 @@ int uiVFOMode(uiEvent_t *ev, bool isFirstRun)
 		if (currentChannelData->chMode == RADIO_MODE_ANALOG)
 		{
 			trxSetModeAndBandwidth(currentChannelData->chMode, ((currentChannelData->flag4 & 0x02) == 0x02));
-			trxSetTxCTCSS(currentChannelData->txTone);
 			if (!toneScanActive)
 			{
-				if (nonVolatileSettings.analogFilterLevel == ANALOG_FILTER_NONE)
-				{
-					trxSetRxCTCSS(TRX_CTCSS_TONE_NONE);
-				}
-				else
-				{
-					trxSetRxCTCSS(currentChannelData->rxTone);
-				}
+				trxSetRxCSS(currentChannelData->rxTone);
 			}
 
 			if (scanActive == false)
@@ -551,7 +543,7 @@ void uiVFOModeStopScanning(void)
 {
 	if (toneScanActive)
 	{
-		trxSetRxCTCSS(currentChannelData->rxTone);
+		trxSetRxCSS(currentChannelData->rxTone);
 		toneScanActive = false;
 	}
 	scanActive = false;
@@ -826,7 +818,6 @@ static void handleEvent(uiEvent_t *ev)
 					{
 						currentChannelData->chMode = RADIO_MODE_ANALOG;
 						trxSetModeAndBandwidth(currentChannelData->chMode, ((currentChannelData->flag4 & 0x02) == 0x02));
-						trxSetTxCTCSS(currentChannelData->rxTone);
 					}
 					menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
 				}
@@ -1487,7 +1478,7 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 					toneScanActive = true;
 					scanTimer = TONESCANINTERVAL;
 					scanIndex = 1;
-					trxSetRxCTCSS(TRX_CTCSSTones[scanIndex]);
+					trxSetRxCSS(TRX_CTCSSTones[scanIndex]);
 					disableAudioAmp(AUDIO_AMP_MODE_RF);
 				}
 				break;
@@ -1597,7 +1588,6 @@ static void toneScan(void)
 	{
 		currentChannelData->txTone = TRX_CTCSSTones[scanIndex];
 		currentChannelData->rxTone = TRX_CTCSSTones[scanIndex];
-		trxSetTxCTCSS(currentChannelData->txTone);
 		menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
 		uiVFOModeUpdateScreen(0);
 		toneScanActive = false;
@@ -1616,7 +1606,7 @@ static void toneScan(void)
 			scanIndex = 1;
 		}
 		trxAT1846RxOff();
-		trxSetRxCTCSS(TRX_CTCSSTones[scanIndex]);
+		trxSetRxCSS(TRX_CTCSSTones[scanIndex]);
 		scanTimer = TONESCANINTERVAL - (scanIndex * 2);
 		trx_measure_count = 0;//synchronise the measurement with the scan.
 		trxAT1846RxOn();

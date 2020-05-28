@@ -24,6 +24,8 @@ extern const int CODEPLUG_MAX_VARIABLE_SQUELCH;
 extern const int CODEPLUG_MIN_VARIABLE_SQUELCH;
 extern const int CODEPLUG_ZONE_DATA_SIZE;
 extern const int VFO_FREQ_STEP_TABLE[8];
+
+extern const uint16_t CODEPLUG_CSS_NONE;
 extern const uint16_t CODEPLUG_DCS_FLAGS_MASK;
 
 extern int codeplugChannelsPerZone;
@@ -119,8 +121,12 @@ void codeplugChannelGetDataForIndex(int index, struct_codeplugChannel_t *channel
 void codeplugUtilConvertBufToString(char *inBuf,char *outBuf,int len);
 void codeplugUtilConvertStringToBuf(char *inBuf,char *outBuf,int len);
 uint32_t byteSwap32(uint32_t n);
-uint32_t bcd2int(uint32_t in);
+uint32_t bcd2int(uint32_t i);
 int int2bcd(int i);
+uint16_t bco2int(uint16_t i);
+uint16_t int2bco(uint16_t i);
+uint16_t codeplugCSSToInt(uint16_t css);
+uint16_t codeplugIntToCSS(uint16_t i);
 
 bool codeplugRxGroupGetDataForIndex(int index, struct_codeplugRxGroup_t *rxGroupBuf);
 bool codeplugContactGetDataForIndex(int index, struct_codeplugContact_t *contact);
@@ -135,6 +141,7 @@ bool codeplugChannelIndexIsValid(int index);
 void codeplugChannelIndexSetValid(int index);
 bool codeplugChannelSaveDataForIndex(int index, struct_codeplugChannel_t *channelBuf);
 bool codeplugChannelToneIsCTCSS(uint16_t tone);
+bool codeplugChannelToneIsDCS(uint16_t tone);
 
 int codeplugContactsGetCount(int callType);
 int codeplugContactGetDataForNumber(int number, int callType, struct_codeplugContact_t *contact);

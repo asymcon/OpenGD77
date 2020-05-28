@@ -2419,7 +2419,7 @@ static void handleHotspotRequest(void)
 			if (trxGetMode() != RADIO_MODE_ANALOG)
 			{
 				trxSetModeAndBandwidth(RADIO_MODE_ANALOG, false);
-				trxSetTxCTCSS(TRX_CTCSS_TONE_NONE);
+				trxSetTxCSS(CODEPLUG_CSS_NONE);
 				trxSetTone1(0);
 			}
 
