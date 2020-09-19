@@ -31,13 +31,16 @@ static int timeInSeconds;
 static uint32_t nextSecondPIT;
 static bool isShowingLastHeard;
 extern bool PTTToggledDown;
+static bool startBeepPlayed;
 
-int menuTxScreen(uiEvent_t *ev, bool isFirstRun)
+menuStatus_t menuTxScreen(uiEvent_t *ev, bool isFirstRun)
 {
 	static uint32_t m = 0, micm = 0, mto = 0;
 
 	if (isFirstRun)
 	{
+		voicePromptsTerminate();
+		startBeepPlayed=false;
 		scanActive = false;
 		trxIsTransmittingTone = false;
 		settingsPrivateCallMuteMode = false;
@@ -83,7 +86,7 @@ int menuTxScreen(uiEvent_t *ev, bool isFirstRun)
 			}
 			ucRender();
 			displayLightOverrideTimeout(-1);
-			set_melody(melody_ERROR_beep);
+			soundSetMelody(melody_ERROR_beep);
 			PTTToggledDown = false;
 		}
 
@@ -96,7 +99,7 @@ int menuTxScreen(uiEvent_t *ev, bool isFirstRun)
 		heartBeatActivityForGD77S(ev);
 #endif
 
-		if (trxIsTransmitting && (getIsWakingState() == WAKING_MODE_NONE))
+		if (trxTransmissionEnabled && (getIsWakingState() == WAKING_MODE_NONE))
 		{
 			if (PITCounter >= nextSecondPIT)
 			{
@@ -111,14 +114,14 @@ int menuTxScreen(uiEvent_t *ev, bool isFirstRun)
 					{
 						if ((timeInSeconds % 5) == 0)
 						{
-							set_melody(melody_key_beep);
+							soundSetMelody(melody_key_beep);
 						}
 					}
 				}
 
 				if ((currentChannelData->tot != 0) && (timeInSeconds == 0))
 				{
-					set_melody(melody_tx_timeout_beep);
+					soundSetMelody(melody_tx_timeout_beep);
 
 					ucClearBuf();
 					ucPrintCentered(20, currentLanguage->timeout, FONT_SIZE_4);
@@ -144,12 +147,14 @@ int menuTxScreen(uiEvent_t *ev, bool isFirstRun)
 				if (mode == RADIO_MODE_DIGITAL)
 				{
 					if ((nonVolatileSettings.beepOptions & BEEP_TX_START) &&
-							(slot_state == DMR_STATE_TX_START_1) && (melody_play == NULL))
+							(startBeepPlayed==false) && (trxIsTransmitting==true)
+							&& (melody_play == NULL))
 					{
+						startBeepPlayed=true;// set this even if the beep is not actaully played because of the vox, as otherwise this code will get continuously run
 						// If VOX is running, don't send a beep as it will reset its the trigger status.
 						if ((voxIsEnabled() == false) || (voxIsEnabled() && (voxIsTriggered() == false)))
 						{
-							set_melody(melody_dmr_tx_start_beep);
+							soundSetMelody(melody_dmr_tx_start_beep);
 						}
 					}
 				}
@@ -177,7 +182,7 @@ int menuTxScreen(uiEvent_t *ev, bool isFirstRun)
 		if ((currentChannelData->tot != 0) && (timeInSeconds == 0))
 		{
 			if ((ev->time - mto) < 500)
-				return 0;
+				return MENU_STATUS_SUCCESS;
 		}
 
 
@@ -185,13 +190,13 @@ int menuTxScreen(uiEvent_t *ev, bool isFirstRun)
 		if (ev->hasEvent || // PTT released, Timeout triggered,
 				( (((ev->buttons & BUTTON_PTT) == 0) || ((currentChannelData->tot != 0) && (timeInSeconds == 0))) ||
 						// or waiting for DMR ending (meanwhile, updating every 100ms)
-						((trxIsTransmitting == false) && ((ev->time - m) > 100))))
+						((trxTransmissionEnabled == false) && ((ev->time - m) > 100))))
 		{
 			handleEvent(ev);
 			m = ev->time;
 		}
 	}
-	return 0;
+	return MENU_STATUS_SUCCESS;
 }
 
 static void updateScreen(void)
@@ -215,9 +220,9 @@ static void handleEvent(uiEvent_t *ev)
 	if ((ev->buttons & BUTTON_PTT) == 0
 			|| (currentChannelData->tot != 0 && timeInSeconds == 0))
 	{
-		if (trxIsTransmitting)
+		if (trxTransmissionEnabled)
 		{
-			trxIsTransmitting = false;
+			trxTransmissionEnabled = false;
 			trxIsTransmittingTone = false;
 
 			if (trxGetMode() == RADIO_MODE_ANALOG)
@@ -229,6 +234,7 @@ static void handleEvent(uiEvent_t *ev)
 				taskENTER_CRITICAL();
 				trxSetRxCSS(currentChannelData->rxTone);
 				trxActivateRx();
+				trxIsTransmitting=false;
 				taskEXIT_CRITICAL();
 				menuSystemPopPreviousMenu();
 			}
@@ -246,11 +252,12 @@ static void handleEvent(uiEvent_t *ev)
 		else
 		{
 			// In DMR mode, wait for the DMR system to finish before exiting
-			if (slot_state < DMR_STATE_TX_START_1)
+
+			if (!trxIsTransmitting)
 			{
 				if ((nonVolatileSettings.beepOptions & BEEP_TX_STOP) && (melody_play == NULL))
 				{
-					set_melody(melody_dmr_tx_stop_beep);
+					soundSetMelody(melody_dmr_tx_stop_beep);
 				}
 
 				GPIO_PinWrite(GPIO_LEDred, Pin_LEDred, 0);
@@ -267,12 +274,12 @@ static void handleEvent(uiEvent_t *ev)
 	}
 
 	// Key action while xmitting (ANALOG), Tone triggering
-	if (!trxIsTransmittingTone && ((ev->buttons & BUTTON_PTT) != 0) && trxIsTransmitting && (trxGetMode() == RADIO_MODE_ANALOG))
+	if (!trxIsTransmittingTone && ((ev->buttons & BUTTON_PTT) != 0) && trxTransmissionEnabled && (trxGetMode() == RADIO_MODE_ANALOG))
 	{
 		if (PTTToggledDown == false)
 		{
 			// Send 1750Hz
-			if ((ev->buttons & BUTTON_SK2) != 0)
+			if (BUTTONCHECK_DOWN(ev, BUTTON_SK2))
 			{
 				trxIsTransmittingTone = true;
 				trxSetTone1(1750);
@@ -297,21 +304,21 @@ static void handleEvent(uiEvent_t *ev)
 	}
 
 	// Stop xmitting Tone
-	if (trxIsTransmittingTone && ((ev->buttons & BUTTON_SK2) == 0) && ((ev->keys.key == 0) || (ev->keys.event & KEY_MOD_UP)))
+	if (trxIsTransmittingTone && (BUTTONCHECK_DOWN(ev, BUTTON_SK2) == 0) && ((ev->keys.key == 0) || (ev->keys.event & KEY_MOD_UP)))
 	{
 		trxIsTransmittingTone = false;
 		trxSelectVoiceChannel(AT1846_VOICE_CHANNEL_MIC);
 		disableAudioAmp(AUDIO_AMP_MODE_RF);
 	}
 
-	if (trxGetMode() == RADIO_MODE_DIGITAL && (ev->buttons & BUTTON_SK1) && isShowingLastHeard==false && trxIsTransmitting==true)
+	if (trxGetMode() == RADIO_MODE_DIGITAL && BUTTONCHECK_DOWN(ev, BUTTON_SK1) && isShowingLastHeard==false && trxTransmissionEnabled==true)
 	{
 		isShowingLastHeard=true;
-		menuLastHeardUpdateScreen(false, false);
+		menuLastHeardUpdateScreen(false, false,false);
 	}
 	else
 	{
-		if (isShowingLastHeard && (ev->buttons & BUTTON_SK1)==0)
+		if (isShowingLastHeard && BUTTONCHECK_DOWN(ev, BUTTON_SK1) == 0)
 		{
 			isShowingLastHeard=false;
 			updateScreen();

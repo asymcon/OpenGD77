@@ -27,11 +27,11 @@ static void handleEvent(uiEvent_t *ev);
 int uiPrivateCallState = NOT_IN_CALL;
 int uiPrivateCallLastID;
 
-int menuPrivateCall(uiEvent_t *ev, bool isFirstRun)
+menuStatus_t menuPrivateCall(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
-		set_melody(melody_private_call);
+		soundSetMelody(melody_private_call);
 		uiPrivateCallState = PRIVATE_CALL_ACCEPT;
 		menuUtilityReceivedPcId = LinkHead->id;
 
@@ -45,7 +45,7 @@ int menuPrivateCall(uiEvent_t *ev, bool isFirstRun)
 			handleEvent(ev);
 		}
 	}
-	return 0;
+	return MENU_STATUS_SUCCESS;
 }
 
 static void updateScreen(void)
@@ -107,6 +107,7 @@ void menuAcceptPrivateCall(int id )
 	menuUtilityReceivedPcId = 0;
 
 	setOverrideTGorPC(uiPrivateCallLastID, true);
+	announceItem(PROMPT_SEQUENCE_CONTACT_TG_OR_PC,PROMPT_THRESHOLD_3);
 
 }
 

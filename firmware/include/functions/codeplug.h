@@ -18,7 +18,8 @@
 #ifndef _FW_MENU_LEGACY_CODEPLUG_UTILS_H_
 #define _FW_MENU_LEGACY_CODEPLUG_UTILS_H_
 
-#include "common.h"
+#include <stdint.h>
+#include <stdbool.h>
 
 extern const int CODEPLUG_MAX_VARIABLE_SQUELCH;
 extern const int CODEPLUG_MIN_VARIABLE_SQUELCH;
@@ -27,6 +28,7 @@ extern const int VFO_FREQ_STEP_TABLE[8];
 
 extern const uint16_t CODEPLUG_CSS_NONE;
 extern const uint16_t CODEPLUG_DCS_FLAGS_MASK;
+extern const uint16_t CODEPLUG_DCS_INVERTED_MASK;
 
 extern int codeplugChannelsPerZone;
 

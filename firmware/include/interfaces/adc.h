@@ -21,19 +21,16 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
-
 #include "fsl_adc16.h"
 
 extern const int CUTOFF_VOLTAGE_UPPER_HYST;
 extern const int CUTOFF_VOLTAGE_LOWER_HYST;
 extern const int BATTERY_MAX_VOLTAGE;
 
-extern volatile uint32_t adc0_dp0;
-
-void trigger_adc(void);
-void adc_init(void);
+void adcTriggerConversion(void);
+void adcInit(void);
 void ADC0_IRQHandler(void);
-int get_battery_voltage(void);
+int adcGetBatteryVoltage(void);
 int getVOX(void);
 
 #endif /* _FW_ADC_H_ */

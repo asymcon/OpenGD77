@@ -32,7 +32,7 @@ const int NUM_CREDITS = 7;
 static const char *creditTexts[] = {"Roger VK3KYY","Daniel F1RMB","Dzmitry EW1ADG","Colin G4EML","Alex DL4LEX","Kai DG4KLU","Jason VK7ZJA"};
 static int currentDisplayIndex=0;
 
-int menuCredits(uiEvent_t *ev, bool isFirstRun)
+menuStatus_t menuCredits(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
@@ -53,7 +53,7 @@ int menuCredits(uiEvent_t *ev, bool isFirstRun)
 		}
 */
 	}
-	return 0;
+	return MENU_STATUS_SUCCESS;
 }
 
 static void updateScreen(void)

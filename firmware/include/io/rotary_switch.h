@@ -20,25 +20,7 @@
 #ifndef _ROTARY_SWITCH_H_
 #define _ROTARY_SWITCH_H_
 
-#include <common.h>
-
-
-#if defined(PLATFORM_GD77S)
-
-#define Port_RotarySW_Line0   PORTD
-#define GPIO_RotarySW_Line0   GPIOD
-#define Pin_RotarySW_Line0    4
-#define Port_RotarySW_Line1   PORTD
-#define GPIO_RotarySW_Line1   GPIOD
-#define Pin_RotarySW_Line1    5
-#define Port_RotarySW_Line2   PORTD
-#define GPIO_RotarySW_Line2   GPIOD
-#define Pin_RotarySW_Line2    6
-#define Port_RotarySW_Line3   PORTD
-#define GPIO_RotarySW_Line3   GPIOD
-#define Pin_RotarySW_Line3    7
-
-#endif // PLATFORM_GD77S
+#include <gpio.h>
 
 
 void rotarySwitchInit(void);
@@ -47,6 +29,5 @@ void rotarySwitchCheckRotaryEvent(uint32_t *position, int *event);
 
 #define EVENT_ROTARY_NONE   0
 #define EVENT_ROTARY_CHANGE 1
-
 
 #endif // _ROTARY_SWITCH_H_

@@ -22,6 +22,7 @@
 #include <hotspot/dmrUtils.h>
 #include <hotspot/DMRLC.h>
 #include <hotspot/Hamming.h>
+#include <string.h>
 
 enum LC_STATE {
 	LCS_NONE,

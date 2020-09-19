@@ -20,7 +20,9 @@
 
 #ifndef _DMRDefines_H
 #define	_DMRDefines_H
-#include "main.h"
+
+#include <stdbool.h>
+#include <stdint.h>
 
 #define TAG_HEADER 0x00U
 #define TAG_DATA   0x01U

@@ -17,13 +17,17 @@
  */
 
 #include <hr-c6000_spi.h>
+#include "fsl_port.h"
 
 __attribute__((section(".data.$RAM2"))) uint8_t spi_masterReceiveBuffer_SPI0[SPI_DATA_LENGTH] = {0};
 __attribute__((section(".data.$RAM2"))) uint8_t SPI_masterSendBuffer_SPI0[SPI_DATA_LENGTH] = {0};
 __attribute__((section(".data.$RAM2"))) uint8_t spi_masterReceiveBuffer_SPI1[SPI_DATA_LENGTH] = {0};
 __attribute__((section(".data.$RAM2"))) uint8_t SPI_masterSendBuffer_SPI1[SPI_DATA_LENGTH] = {0};
 
-void init_SPI(void)
+void SPI0Setup(void);
+void SPI1Setup(void);
+
+void SPIInit(void)
 {
     /* PORTD0 is configured as SPI0_CS0 */
     PORT_SetPinMux(Port_SPI_CS_C6000_U, Pin_SPI_CS_C6000_U, kPORT_MuxAlt2);
@@ -51,9 +55,12 @@ void init_SPI(void)
 
     NVIC_SetPriority(SPI0_IRQn, 3);
     NVIC_SetPriority(SPI1_IRQn, 3);
+
+    SPI0Setup();
+    SPI1Setup();
 }
 
-void setup_SPI0(void)
+void SPI0Setup(void)
 {
     dspi_master_config_t masterConfig_SPI0;
 
@@ -79,7 +86,7 @@ void setup_SPI0(void)
 	DSPI_MasterInit(SPI0, &masterConfig_SPI0, CLOCK_GetFreq(DSPI0_CLK_SRC));
 }
 
-void setup_SPI1(void)
+void SPI1Setup(void)
 {
     dspi_master_config_t masterConfig_SPI1;
 
@@ -105,21 +112,11 @@ void setup_SPI1(void)
 	DSPI_MasterInit(SPI1, &masterConfig_SPI1, CLOCK_GetFreq(DSPI1_CLK_SRC));
 }
 
-void clear_SPI_buffer_SPI0(void)
-{
-    for (uint32_t i = 0; i < SPI_DATA_LENGTH; i++)
-    {
-        SPI_masterSendBuffer_SPI0[i] = 0;
-        spi_masterReceiveBuffer_SPI0[i] = 0;
-    }
-}
-
-int write_SPI_page_reg_byte_SPI0(uint8_t page, uint8_t reg, uint8_t val)
+int SPI0WritePageRegByte(uint8_t page, uint8_t reg, uint8_t val)
 {
     dspi_transfer_t masterXfer;
     status_t status;
 
-	clear_SPI_buffer_SPI0();
 	SPI_masterSendBuffer_SPI0[0]=page;
 	SPI_masterSendBuffer_SPI0[1]=reg;
 	SPI_masterSendBuffer_SPI0[2]=val;
@@ -139,12 +136,11 @@ int write_SPI_page_reg_byte_SPI0(uint8_t page, uint8_t reg, uint8_t val)
 	return kStatus_Success;
 }
 
-int read_SPI_page_reg_byte_SPI0(uint8_t page, uint8_t reg,volatile uint8_t* val)
+int SPI0ReadPageRegByte(uint8_t page, uint8_t reg,volatile uint8_t* val)
 {
     dspi_transfer_t masterXfer;
     status_t status;
 
-	clear_SPI_buffer_SPI0();
 	SPI_masterSendBuffer_SPI0[0]=page | 0x80;
 	SPI_masterSendBuffer_SPI0[1]=reg;
 	SPI_masterSendBuffer_SPI0[2]=0xFF;
@@ -166,18 +162,18 @@ int read_SPI_page_reg_byte_SPI0(uint8_t page, uint8_t reg,volatile uint8_t* val)
 	return kStatus_Success;
 }
 
-int set_clear_SPI_page_reg_byte_with_mask_SPI0(uint8_t page, uint8_t reg, uint8_t mask, uint8_t val)
+int SPI0SeClearPageRegByteWithMask(uint8_t page, uint8_t reg, uint8_t mask, uint8_t val)
 {
     status_t status;
 
 	uint8_t tmp_val;
-	status = read_SPI_page_reg_byte_SPI0(page, reg, &tmp_val);
+	status = SPI0ReadPageRegByte(page, reg, &tmp_val);
     if (status != kStatus_Success)
     {
     	return status;
     }
 	tmp_val=val | (tmp_val & mask);
-	status = write_SPI_page_reg_byte_SPI0(page, reg, tmp_val);
+	status = SPI0WritePageRegByte(page, reg, tmp_val);
     if (status != kStatus_Success)
     {
     	return status;
@@ -186,12 +182,11 @@ int set_clear_SPI_page_reg_byte_with_mask_SPI0(uint8_t page, uint8_t reg, uint8_
 	return kStatus_Success;
 }
 
-int write_SPI_page_reg_bytearray_SPI0(uint8_t page, uint8_t reg, const uint8_t* values, uint8_t length)
+int SPI0WritePageRegByteArray(uint8_t page, uint8_t reg, const uint8_t* values, uint8_t length)
 {
     dspi_transfer_t masterXfer;
     status_t status;
 
-	clear_SPI_buffer_SPI0();
 	SPI_masterSendBuffer_SPI0[0]=page;
 	SPI_masterSendBuffer_SPI0[1]=reg;
 	for (int i=0; i<length; i++)
@@ -214,12 +209,11 @@ int write_SPI_page_reg_bytearray_SPI0(uint8_t page, uint8_t reg, const uint8_t* 
 	return kStatus_Success;
 }
 
-int read_SPI_page_reg_bytearray_SPI0(uint8_t page, uint8_t reg,volatile uint8_t* values, uint8_t length)
+int SPI0ReadPageRegBytAarray(uint8_t page, uint8_t reg,volatile uint8_t* values, uint8_t length)
 {
     dspi_transfer_t masterXfer;
     status_t status;
 
-	clear_SPI_buffer_SPI0();
 	SPI_masterSendBuffer_SPI0[0]=page | 0x80;
 	SPI_masterSendBuffer_SPI0[1]=reg;
 	for (int i=0; i<length; i++)
@@ -247,93 +241,11 @@ int read_SPI_page_reg_bytearray_SPI0(uint8_t page, uint8_t reg,volatile uint8_t*
 	return kStatus_Success;
 }
 
-void clear_SPI_buffer_SPI1(void)
-{
-    for (uint32_t i = 0; i < SPI_DATA_LENGTH; i++)
-    {
-        SPI_masterSendBuffer_SPI1[i] = 0;
-        spi_masterReceiveBuffer_SPI1[i] = 0;
-    }
-}
-
-int write_SPI_page_reg_byte_SPI1(uint8_t page, uint8_t reg, uint8_t val)
+int SPI1WritePageRegByteArray(uint8_t page, uint8_t reg, const uint8_t* values, uint8_t length)
 {
     dspi_transfer_t masterXfer;
     status_t status;
 
-	clear_SPI_buffer_SPI1();
-	SPI_masterSendBuffer_SPI1[0]=page;
-	SPI_masterSendBuffer_SPI1[1]=reg;
-	SPI_masterSendBuffer_SPI1[2]=val;
-
-    /*Start master transfer*/
-    masterXfer.txData = SPI_masterSendBuffer_SPI1;
-    masterXfer.rxData = spi_masterReceiveBuffer_SPI1;
-    masterXfer.dataSize = 3;
-    masterXfer.configFlags = kDSPI_MasterCtar0 | kDSPI_MasterPcs0 | kDSPI_MasterPcsContinuous;
-
-    status = DSPI_MasterTransferBlocking(SPI1, &masterXfer);
-    if (status != kStatus_Success)
-    {
-    	return status;
-    }
-
-	return kStatus_Success;
-}
-
-int read_SPI_page_reg_byte_SPI1(uint8_t page, uint8_t reg, uint8_t* val)
-{
-    dspi_transfer_t masterXfer;
-    status_t status;
-
-	clear_SPI_buffer_SPI1();
-	SPI_masterSendBuffer_SPI1[0]=page | 0x80;
-	SPI_masterSendBuffer_SPI1[1]=reg;
-	SPI_masterSendBuffer_SPI1[2]=0xFF;
-
-    /*Start master transfer*/
-    masterXfer.txData = SPI_masterSendBuffer_SPI1;
-    masterXfer.rxData = spi_masterReceiveBuffer_SPI1;
-    masterXfer.dataSize = 3;
-    masterXfer.configFlags = kDSPI_MasterCtar0 | kDSPI_MasterPcs0 | kDSPI_MasterPcsContinuous;
-
-    status = DSPI_MasterTransferBlocking(SPI1, &masterXfer);
-    if (status != kStatus_Success)
-    {
-    	return status;
-    }
-
-	*val=spi_masterReceiveBuffer_SPI1[2];
-
-	return kStatus_Success;
-}
-
-int set_clear_SPI_page_reg_byte_with_mask_SPI1(uint8_t page, uint8_t reg, uint8_t mask, uint8_t val)
-{
-    status_t status;
-
-	uint8_t tmp_val;
-	status = read_SPI_page_reg_byte_SPI1(page, reg, &tmp_val);
-    if (status != kStatus_Success)
-    {
-    	return status;
-    }
-	tmp_val=val | (tmp_val & mask);
-	status = write_SPI_page_reg_byte_SPI1(page, reg, tmp_val);
-    if (status != kStatus_Success)
-    {
-    	return status;
-    }
-
-	return kStatus_Success;
-}
-
-int write_SPI_page_reg_bytearray_SPI1(uint8_t page, uint8_t reg, const uint8_t* values, uint8_t length)
-{
-    dspi_transfer_t masterXfer;
-    status_t status;
-
-	clear_SPI_buffer_SPI1();
 	SPI_masterSendBuffer_SPI1[0]=page;
 	SPI_masterSendBuffer_SPI1[1]=reg;
 	for (int i=0; i<length; i++)
@@ -356,18 +268,13 @@ int write_SPI_page_reg_bytearray_SPI1(uint8_t page, uint8_t reg, const uint8_t* 
 	return kStatus_Success;
 }
 
-int read_SPI_page_reg_bytearray_SPI1(uint8_t page, uint8_t reg, volatile uint8_t* values, uint8_t length)
+int SPI1ReadPageRegByteArray(uint8_t page, uint8_t reg, volatile uint8_t* values, uint8_t length)
 {
     dspi_transfer_t masterXfer;
     status_t status;
 
-	clear_SPI_buffer_SPI1();
 	SPI_masterSendBuffer_SPI1[0]=page | 0x80;
 	SPI_masterSendBuffer_SPI1[1]=reg;
-	for (int i=0; i<length; i++)
-	{
-		SPI_masterSendBuffer_SPI1[i+2]=0xFF;
-	}
 
     /*Start master transfer*/
     masterXfer.txData = SPI_masterSendBuffer_SPI1;
@@ -388,3 +295,4 @@ int read_SPI_page_reg_bytearray_SPI1(uint8_t page, uint8_t reg, volatile uint8_t
 
 	return kStatus_Success;
 }
+

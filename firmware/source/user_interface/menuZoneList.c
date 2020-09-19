@@ -21,26 +21,37 @@
 #include <user_interface/menuSystem.h>
 #include <user_interface/uiLocalisation.h>
 
-static void updateScreen(void);
+static void updateScreen(bool isFirstRun);
 static void handleEvent(uiEvent_t *ev);
 
-int menuZoneList(uiEvent_t *ev, bool isFirstRun)
+static menuStatus_t menuZoneExitCode = MENU_STATUS_SUCCESS;
+
+menuStatus_t menuZoneList(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
 		gMenusEndIndex = codeplugZonesGetCount();
 		gMenusCurrentItemIndex = nonVolatileSettings.currentZone;
-		updateScreen();
+		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+		{
+			voicePromptsInit();
+			voicePromptsAppendLanguageString(&currentLanguage->zone);
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+		}
+		updateScreen(true);
+		return (MENU_STATUS_LIST_TYPE | MENU_STATUS_SUCCESS);
 	}
 	else
 	{
+		menuZoneExitCode = MENU_STATUS_SUCCESS;
+
 		if (ev->hasEvent)
 			handleEvent(ev);
 	}
-	return 0;
+	return menuZoneExitCode;
 }
 
-static void updateScreen(void)
+static void updateScreen(bool isFirstRun)
 {
 	char nameBuf[17];
 	int mNum;
@@ -62,6 +73,25 @@ static void updateScreen(void)
 		codeplugUtilConvertBufToString(zoneBuf.name, nameBuf, 16);// need to convert to zero terminated string
 
 		menuDisplayEntry(i, mNum, (char* )nameBuf);
+
+		if ((nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1) && (i==0))
+		{
+			if (!isFirstRun)
+			{
+				voicePromptsInit();
+			}
+
+			if (strcmp(nameBuf,currentLanguage->all_channels)==0)
+			{
+				voicePromptsAppendLanguageString(&currentLanguage->all_channels);
+			}
+			else
+			{
+				voicePromptsAppendString(nameBuf);
+			}
+
+			voicePromptsPlay();
+		}
 	}
 
 	ucRender();
@@ -72,15 +102,22 @@ static void handleEvent(uiEvent_t *ev)
 {
 	displayLightTrigger();
 
+	if (BUTTONCHECK_SHORTUP(ev, BUTTON_SK1))
+	{
+		voicePromptsPlay();
+	}
+
 	if (KEYCHECK_PRESS(ev->keys,KEY_DOWN))
 	{
-		MENU_INC(gMenusCurrentItemIndex, gMenusEndIndex);
-		updateScreen();
+		menuSystemMenuIncrement(&gMenusCurrentItemIndex, gMenusEndIndex);
+		updateScreen(false);
+		menuZoneExitCode |= MENU_STATUS_LIST_TYPE;
 	}
 	else if (KEYCHECK_PRESS(ev->keys,KEY_UP))
 	{
-		MENU_DEC(gMenusCurrentItemIndex, gMenusEndIndex);
-		updateScreen();
+		menuSystemMenuDecrement(&gMenusCurrentItemIndex, gMenusEndIndex);
+		updateScreen(false);
+		menuZoneExitCode |= MENU_STATUS_LIST_TYPE;
 	}
 	else if (KEYCHECK_SHORTUP(ev->keys,KEY_GREEN))
 	{

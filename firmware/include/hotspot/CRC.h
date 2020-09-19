@@ -1,7 +1,8 @@
 #ifndef _CRC_H_
 #define	_CRC_H_
 
-#include "main.h"
+#include <stdbool.h>
+#include <stdint.h>
 
 bool CRC_checkFiveBit(bool* in, unsigned int tcrc);
 void CRC_encodeFiveBit(const bool* in, unsigned int *tcrc);

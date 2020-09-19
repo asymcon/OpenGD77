@@ -59,7 +59,7 @@ void init_watchdog(batteryHistoryCallback_t cb)
     alive_beeptask = false;
     alive_hrc6000task = false;
 
-    battery_voltage=get_battery_voltage();
+    battery_voltage=adcGetBatteryVoltage();
 	averageBatteryVoltage = battery_voltage;
 	battery_voltage_tick=0;
 
@@ -115,7 +115,7 @@ void tick_watchdog(void)
 	battery_voltage_tick++;
 	if (battery_voltage_tick == BATTERY_VOLTAGE_TICK_RELOAD)
 	{
-		int tmp_battery_voltage = get_battery_voltage();
+		int tmp_battery_voltage = adcGetBatteryVoltage();
 
 		if (battery_voltage!=tmp_battery_voltage)
 		{
@@ -129,7 +129,7 @@ void tick_watchdog(void)
 			batteryCallbackFunction(averageBatteryVoltage);
 
 	}
-	trigger_adc();// need the ADC value next time though, so request conversion now, so that its ready by the time we need it
+	adcTriggerConversion();// need the ADC value next time though, so request conversion now, so that its ready by the time we need it
 }
 
 void watchdogReboot(void)

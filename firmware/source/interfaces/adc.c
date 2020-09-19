@@ -27,7 +27,7 @@ const int CUTOFF_VOLTAGE_UPPER_HYST = 64;
 const int CUTOFF_VOLTAGE_LOWER_HYST = 62;
 const int BATTERY_MAX_VOLTAGE = 82;
 
-void trigger_adc(void)
+void adcTriggerConversion(void)
 {
     adc16_channel_config_t adc16ChannelConfigStruct;
 
@@ -37,7 +37,7 @@ void trigger_adc(void)
     ADC16_SetChannelConfig(ADC0, 0, &adc16ChannelConfigStruct);
 }
 
-void adc_init(void)
+void adcInit(void)
 {
 	adc16_config_t adc16ConfigStruct;
 
@@ -55,7 +55,7 @@ void adc_init(void)
 
     EnableIRQ(ADC0_IRQn);
 
-    trigger_adc();
+    adcTriggerConversion();
 }
 
 void ADC0_IRQHandler(void)
@@ -80,7 +80,7 @@ void ADC0_IRQHandler(void)
 }
 
 // result of conversion is rounded voltage*10 as integer
-int get_battery_voltage(void)
+int adcGetBatteryVoltage(void)
 {
 	int tmp_voltage = adc0_dp1/41.6f+0.5f;
 	return tmp_voltage;

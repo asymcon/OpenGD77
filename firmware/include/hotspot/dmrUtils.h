@@ -20,7 +20,8 @@
 #ifndef	_DMRUTILS_H
 #define	_DMRUTILS_H
 
-#include "main.h"
+#include <stdbool.h>
+#include <stdint.h>
 
 void dmrUtils_byteToBitsBE(unsigned char byte, bool* bits);
 void dmrUtils_byteToBitsLE(unsigned char byte, bool* bits);

@@ -33,11 +33,13 @@
 #define AT1846_VOICE_CHANNEL_DTMF   0x30
 #define AT1846_VOICE_CHANNEL_MIC    0x40
 
-void I2C_AT1846S_init(void);
-void I2C_AT1846_Postinit(void);
-void I2C_AT1846_SetBandwidth(void);
-void I2C_AT1846_SetMode(void);
-void setMicGainFM(uint8_t gain);
+void AT1846Init(void);
+void AT1846Postinit(void);
+void AT1846SetBandwidth(void);
+void AT1846SetMode(void);
+void AT1846ReadVoxAndMicStrength(void);
+void AT1846ReadRSSIAndNoise(void);
+int AT1846SetClearReg2byteWithMask(uint8_t reg, uint8_t mask1, uint8_t mask2, uint8_t val1, uint8_t val2);
 
 
 #endif /* _FW_AT1846S_H_ */

@@ -18,7 +18,7 @@
 
 #ifndef _DMR_DMRSHORTLC_H_
 #define _DMR_DMRSHORTLC_H_
-#include "main.h"
+
 #include "hotspot/dmrDefines.h"
 #include "hotspot/DMRLC.h"
 

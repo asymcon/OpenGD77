@@ -16,11 +16,10 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#include <buttons.h>
 #include <keyboard.h>
 #include <pit.h>
 #include <settings.h>
-#include <usb_com.h>
+#include <gpio.h>
 
 static char oldKeyboardCode;
 static uint32_t keyDebounceScancode;
@@ -96,43 +95,7 @@ static const char keypadAlphaMap[11][31] = {
 
 void keyboardInit(void)
 {
-#if ! defined(PLATFORM_GD77S)
-	port_pin_config_t config = {
-			kPORT_PullUp,
-			kPORT_FastSlewRate,
-			kPORT_PassiveFilterDisable,
-			kPORT_OpenDrainDisable,
-			kPORT_LowDriveStrength,
-			kPORT_MuxAsGpio,
-			kPORT_UnlockRegister
-	};
-
-    // column lines
-	PORT_SetPinMux(Port_Key_Col0, Pin_Key_Col0, kPORT_MuxAsGpio);
-	PORT_SetPinMux(Port_Key_Col1, Pin_Key_Col1, kPORT_MuxAsGpio);
-	PORT_SetPinMux(Port_Key_Col2, Pin_Key_Col2, kPORT_MuxAsGpio);
-	PORT_SetPinMux(Port_Key_Col3, Pin_Key_Col3, kPORT_MuxAsGpio);
-
-    // row lines
-    PORT_SetPinConfig(Port_Key_Row0, Pin_Key_Row0, &config);
-    PORT_SetPinConfig(Port_Key_Row1, Pin_Key_Row1, &config);
-    PORT_SetPinConfig(Port_Key_Row2, Pin_Key_Row2, &config);
-    PORT_SetPinConfig(Port_Key_Row3, Pin_Key_Row3, &config);
-    PORT_SetPinConfig(Port_Key_Row4, Pin_Key_Row4, &config);
-
-    // column lines
-    GPIO_PinInit(GPIO_Key_Col0, Pin_Key_Col0, &pin_config_input);
-    GPIO_PinInit(GPIO_Key_Col1, Pin_Key_Col1, &pin_config_input);
-    GPIO_PinInit(GPIO_Key_Col2, Pin_Key_Col2, &pin_config_input);
-    GPIO_PinInit(GPIO_Key_Col3, Pin_Key_Col3, &pin_config_input);
-
-    // row lines
-    GPIO_PinInit(GPIO_Key_Row0, Pin_Key_Row0, &pin_config_input);
-    GPIO_PinInit(GPIO_Key_Row1, Pin_Key_Row1, &pin_config_input);
-    GPIO_PinInit(GPIO_Key_Row2, Pin_Key_Row2, &pin_config_input);
-    GPIO_PinInit(GPIO_Key_Row3, Pin_Key_Row3, &pin_config_input);
-    GPIO_PinInit(GPIO_Key_Row4, Pin_Key_Row4, &pin_config_input);
-#endif // ! PLATFORM_GD77S
+	gpioInitKeyboard();
 
 	oldKeyboardCode = 0;
 	keyDebounceScancode = 0;

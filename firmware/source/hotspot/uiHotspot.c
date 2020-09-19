@@ -125,7 +125,7 @@ M: 2020-01-07 09:52:15.246 DMR Slot 2, received network end of voice transmissio
 
 #define MMDVM_HEADER_LENGTH 4U
 
-#define HOTSPOT_VERSION_STRING "OpenGD77_HS v0.1.3"
+#define HOTSPOT_VERSION_STRING "OpenGD77_HS v0.1.4"
 #define concat(a, b) a " GitID #" b ""
 static const char HARDWARE[] = concat(HOTSPOT_VERSION_STRING, GITVERSION);
 
@@ -294,6 +294,7 @@ static const struct
 		{',', 0xEEAEE000U, 22U},
 		{'-', 0xEAAE0000U, 18U},
 		{'=', 0xEAB80000U, 16U},
+		{'.', 0xBAEB8000U, 20U},
 		{' ', 0x00000000U, 4U},
 		{0U,  0x00000000U, 0U}
 };
@@ -334,7 +335,7 @@ static void sendDebug5(const char *text, int16_t n1, int16_t n2, int16_t n3, int
 #endif
 
 
-int menuHotspotMode(uiEvent_t *ev, bool isFirstRun)
+menuStatus_t menuHotspotMode(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
@@ -434,7 +435,7 @@ int menuHotspotMode(uiEvent_t *ev, bool isFirstRun)
 		{
 			if (handleEvent(ev) == false)
 			{
-				return 0;
+				return MENU_STATUS_SUCCESS;
 			}
 		}
 	}
@@ -456,7 +457,7 @@ int menuHotspotMode(uiEvent_t *ev, bool isFirstRun)
 		}
 	}
 
-	return 0;
+	return MENU_STATUS_SUCCESS;
 }
 
 void menuHotspotRestoreSettings(void)
@@ -557,7 +558,7 @@ static void updateScreen(uint8_t rxCommandState)
 
 	ucPrintAt(DISPLAY_SIZE_X - (strlen(buffer) * 6) - 4, 4, buffer, FONT_SIZE_1);
 
-	if (trxIsTransmitting)
+	if (trxTransmissionEnabled)
 	{
 		if (displayFWVersion)
 		{
@@ -668,7 +669,8 @@ static void updateScreen(uint8_t rxCommandState)
 
 			ucPrintCore(0, 32, buffer, FONT_SIZE_3, TEXT_ALIGN_LEFT, false);
 
-			ucPrintCore(0, 32, (char *)POWER_LEVELS[hotspotPowerLevel], FONT_SIZE_3, TEXT_ALIGN_RIGHT, false);
+			sprintf(buffer,"%s%s",POWER_LEVELS[hotspotPowerLevel],POWER_LEVEL_UNITS[hotspotPowerLevel]);
+			ucPrintCore(0, 32, buffer, FONT_SIZE_3, TEXT_ALIGN_RIGHT, false);
 		}
 		val_before_dp = freq_rx / 100000;
 		val_after_dp = freq_rx - val_before_dp * 100000;
@@ -729,9 +731,9 @@ static bool handleEvent(uiEvent_t *ev)
 static void hotspotExit(void)
 {
 	disableTransmission();
-	if (trxIsTransmitting)
+	if (trxTransmissionEnabled)
 	{
-		trxIsTransmitting = false;
+		trxTransmissionEnabled = false;
 		trx_setRX();
 
 		GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 0);
@@ -1405,9 +1407,9 @@ static void hotspotStateMachine(void)
 			lastRxState = HOTSPOT_RX_UNKNOWN;
 
 			// force immediate shutdown of Tx if we get here and the tx is on for some reason.
-			if (trxIsTransmitting)
+			if (trxTransmissionEnabled)
 			{
-				trxIsTransmitting = false;
+				trxTransmissionEnabled = false;
 				disableTransmission();
 			}
 
@@ -1442,9 +1444,9 @@ static void hotspotStateMachine(void)
 
 		case HOTSPOT_STATE_RX_START:
 			// force immediate shutdown of Tx if we get here and the tx is on for some reason.
-			if (trxIsTransmitting)
+			if (trxTransmissionEnabled)
 			{
-				trxIsTransmitting = false;
+				trxTransmissionEnabled = false;
 				disableTransmission();
 			}
 
@@ -1478,9 +1480,9 @@ static void hotspotStateMachine(void)
 				rfFrameBufCount = 0;
 				wavbuffer_count = 0;
 
-				if (trxIsTransmitting)
+				if (trxTransmissionEnabled)
 				{
-					trxIsTransmitting = false;
+					trxTransmissionEnabled = false;
 					disableTransmission();
 				}
 
@@ -1635,7 +1637,7 @@ static void hotspotStateMachine(void)
 			if (wavbuffer_count == 0 || modemState == STATE_IDLE)
 			{
 				hotspotState = HOTSPOT_STATE_TX_SHUTDOWN;
-				trxIsTransmitting = false;
+				trxTransmissionEnabled = false;
 			}
 			break;
 
@@ -1654,8 +1656,8 @@ static void hotspotStateMachine(void)
 			}
 			else
 			{
-				if ((slot_state < DMR_STATE_TX_START_1) ||
-						((modemState == STATE_IDLE) && trxIsTransmitting)) // MMDVMHost asked to go back to IDLE (mostly on shutdown)
+				if ((trxIsTransmitting) ||
+						((modemState == STATE_IDLE) && trxTransmissionEnabled)) // MMDVMHost asked to go back to IDLE (mostly on shutdown)
 				{
 					disableTransmission();
 					hotspotState = HOTSPOT_STATE_RX_START;
@@ -1943,6 +1945,8 @@ static void getVersion(void)
 			"GD-77S"
 #elif defined(PLATFORM_DM1801)
 			"DM-1801"
+#elif defined(PLATFORM_RD5R)
+			"RD-5R"
 #else
 			"Unknown"
 #endif
@@ -2413,7 +2417,7 @@ static void handleHotspotRequest(void)
 
 	if (cwKeying)
 	{
-		if (!trxIsTransmitting)
+		if (!trxTransmissionEnabled)
 		{
 			// Start TX CWID, prepare for ANALOG
 			if (trxGetMode() != RADIO_MODE_ANALOG)
@@ -2437,10 +2441,10 @@ static void handleHotspotRequest(void)
 		{
 			disableTransmission();
 
-			if (trxIsTransmitting)
+			if (trxTransmissionEnabled)
 			{
 				// Stop TXing;
-				trxIsTransmitting = false;
+				trxTransmissionEnabled = false;
 				trx_setRX();
 				GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 0);
 

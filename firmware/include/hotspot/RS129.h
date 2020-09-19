@@ -19,7 +19,9 @@
  */
 #ifndef _DMR_RS129_H_
 #define _DMR_RS129_H_
-#include "main.h"
+
+#include <stdbool.h>
+#include <stdint.h>
 
 bool RS129_check(const unsigned char* in);
 void RS129_encode(const unsigned char* msg, unsigned int nbytes, unsigned char* parity);

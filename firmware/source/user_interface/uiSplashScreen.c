@@ -21,27 +21,36 @@
 static void updateScreen(void);
 static void handleEvent(uiEvent_t *ev);
 
-int uiSplashScreen(uiEvent_t *ev, bool isFirstRun)
+menuStatus_t uiSplashScreen(uiEvent_t *ev, bool isFirstRun)
 {
 	uint8_t melodyBuf[512];
+
 	if (isFirstRun)
 	{
-		if (codeplugGetOpenGD77CustomData(CODEPLUG_CUSTOM_DATA_TYPE_BEEP, melodyBuf))
-		{
-			create_song(melodyBuf);
-			set_melody(melody_generic);
-		}
-		else
-		{
-			set_melody(melody_poweron);
-		}
+#if defined(PLATFORM_GD77S)
+			// Don't play boot melody when the 77S is already speaking, otherwise if will mute the speech halfway
+			if (voicePromptsIsPlaying() == false)
+#endif
+			{
+				if (codeplugGetOpenGD77CustomData(CODEPLUG_CUSTOM_DATA_TYPE_BEEP, melodyBuf))
+				{
+					soundCreateSong(melodyBuf);
+					soundSetMelody(melody_generic);
+				}
+				else
+				{
+					soundSetMelody(melody_poweron);
+				}
+			}
+
 		updateScreen();
 	}
 	else
 	{
 		handleEvent(ev);
 	}
-	return 0;
+
+	return MENU_STATUS_SUCCESS;
 }
 
 static void updateScreen(void)

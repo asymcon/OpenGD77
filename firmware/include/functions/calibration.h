@@ -19,8 +19,50 @@
 #ifndef _FW_CALIBRATION_H_
 #define _FW_CALIBRATION_H_
 
-#include "common.h"
 #include "SPI_Flash.h"
+
+typedef enum
+{
+	CalibrationBandUHF,
+	CalibrationBandVHF,
+	CalibrationBandMAX
+} CalibrationBand_t;
+
+typedef enum
+{
+	CalibrationSection_DACDATA_SHIFT,
+	CalibrationSection_TWOPOINT_MOD,
+	CalibrationSection_Q_MOD2_OFFSET,
+	CalibrationSection_PHASE_REDUCE,
+	CalibrationSection_PGA_GAIN,
+	CalibrationSection_VOICE_GAIN_TX,
+	CalibrationSection_GAIN_TX,
+	CalibrationSection_PADRV_IBIT,
+	CalibrationSection_XMITTER_DEV_WIDEBAND,
+	CalibrationSection_XMITTER_DEV_NARROWBAND,
+	CalibrationSection_DEV_TONE,
+	CalibrationSection_DAC_VGAIN_ANALOG,
+	CalibrationSection_VOLUME_ANALOG,
+	CalibrationSection_NOISE1_TH_WIDEBAND,
+	CalibrationSection_NOISE1_TH_NARROWBAND,
+	CalibrationSection_NOISE2_TH_WIDEBAND,
+	CalibrationSection_NOISE2_TH_NARROWBAND,
+	CalibrationSection_RSSI3_TH_WIDEBAND,
+	CalibrationSection_RSSI3_TH_NARROWBAND,
+	CalibrationSection_SQUELCH_TH
+} CalibrationSection_t;
+
+typedef struct
+{
+	uint16_t offset;
+	uint16_t mod;
+
+	union
+	{
+		uint16_t value;
+		uint8_t  bytes[2];
+	};
+} CalibrationDataResult_t;
 
 
 typedef struct calibrationPowerValues
@@ -46,32 +88,9 @@ typedef struct deviationToneStruct
 } deviationToneStruct_t;
 
 
-void read_val_DACDATA_shift(int offset, uint8_t* val_shift);
-void read_val_twopoint_mod(int offset, uint8_t* val_0x47, uint8_t* val_0x48);
-void read_val_Q_MOD2_offset(int offset, uint8_t* val_0x04);
-void read_val_phase_reduce(int offset, uint8_t* val_0x46);
-
-void read_val_pga_gain(int offset, uint8_t* value);
-void read_val_voice_gain_tx(int offset, uint8_t* value);
-void read_val_gain_tx(int offset, uint8_t* value);
-void read_val_padrv_ibit(int offset, uint8_t* value);
-
-void read_val_xmitter_dev_wideband(int offset, uint16_t* value);
-void read_val_xmitter_dev_narrowband(int offset, uint16_t* value);
-void read_val_dev_tone(int index, uint8_t *value);
-
-void read_val_dac_vgain_analog(int offset, uint8_t* value);
-void read_val_volume_analog(int offset, uint8_t* value);
-
-void read_val_noise1_th_wideband(int offset, uint16_t* value);
-void read_val_noise2_th_wideband(int offset, uint16_t* value);
-void read_val_rssi3_th_wideband(int offset, uint16_t* value);
-void read_val_noise1_th_narrowband(int offset, uint16_t* value);
-void read_val_noise2_th_narrowband(int offset, uint16_t* value);
-void read_val_rssi3_th_narrowband(int offset, uint16_t* value);
-
-void read_val_squelch_th(int offset, int mod, uint16_t* value);
+bool calibrationInit(void);
+bool calibrationGetSectionData(CalibrationBand_t band, CalibrationSection_t section, CalibrationDataResult_t *o);
 bool calibrationGetPowerForFrequency(int freq, calibrationPowerValues_t *powerSettings);
 bool calibrationGetRSSIMeterParams(calibrationRSSIMeter_t *rssiMeterValues);
-bool checkAndCopyCalibrationToCommonLocation(void);
+bool calibrationCheckAndCopyToCommonLocation(bool forceReload);
 #endif

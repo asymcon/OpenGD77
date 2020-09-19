@@ -17,14 +17,19 @@
  */
 
 #include <i2c.h>
+#include "fsl_port.h"
+
 #if defined(USE_SEGGER_RTT)
 #include <SeggerRTT/RTT/SEGGER_RTT.h>
 #endif
 
-uint8_t i2c_master_buff[I2C_DATA_LENGTH];
+static void I2C0Setup(void);
+
+#define I2C_DATA_LENGTH (4)  /* Maximum transfer size seems to be 3 bytes. So use 4 to pad to 32 byte boundary */
+static uint8_t i2c_master_buff[I2C_DATA_LENGTH];
 volatile int isI2cInUse = 0;
 
-void init_I2C0a(void)
+void I2C0aInit(void)
 {
     // I2C0a to AT24C512 EEPROM & AT1846S
     const port_pin_config_t porte24_config = {/* Internal pull-up resistor is enabled */
@@ -61,9 +66,11 @@ void init_I2C0a(void)
 
     NVIC_SetPriority(I2C0_IRQn, 3);
     isI2cInUse = 0;
+
+	I2C0Setup();
 }
 
-void init_I2C0b(void)
+void I2C0bInit(void)
 {
 	// I2C0b to ALPU-MP-1413
     const port_pin_config_t portb2_config = {/* Internal pull-up resistor is enabled */
@@ -101,7 +108,7 @@ void init_I2C0b(void)
     NVIC_SetPriority(I2C0_IRQn, 3);
 }
 
-void setup_I2C0(void)
+static void I2C0Setup(void)
 {
     i2c_master_config_t masterConfig;
 
@@ -117,55 +124,7 @@ void setup_I2C0(void)
 	I2C_MasterInit(I2C0, &masterConfig, CLOCK_GetFreq(I2C0_CLK_SRC));
 }
 
-void clear_I2C_buffer(void)
-{
-    for (uint32_t i = 0; i < I2C_DATA_LENGTH; i++)
-    {
-    	i2c_master_buff[i] = 0;
-    }
-}
-
-int write_I2C_reg_2byte(uint8_t addr, uint8_t reg, uint8_t val1, uint8_t val2)
-{
-    i2c_master_transfer_t masterXfer;
-    status_t status;
-
-    if (isI2cInUse)
-    {
-#if defined(USE_SEGGER_RTT)
-    	SEGGER_RTT_printf(0, "Clash in write_I2C_reg_2byte (3) with %d\n",isI2cInUse);
-#endif
-    	return 0;
-    }
-    isI2cInUse = 3;
-
-	//taskENTER_CRITICAL();
-	//clear_I2C_buffer();
-	i2c_master_buff[0] = reg;
-	i2c_master_buff[1] = val1;
-	i2c_master_buff[2] = val2;
-
-    memset(&masterXfer, 0, sizeof(masterXfer));
-    masterXfer.slaveAddress = addr;
-    masterXfer.direction = kI2C_Write;
-    masterXfer.subaddress = 0;
-    masterXfer.subaddressSize = 0;
-    masterXfer.data = i2c_master_buff;
-    masterXfer.dataSize = 3;
-    masterXfer.flags = kI2C_TransferDefaultFlag;
-
-    status = I2C_MasterTransferBlocking(I2C0, &masterXfer);
-    if (status != kStatus_Success)
-    {
-    	isI2cInUse = 0;
-    	return status;
-    }
-
-    isI2cInUse = 0;
-	return kStatus_Success;
-}
-
-int read_I2C_reg_2byte(uint8_t addr, uint8_t reg, uint8_t* val1, uint8_t* val2)
+int I2CReadReg2byte(uint8_t addr, uint8_t reg, uint8_t* val1, uint8_t* val2)
 {
     i2c_master_transfer_t masterXfer;
     status_t status;
@@ -197,8 +156,7 @@ int read_I2C_reg_2byte(uint8_t addr, uint8_t reg, uint8_t* val1, uint8_t* val2)
     	return status;
     }
 
-
-    masterXfer.slaveAddress = I2C_MASTER_SLAVE_ADDR_7BIT;
+    masterXfer.slaveAddress = AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT;
     masterXfer.direction = kI2C_Read;
     masterXfer.subaddress = 0;
     masterXfer.subaddressSize = 0;
@@ -220,24 +178,40 @@ int read_I2C_reg_2byte(uint8_t addr, uint8_t reg, uint8_t* val1, uint8_t* val2)
 	return kStatus_Success;
 }
 
-int set_clear_I2C_reg_2byte_with_mask(uint8_t reg, uint8_t mask1, uint8_t mask2, uint8_t val1, uint8_t val2)
+int I2CWriteReg2byte(uint8_t addr, uint8_t reg, uint8_t val1, uint8_t val2)
 {
+    i2c_master_transfer_t masterXfer;
     status_t status;
 
-	uint8_t tmp_val1;
-	uint8_t tmp_val2;
-	status = read_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, reg, &tmp_val1, &tmp_val2);
-    if (status != kStatus_Success)
+    if (isI2cInUse)
     {
-    	return status;
+#if defined(USE_SEGGER_RTT)
+    	SEGGER_RTT_printf(0, "Clash in write_I2C_reg_2byte (3) with %d\n",isI2cInUse);
+#endif
+    	return 0;
     }
-	tmp_val1=val1 | (tmp_val1 & mask1);
-	tmp_val2=val2 | (tmp_val2 & mask2);
-	status = write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, reg, tmp_val1, tmp_val2);
+    isI2cInUse = 3;
+
+	i2c_master_buff[0] = reg;
+	i2c_master_buff[1] = val1;
+	i2c_master_buff[2] = val2;
+
+    memset(&masterXfer, 0, sizeof(masterXfer));
+    masterXfer.slaveAddress = addr;
+    masterXfer.direction = kI2C_Write;
+    masterXfer.subaddress = 0;
+    masterXfer.subaddressSize = 0;
+    masterXfer.data = i2c_master_buff;
+    masterXfer.dataSize = 3;
+    masterXfer.flags = kI2C_TransferDefaultFlag;
+
+    status = I2C_MasterTransferBlocking(I2C0, &masterXfer);
     if (status != kStatus_Success)
     {
+    	isI2cInUse = 0;
     	return status;
     }
 
+    isI2cInUse = 0;
 	return kStatus_Success;
 }

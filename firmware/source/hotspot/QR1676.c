@@ -19,7 +19,8 @@
  */
 
 #include <hotspot/QR1676.h>
-
+#include <stddef.h>
+#include <assert.h>
 
 const unsigned int ENCODING_TABLE_1676[] =
 	{0x0000U, 0x0273U, 0x04E5U, 0x0696U, 0x09C9U, 0x0BBAU, 0x0D2CU, 0x0F5FU, 0x11E2U, 0x1391U, 0x1507U, 0x1774U,

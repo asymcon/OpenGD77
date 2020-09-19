@@ -21,8 +21,8 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
-
 #include "i2c.h"
+#include <stdbool.h>
 
 bool EEPROM_Read(int address,uint8_t *buf, int size);
 bool EEPROM_Write(int address,uint8_t *buf, int size);

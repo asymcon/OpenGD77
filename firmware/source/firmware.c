@@ -22,12 +22,8 @@
  */
 #include <main.h>
 #include <stdio.h>
-#include "board.h"
-#include "peripherals.h"
-#include "pin_mux.h"
 #include "clock_config.h"
 #include "MK22F51212.h"
-
 
 /*
  * @brief   Application entry point.
@@ -35,12 +31,9 @@
 int main(void) {
 	SCB->VTOR = 0x4000;
 
-  	/* Init board hardware. */
-    BOARD_InitBootPins();
     BOARD_BootClockHSRUN();
-    BOARD_InitBootPeripherals();
 
-    fw_init();
+    mainTaskInit();
 
     return 0;
 }

@@ -19,6 +19,9 @@
 #include <AT1846S.h>
 #include <settings.h>
 #include <trx.h>
+#if defined(USE_SEGGER_RTT)
+#include <SeggerRTT/RTT/SEGGER_RTT.h>
+#endif
 
 static const uint8_t AT1846InitSettings[][AT1846_BYTES_PER_COMMAND] = {
 		{0x30, 0x00, 0x04}, // Poweron 1846s
@@ -165,65 +168,67 @@ const uint8_t AT1846DMRSettings[][AT1846_BYTES_PER_COMMAND] = {
 		{0x66, 0xEB, 0x2E}, // rssi_comp  and afc range
 		};
 
+
+
 void I2C_AT1846S_send_Settings(const uint8_t settings[][3],int numSettings)
 {
 	taskENTER_CRITICAL();
 	for(int i=0;i<numSettings;i++)
 	{
-		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT,	settings[i][0], settings[i][1],	settings[i][2]);
+		I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT,	settings[i][0], settings[i][1],	settings[i][2]);
 	}
 	taskEXIT_CRITICAL();
 }
 
-void I2C_AT1846S_init(void)
+void AT1846Init(void)
 {
 	// --- start of AT1846_init()
 	taskENTER_CRITICAL();
-	write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x30, 0x00, 0x01); // Soft reset
+	I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x30, 0x00, 0x01); // Soft reset
 	vTaskDelay(portTICK_PERIOD_MS * 50);
 
 	I2C_AT1846S_send_Settings(AT1846InitSettings,sizeof(AT1846InitSettings)/AT1846_BYTES_PER_COMMAND);
 	vTaskDelay(portTICK_PERIOD_MS * 50);
 
-	write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x30, 0x40, 0xA6); // chip_cal_en Enable calibration
+	I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x30, 0x40, 0xA6); // chip_cal_en Enable calibration
 	vTaskDelay(portTICK_PERIOD_MS * 100);
 
-	write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x30, 0x40, 0x06); // chip_cal_en Disable calibration
+	I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x30, 0x40, 0x06); // chip_cal_en Disable calibration
 	vTaskDelay(portTICK_PERIOD_MS * 10);
 	// Calibration end
 	// --- end of AT1846_init()
 
 	I2C_AT1846S_send_Settings(AT1846FM12P5kHzSettings, sizeof(AT1846FM12P5kHzSettings)/AT1846_BYTES_PER_COMMAND);// initially set the bandwidth for 12.5 kHz
 
-	set_clear_I2C_reg_2byte_with_mask(0x4e, 0xff, 0x3f, 0x00, 0x80); // Select cdcss mode for tx
+	AT1846SetClearReg2byteWithMask(0x4e, 0xff, 0x3f, 0x00, 0x80); // Select cdcss mode for tx
 	taskEXIT_CRITICAL();
 	vTaskDelay(portTICK_PERIOD_MS * 200);
 }
 
-void I2C_AT1846_Postinit(void)
+void AT1846Postinit(void)
 {
 	I2C_AT1846S_send_Settings(AT1846PostinitSettings,sizeof(AT1846PostinitSettings)/AT1846_BYTES_PER_COMMAND);
 }
 
-void I2C_AT1846_SetBandwidth(void)
+void AT1846SetBandwidth(void)
 {
 	if (trxGetBandwidthIs25kHz())
 	{
 		// 25 kHz settings
 		I2C_AT1846S_send_Settings(AT1846FM25kHzSettings,sizeof(AT1846FM25kHzSettings)/AT1846_BYTES_PER_COMMAND);
-		set_clear_I2C_reg_2byte_with_mask(0x30,0xCF,0x9F,0x30,0x00); // Set the 25Khz Bits and turn off the Rx and Tx
-		set_clear_I2C_reg_2byte_with_mask(0x30,0xFF,0x9F,0x00,0x20); // Turn the Rx On
+		AT1846SetClearReg2byteWithMask(0x30,0xCF,0x9F,0x30,0x00); // Set the 25Khz Bits and turn off the Rx and Tx
+		AT1846SetClearReg2byteWithMask(0x30,0xFF,0x9F,0x00,0x20); // Turn the Rx On
 	}
 	else
 	{
 		// 12.5 kHz settings
 		I2C_AT1846S_send_Settings(AT1846FM12P5kHzSettings, sizeof(AT1846FM12P5kHzSettings)/AT1846_BYTES_PER_COMMAND);
-		set_clear_I2C_reg_2byte_with_mask(0x30,0xCF,0x9F,0x00,0x00); // Clear the 25Khz Bits and turn off the Rx and Tx
-		set_clear_I2C_reg_2byte_with_mask(0x30,0xFF,0x9F,0x00,0x20); // Turn the Rx On
+		AT1846SetClearReg2byteWithMask(0x30,0xCF,0x9F,0x00,0x00); // Clear the 25Khz Bits and turn off the Rx and Tx
+		AT1846SetClearReg2byteWithMask(0x30,0xFF,0x9F,0x00,0x20); // Turn the Rx On
 	}
 }
 
-void I2C_AT1846_SetMode(void)
+void AT1846SetMode(void)
 {
 	if (trxGetMode() == RADIO_MODE_ANALOG)
 	{
@@ -231,34 +236,56 @@ void I2C_AT1846_SetMode(void)
 		if (trxGetBandwidthIs25kHz())
 		{
 			// 25 kHz settings
-			write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x3A, 0x40, 0xCB);
+			I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x3A, 0x40, 0xCB);
 		}
 		else
 		{
 			// 12.5 kHz settings
-			write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x3A, 0x44, 0xCB);
+			I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x3A, 0x44, 0xCB);
 		}
 	}
 	else
 	{
-		set_clear_I2C_reg_2byte_with_mask(0x30,0xCF,0x9F,0x00,0x00); // Clear the 25Khz Bits and turn off the Rx and Tx
-		set_clear_I2C_reg_2byte_with_mask(0x30,0xFF,0x9F,0x00,0x20); // Turn the Rx On
-		write_I2C_reg_2byte(I2C_MASTER_SLAVE_ADDR_7BIT, 0x3A, 0x44, 0xCB);
+		AT1846SetClearReg2byteWithMask(0x30,0xCF,0x9F,0x00,0x00); // Clear the 25Khz Bits and turn off the Rx and Tx
+		AT1846SetClearReg2byteWithMask(0x30,0xFF,0x9F,0x00,0x20); // Turn the Rx On
+		I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x3A, 0x44, 0xCB);
 		I2C_AT1846S_send_Settings(AT1846DMRSettings, sizeof(AT1846DMRSettings)/AT1846_BYTES_PER_COMMAND);
 	}
 }
 
-void setMicGainFM(uint8_t gain)
+void AT1846ReadVoxAndMicStrength(void)
 {
-	uint8_t voice_gain_tx = trxGetCalibrationVoiceGainTx();
+	taskENTER_CRITICAL();
+	I2CReadReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x1a, (uint8_t *)&trxTxVox, (uint8_t *)&trxTxMic);
+	taskEXIT_CRITICAL();
+}
 
-	// Apply extra gain 17 (the calibration default value, not the datasheet one)
-	if (gain > 17)
-	{
-		//voice_gain_tx += (((gain - 16) * 3) >> 1); // Get some Larsen starting at gain:11
-		voice_gain_tx += (gain - 16); // Seems to be enough
-	}
+void AT1846ReadRSSIAndNoise(void)
+{
+	taskENTER_CRITICAL();
+	I2CReadReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x1b, (uint8_t *)&trxRxSignal, (uint8_t *)&trxRxNoise);
+	taskEXIT_CRITICAL();
+}
 
-	I2C_AT1846_set_register_with_mask(0x0A, 0xF83F, gain, 6);
-	I2C_AT1846_set_register_with_mask(0x41, 0xFF80, voice_gain_tx, 0);
+
+int AT1846SetClearReg2byteWithMask(uint8_t reg, uint8_t mask1, uint8_t mask2, uint8_t val1, uint8_t val2)
+{
+    status_t status;
+
+	uint8_t tmp_val1;
+	uint8_t tmp_val2;
+	status = I2CReadReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, reg, &tmp_val1, &tmp_val2);
+    if (status != kStatus_Success)
+    {
+    	return status;
+    }
+	tmp_val1 = val1 | (tmp_val1 & mask1);
+	tmp_val2 = val2 | (tmp_val2 & mask2);
+	status = I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, reg, tmp_val1, tmp_val2);
+    if (status != kStatus_Success)
+    {
+    	return status;
+    }
+
+	return kStatus_Success;
 }

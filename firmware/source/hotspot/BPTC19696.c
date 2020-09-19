@@ -22,7 +22,7 @@
 #include <hotspot/BPTC19696.h>
 #include <hotspot/dmrUtils.h>
 #include <hotspot/Hamming.h>
-
+#include <string.h>
 
 __attribute__((section(".data.$RAM2"))) static bool BPTC19696_rawData[196];
 __attribute__((section(".data.$RAM2"))) static bool BPTC19696_deInterData[196];

@@ -28,7 +28,7 @@ static int radioMode;
 static int radioBandWidth;
 
 
-int uiCPS(uiEvent_t *ev, bool isFirstRun)
+menuStatus_t uiCPS(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
@@ -48,7 +48,7 @@ int uiCPS(uiEvent_t *ev, bool isFirstRun)
 			handleTick();
 		}
 	}
-	return 0;
+	return MENU_STATUS_SUCCESS;
 }
 
 void uiCPSUpdate(int command,int x, int y, ucFont_t fontSize, ucTextAlign_t alignment, bool isInverted,char *szMsg)

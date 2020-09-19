@@ -43,7 +43,7 @@ static int menuContactDetailsState;
 static int menuContactDetailsTimeout;
 enum MENU_CONTACT_DETAILS_STATE {MENU_CONTACT_DETAILS_DISPLAY=0, MENU_CONTACT_DETAILS_SAVED, MENU_CONTACT_DETAILS_EXISTS};
 
-int menuContactDetails(uiEvent_t *ev, bool isFirstRun)
+menuStatus_t menuContactDetails(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
@@ -76,6 +76,8 @@ int menuContactDetails(uiEvent_t *ev, bool isFirstRun)
 
 		updateScreen();
 		updateCursor(true);
+
+		return (MENU_STATUS_LIST_TYPE | MENU_STATUS_SUCCESS);
 	}
 	else
 	{
@@ -86,7 +88,7 @@ int menuContactDetails(uiEvent_t *ev, bool isFirstRun)
 
 		}
 	}
-	return 0;
+	return MENU_STATUS_SUCCESS;
 }
 
 static void updateCursor(bool moved)
@@ -207,13 +209,13 @@ static void handleEvent(uiEvent_t *ev)
 		{
 			if (KEYCHECK_PRESS(ev->keys,KEY_DOWN))
 			{
-				MENU_INC(gMenusCurrentItemIndex, NUM_CONTACT_DETAILS_ITEMS);
+				menuSystemMenuIncrement(&gMenusCurrentItemIndex, NUM_CONTACT_DETAILS_ITEMS);
 			}
 			else
 			{
 				if (KEYCHECK_PRESS(ev->keys,KEY_UP))
 				{
-					MENU_DEC(gMenusCurrentItemIndex, NUM_CONTACT_DETAILS_ITEMS);
+					menuSystemMenuDecrement(&gMenusCurrentItemIndex, NUM_CONTACT_DETAILS_ITEMS);
 				}
 				else
 				{
@@ -222,13 +224,13 @@ static void handleEvent(uiEvent_t *ev)
 						switch(gMenusCurrentItemIndex)
 						{
 						case CONTACT_DETAILS_NAME:
-							moveCursorRightInString(contactName, &namePos, 16, (ev->buttons & BUTTON_SK2));
+							moveCursorRightInString(contactName, &namePos, 16, BUTTONCHECK_DOWN(ev, BUTTON_SK2));
 							updateCursor(true);
 							break;
 						case CONTACT_DETAILS_TG:
 							break;
 						case CONTACT_DETAILS_CALLTYPE:
-							MENU_INC(tmpContact.callType,3);
+							menuSystemMenuIncrement((int32_t *)&tmpContact.callType,3);
 							break;
 						case CONTACT_DETAILS_TS:
 							switch (tmpContact.reserve1 & 0x3)
@@ -254,7 +256,7 @@ static void handleEvent(uiEvent_t *ev)
 							switch(gMenusCurrentItemIndex)
 							{
 								case CONTACT_DETAILS_NAME:
-									moveCursorLeftInString(contactName, &namePos, (ev->buttons & BUTTON_SK2));
+									moveCursorLeftInString(contactName, &namePos, BUTTONCHECK_DOWN(ev, BUTTON_SK2));
 									updateCursor(true);
 									break;
 								case CONTACT_DETAILS_TG:
@@ -264,7 +266,7 @@ static void handleEvent(uiEvent_t *ev)
 									updateCursor(true);
 									break;
 								case CONTACT_DETAILS_CALLTYPE:
-									MENU_DEC(tmpContact.callType,3);
+									menuSystemMenuDecrement((int32_t *)&tmpContact.callType,3);
 									break;
 								case CONTACT_DETAILS_TS:
 									switch (tmpContact.reserve1 & 0x3)
@@ -297,7 +299,7 @@ static void handleEvent(uiEvent_t *ev)
 									tmpContact.tgNumber = atoi(digits);
 								}
 
-								if (tmpContact.tgNumber > 0 && tmpContact.tgNumber <= 9999999)
+								if (tmpContact.tgNumber > 0 && tmpContact.tgNumber <= MAX_TG_OR_PC_VALUE)// 9999999)
 								{
 									codeplugUtilConvertStringToBuf(contactName, tmpContact.name, 16);
 									if (contactDetailsIndex > 0 && contactDetailsIndex <= 1024)
@@ -342,7 +344,7 @@ static void handleEvent(uiEvent_t *ev)
 									if (gMenusCurrentItemIndex == CONTACT_DETAILS_TG)
 									{
 										// Add a digit
-										if (sLen < 7)
+										if (sLen < NUM_PC_OR_TG_DIGITS)
 										{
 											int keyval = menuGetKeypadKeyValue(ev, true);
 

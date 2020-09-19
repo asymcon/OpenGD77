@@ -21,19 +21,8 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
-
-#include "common.h"
-#include "hr-c6000_spi.h"
-#include "trx.h"
-#include "fsl_sai.h"
-#include "fsl_sai_edma.h"
 #include "i2s.h"
-#include "pit.h"
-#include "wdog.h"
 
-//extern const uint8_t sine_beep[];
-//extern volatile int sine_beep_freq;
-// volatile int sine_beep_duration;
 
 extern int melody_generic[512];
 extern const int melody_poweron[];
@@ -49,6 +38,7 @@ extern const int melody_tx_timeout_beep[];
 extern const int melody_private_call[];
 extern const int melody_dmr_tx_start_beep[];
 extern const int melody_dmr_tx_stop_beep[];
+extern const int melody_key_beep_first_item[];
 extern volatile int *melody_play;
 extern volatile int melody_idx;
 extern volatile int micAudioSamplesTotal;
@@ -63,6 +53,7 @@ extern union sharedDataBuffer
 {
 	volatile uint8_t wavbuffer[WAV_BUFFER_COUNT][WAV_BUFFER_SIZE];
 	volatile uint8_t hotspotBuffer[HOTSPOT_BUFFER_COUNT][HOTSPOT_BUFFER_SIZE];
+	volatile uint8_t rawBuffer[HOTSPOT_BUFFER_COUNT * HOTSPOT_BUFFER_SIZE];
 } audioAndHotspotDataBuffer;
 
 extern volatile int wavbuffer_read_idx;
@@ -80,25 +71,25 @@ extern volatile bool g_TX_SAI_in_use;
 extern uint8_t *spi_soundBuf;
 extern sai_transfer_t xfer;
 
-void init_sound(void);
-void terminate_sound(void);
-void set_melody(const int *melody);
-int get_freq(int tone);
-void create_song(const uint8_t *melody);
-void fw_init_beep_task(void);
-void send_sound_data(void);
-void receive_sound_data(void);
-void store_soundbuffer(void);
-void retrieve_soundbuffer(void);
-void tick_RXsoundbuffer(void);
-void setup_soundBuffer(void);
-void tick_melody(void);
-void fw_beep_task(void *data);
+void soundInit(void);
+void soundTerminateSound(void);
+void soundSetMelody(const int *melody);
+void soundCreateSong(const uint8_t *melody);
+void soundInitBeepTask(void);
+void soundSendData(void);
+void soundReceiveData(void);
+void soundStoreBuffer(void);
+void soundRetrieveBuffer(void);
+void soundTickRXBuffer(void);
+void soundSetupBuffer(void);
+void soundTickMelody(void);
+
 
 //bit masks to track amp usage
-#define AUDIO_AMP_MODE_NONE 0B00000000
-#define AUDIO_AMP_MODE_BEEP 0B00000001
-#define AUDIO_AMP_MODE_RF 	0B00000010
+#define AUDIO_AMP_MODE_NONE 	0B00000000
+#define AUDIO_AMP_MODE_BEEP 	0B00000001
+#define AUDIO_AMP_MODE_RF 		0B00000010
+#define AUDIO_AMP_MODE_PROMPT 	0B00000100
 
 
 uint8_t getAudioAmpStatus(void);

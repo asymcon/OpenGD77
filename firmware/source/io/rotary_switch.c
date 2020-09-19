@@ -19,8 +19,6 @@
  */
 
 #include <rotary_switch.h>
-#include <settings.h>
-#include <usb_com.h>
 
 #if defined(PLATFORM_GD77S)
 static uint8_t prevPosition;
@@ -28,16 +26,10 @@ static uint8_t prevPosition;
 
 void rotarySwitchInit(void)
 {
-#if defined(PLATFORM_GD77S)
-	PORT_SetPinMux(Port_RotarySW_Line0, Pin_RotarySW_Line0, kPORT_MuxAsGpio);
-	PORT_SetPinMux(Port_RotarySW_Line1, Pin_RotarySW_Line1, kPORT_MuxAsGpio);
-	PORT_SetPinMux(Port_RotarySW_Line2, Pin_RotarySW_Line2, kPORT_MuxAsGpio);
-	PORT_SetPinMux(Port_RotarySW_Line3, Pin_RotarySW_Line3, kPORT_MuxAsGpio);
 
-	GPIO_PinInit(GPIO_RotarySW_Line0, Pin_RotarySW_Line0, &pin_config_input);
-	GPIO_PinInit(GPIO_RotarySW_Line1, Pin_RotarySW_Line1, &pin_config_input);
-	GPIO_PinInit(GPIO_RotarySW_Line2, Pin_RotarySW_Line2, &pin_config_input);
-	GPIO_PinInit(GPIO_RotarySW_Line3, Pin_RotarySW_Line3, &pin_config_input);
+#if defined(PLATFORM_GD77S)
+
+	gpioInitRotarySwitch();
 
 	prevPosition = -1;
 #endif

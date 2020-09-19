@@ -26,6 +26,43 @@ edma_handle_t g_EDMA_RX_Handle;
 
 sai_edma_handle_t g_SAI_TX_Handle;
 sai_edma_handle_t g_SAI_RX_Handle;
+volatile bool g_TX_SAI_in_use = false;
+
+void I2STransferTransmit(uint8_t *buff,size_t bufferLen)
+{
+	sai_transfer_t xfer = {
+			.data = buff,
+			.dataSize = bufferLen
+	};
+
+	SAI_TransferSendEDMA(I2S0, &g_SAI_TX_Handle, &xfer);
+	g_TX_SAI_in_use = true;
+}
+
+void I2STransferReceive(uint8_t *buff,size_t bufferLen)
+{
+	sai_transfer_t xfer = {
+			.data = buff,
+			.dataSize = bufferLen
+	};
+
+	SAI_TransferReceiveEDMA(I2S0, &g_SAI_RX_Handle, &xfer);
+}
+
+void I2SReset(void)
+{
+    g_TX_SAI_in_use = false;
+    SAI_TxSoftwareReset(I2S0, kSAI_ResetAll);
+	SAI_TxEnable(I2S0, true);
+    SAI_RxSoftwareReset(I2S0, kSAI_ResetAll);
+	SAI_RxEnable(I2S0, true);
+}
+
+void I2STerminateTransfers(void)
+{
+    SAI_TransferTerminateSendEDMA(I2S0, &g_SAI_TX_Handle);
+    SAI_TransferTerminateSendEDMA(I2S0, &g_SAI_RX_Handle);
+}
 
 void init_I2S(void)
 {
@@ -48,12 +85,12 @@ void init_I2S(void)
 void SAI_TX_Callback(I2S_Type *base, sai_edma_handle_t *handle, status_t status, void *userData)
 {
 	g_TX_SAI_in_use = false;
-	send_sound_data();
+	soundSendData();
 }
 
 void SAI_RX_Callback(I2S_Type *base, sai_edma_handle_t *handle, status_t status, void *userData)
 {
-	receive_sound_data();
+	soundReceiveData();
 }
 
 void setup_I2S(void)
@@ -104,7 +141,7 @@ void setup_I2S(void)
     SAI_TX_format.bitWidth = kSAI_WordWidth16bits;
     SAI_TX_format.stereo = kSAI_Stereo;
     SAI_TX_format.masterClockHz = 512 * SAI_TX_format.sampleRate_Hz;
-    SAI_TX_format.watermark = 4;
+    SAI_TX_format.watermark = NUM_I2S_BUFFERS;
     SAI_TX_format.channel = 0;
     SAI_TX_format.protocol = kSAI_BusI2S;
     SAI_TransferTxSetFormatEDMA(I2S0, &g_SAI_TX_Handle, &SAI_TX_format, SAI_TX_format.masterClockHz, SAI_TX_format.masterClockHz);
@@ -114,7 +151,7 @@ void setup_I2S(void)
     SAI_RX_format.bitWidth = kSAI_WordWidth16bits;
     SAI_RX_format.stereo = kSAI_Stereo;
     SAI_RX_format.masterClockHz = 512 * SAI_RX_format.sampleRate_Hz;
-    SAI_RX_format.watermark = 4;
+    SAI_RX_format.watermark = NUM_I2S_BUFFERS;
     SAI_RX_format.channel = 1;
     SAI_RX_format.protocol = kSAI_BusI2S;
     SAI_TransferTxSetFormatEDMA(I2S0, &g_SAI_RX_Handle, &SAI_RX_format, SAI_RX_format.masterClockHz, SAI_RX_format.masterClockHz);

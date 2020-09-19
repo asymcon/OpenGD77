@@ -23,6 +23,7 @@
 #include <user_interface/menuSystem.h>
 #include <user_interface/uiUtilities.h>
 #include <user_interface/uiLocalisation.h>
+#include <functions/voicePrompts.h>
 
 
 #if defined(USE_SEGGER_RTT)
@@ -39,33 +40,32 @@
 
 bool PTTToggledDown = false; // PTT toggle feature
 
-void fw_main_task(void *data);
+void mainTask(void *data);
 #if defined(READ_CPUID)
 void debugReadCPUID(void);
 #endif
 
-const char *FIRMWARE_VERSION_STRING = "VK3KYY";//"V0.3.5";
-TaskHandle_t fwMainTaskHandle;
+TaskHandle_t mainTaskHandle;
 
 #if defined(PLATFORM_GD77S)
 static uint32_t lowbatteryTimerForGD77S = 0;
 static const int LOW_BATTERY_INTERVAL_GD77S = ((1000 * 60) * 5); // 5 minutes;
 #endif
 
-void fw_init(void)
+void mainTaskInit(void)
 {
-	xTaskCreate(fw_main_task,                    /* pointer to the task */
+	xTaskCreate(mainTask,                    /* pointer to the task */
 			"fw main task",                      /* task name for kernel awareness debugging */
 			5000L / sizeof(portSTACK_TYPE),      /* task stack size */
 			NULL,                      			 /* optional task startup argument */
 			6U,                                  /* initial priority */
-			fwMainTaskHandle					 /* optional task handle to create */
+			mainTaskHandle					 /* optional task handle to create */
 	);
 
 	vTaskStartScheduler();
 }
 
-void fw_powerOffFinalStage(void)
+void powerOffFinalStage(void)
 {
 	uint32_t m;
 
@@ -103,8 +103,7 @@ void fw_powerOffFinalStage(void)
 #endif
 }
 
-
-static void show_lowbattery(void)
+static void showLowBattery(void)
 {
 	ucClearBuf();
 	ucPrintCentered(32, currentLanguage->low_battery, FONT_SIZE_3);
@@ -118,7 +117,44 @@ static void showErrorMessage(char *message)
 	ucRender();
 }
 
-void fw_main_task(void *data)
+
+static void keyBeepHandler(uiEvent_t *ev, bool PTTToggledDown)
+{
+	// Do not send any beep while scanning, otherwise enabling the AMP will be handled as a valid signal detection.
+	if (((ev->keys.event & (KEY_MOD_LONG | KEY_MOD_PRESS)) == (KEY_MOD_LONG | KEY_MOD_PRESS)) ||
+			((ev->keys.event & KEY_MOD_UP) == KEY_MOD_UP))
+	{
+		if ((PTTToggledDown == false) && (uiVFOModeIsScanning() == false) && (uiChannelModeIsScanning() == false))
+		{
+			if ((nonVolatileSettings.audioPromptMode == AUDIO_PROMPT_MODE_BEEP) || (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1))
+			{
+				soundSetMelody(nextKeyBeepMelody);
+			}
+			else
+			{
+				soundSetMelody(melody_key_beep);
+			}
+			nextKeyBeepMelody = (int *)melody_key_beep;// set back to the default beep
+		}
+		else
+		{ 	// Reset the beep sound if we are scanning, otherwise the AudioAssist
+			// beep will be played instead of the normal one.
+			soundSetMelody(melody_key_beep);
+		}
+	}
+	else
+	{
+		if ((ev->keys.event & (KEY_MOD_LONG | KEY_MOD_DOWN)) == (KEY_MOD_LONG | KEY_MOD_DOWN))
+		{
+			if ((PTTToggledDown == false) && (uiVFOModeIsScanning() == false) && (uiChannelModeIsScanning() == false))
+			{
+				soundSetMelody(melody_key_long_beep);
+			}
+		}
+	}
+}
+
+void mainTask(void *data)
 {
 	keyboardCode_t keys;
 	int key_event;
@@ -134,15 +170,15 @@ void fw_main_task(void *data)
 	USB_DeviceApplicationInit();
 
 	// Init I2C
-	init_I2C0a();
-	setup_I2C0();
-	fw_init_common();
+	I2C0aInit();
+	gpioInitCommon();
 	buttonsInit();
-	fw_init_LEDs();
+	LEDsInit();
 	keyboardInit();
 	rotarySwitchInit();
 
-	buttonsCheckButtonsEvent(&buttons, &button_event);// Read button state and event
+	buttonsCheckButtonsEvent(&buttons, &button_event, false);// Read button state and event
+
 	if (buttons & BUTTON_SK2)
 	{
 		settingsRestoreDefaultSettings();
@@ -153,23 +189,20 @@ void fw_main_task(void *data)
 	displayInit(nonVolatileSettings.displayInverseVideo);
 
 	// Init SPI
-	init_SPI();
-	setup_SPI0();
-	setup_SPI1();
+	SPIInit();
 
 	// Init I2S
 	init_I2S();
 	setup_I2S();
 
 	// Init ADC
-	adc_init();
+	adcInit();
 
 	// Init DAC
 	dac_init();
 
-	SPI_Flash_init();
-
-	if (!checkAndCopyCalibrationToCommonLocation())
+	// We shouldn't go further if calibration related initialization has failed
+	if ((SPI_Flash_init() == false) || (calibrationInit() == false) || (calibrationCheckAndCopyToCommonLocation(false) == false))
 	{
 		showErrorMessage("CAL DATA ERROR");
 		while(1U)
@@ -179,20 +212,17 @@ void fw_main_task(void *data)
 	}
 
 	// Init AT1846S
-	I2C_AT1846S_init();
+	AT1846Init();
 
 	// Init HR-C6000
 	SPI_HR_C6000_init();
 
 	// Additional init stuff
 	SPI_C6000_postinit();
-	I2C_AT1846_Postinit();
+	AT1846Postinit();
 
 	// Init HR-C6000 interrupts
 	init_HR_C6000_interrupts();
-
-	// Speech Synthesis (GD77S Only)
-	speechSynthesisInit();
 
 	// VOX init
 	voxInit();
@@ -204,9 +234,9 @@ void fw_main_task(void *data)
 
 	trx_measure_count = 0;
 
-	if (get_battery_voltage() < CUTOFF_VOLTAGE_UPPER_HYST)
+	if (adcGetBatteryVoltage() < CUTOFF_VOLTAGE_UPPER_HYST)
 	{
-		show_lowbattery();
+		showLowBattery();
 #if !defined(PLATFORM_RD5R)
 		GPIO_PinWrite(GPIO_Keep_Power_On, Pin_Keep_Power_On, 0);
 #endif
@@ -218,7 +248,7 @@ void fw_main_task(void *data)
 	menuBatteryInit(); // Initialize circular buffer
 	init_watchdog(menuBatteryPushBackVoltage);
 
-	fw_init_beep_task();
+	soundInitBeepTask();
 
 #if defined(USE_SEGGER_RTT)
 	SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_NO_BLOCK_TRIM);
@@ -238,19 +268,37 @@ void fw_main_task(void *data)
 	lastheardInitList();
 	codeplugInitContactsCache();
 	dmrIDCacheInit();
+	voicePromptsCacheInit();
 
 	// Should be initialized before the splash screen, as we don't want melodies when VOX is enabled
 	voxSetParameters(nonVolatileSettings.voxThreshold, nonVolatileSettings.voxTailUnits);
 
-	menuInitMenuSystem();
-
 #if defined(PLATFORM_GD77S)
-	// Change hotspot modem type setting
-	if (buttons & BUTTON_SK1)
+	// Those act as a toggles
+
+	// Band limits
+	if ((buttons & (BUTTON_SK1 | BUTTON_PTT)) == (BUTTON_SK1 | BUTTON_PTT))
 	{
-		nonVolatileSettings.hotspotType = (buttons & BUTTON_PTT) ? HOTSPOT_TYPE_BLUEDV : HOTSPOT_TYPE_MMDVM;
+		nonVolatileSettings.txFreqLimited = !nonVolatileSettings.txFreqLimited;
+
+		voicePromptsInit();
+		voicePromptsAppendLanguageString(&currentLanguage->band_limits);
+		voicePromptsAppendLanguageString(nonVolatileSettings.txFreqLimited ? &currentLanguage->on : &currentLanguage->off);
+		voicePromptsPlay();
+	}
+	// Hotspot mode
+	else if ((buttons & BUTTON_SK1) == BUTTON_SK1)
+	{
+		nonVolatileSettings.hotspotType = (nonVolatileSettings.hotspotType == HOTSPOT_TYPE_MMDVM) ? HOTSPOT_TYPE_BLUEDV : HOTSPOT_TYPE_MMDVM;
+
+		voicePromptsInit();
+		voicePromptsAppendLanguageString(&currentLanguage->hotspot_mode);
+		voicePromptsAppendString((nonVolatileSettings.hotspotType == HOTSPOT_TYPE_MMDVM) ? "MMDVM" : "BlueDV");
+		voicePromptsPlay();
 	}
 #endif
+
+	menuInitMenuSystem();
 
 	// Reset buttons/key states in case some where pressed while booting.
 	button_event = EVENT_BUTTON_NONE;
@@ -273,9 +321,9 @@ void fw_main_task(void *data)
 
 			tick_com_request();
 
-			buttonsCheckButtonsEvent(&buttons, &button_event); // Read button state and event
-
 			keyboardCheckKeyEvent(&keys, &key_event); // Read keyboard state and event
+
+			buttonsCheckButtonsEvent(&buttons, &button_event, (keys.key != 0)); // Read button state and event
 
 			rotarySwitchCheckRotaryEvent(&rotary, &rotary_event); // Rotary switch state and event (GD-77S only)
 
@@ -289,17 +337,17 @@ void fw_main_task(void *data)
 				}
 				else
 				{
-					if (!trxIsTransmitting && voxIsTriggered() && ((buttons & BUTTON_PTT) == 0))
+					if (!trxTransmissionEnabled && voxIsTriggered() && ((buttons & BUTTON_PTT) == 0))
 					{
 						button_event = EVENT_BUTTON_CHANGE;
 						buttons |= BUTTON_PTT;
 					}
-					else if (trxIsTransmitting && ((voxIsTriggered() == false) || (keys.event & KEY_MOD_PRESS)))
+					else if (trxTransmissionEnabled && ((voxIsTriggered() == false) || (keys.event & KEY_MOD_PRESS)))
 					{
 						button_event = EVENT_BUTTON_CHANGE;
 						buttons &= ~BUTTON_PTT;
 					}
-					else if (trxIsTransmitting && voxIsTriggered())
+					else if (trxTransmissionEnabled && voxIsTriggered())
 					{
 						// Any key/button event reset the vox
 						if ((button_event != EVENT_BUTTON_NONE) || (keys.event != EVENT_KEY_NONE))
@@ -381,7 +429,7 @@ void fw_main_task(void *data)
 				{
 					if ((buttons & BUTTON_PTT) && (button_event == EVENT_BUTTON_CHANGE))
 					{
-						set_melody(melody_ERROR_beep);
+						soundSetMelody(melody_ERROR_beep);
 
 						if (menuSystemGetCurrentMenuNumber() != UI_LOCK_SCREEN)
 						{
@@ -405,22 +453,6 @@ void fw_main_task(void *data)
 #if ! defined(PLATFORM_GD77S)
 			if ((key_event == EVENT_KEY_CHANGE) && ((buttons & BUTTON_PTT) == 0) && (keys.key != 0))
 			{
-				// Do not send any beep while scanning, otherwise enabling the AMP will be handled as a valid signal detection.
-				if (keys.event & KEY_MOD_PRESS)
-				{
-					if ((PTTToggledDown == false) && (uiVFOModeIsScanning() == false) && (uiChannelModeIsScanning() == false))
-					{
-						set_melody(melody_key_beep);
-					}
-				}
-				else if ((keys.event & (KEY_MOD_LONG | KEY_MOD_DOWN)) == (KEY_MOD_LONG | KEY_MOD_DOWN))
-				{
-					if ((PTTToggledDown == false) && (uiVFOModeIsScanning() == false) && (uiChannelModeIsScanning() == false))
-					{
-						set_melody(melody_key_long_beep);
-					}
-				}
-
 				if (KEYCHECK_LONGDOWN(keys, KEY_RED) && (uiVFOModeIsScanning() == false) && (uiChannelModeIsScanning() == false))
 				{
 					contactListContactIndex = 0;
@@ -526,7 +558,7 @@ void fw_main_task(void *data)
 					{
 						bool wasScanning = false;
 
-						if (toneScanActive)
+						if (scanToneActive)
 						{
 							uiVFOModeStopScanning();
 						}
@@ -569,7 +601,7 @@ void fw_main_task(void *data)
 				}
 			}
 
-			if (!trxIsTransmitting && updateLastHeard==true)
+			if (!trxTransmissionEnabled && updateLastHeard==true)
 			{
 				lastHeardListUpdate((uint8_t *)DMR_frame_buffer, false);
 				updateLastHeard=false;
@@ -583,7 +615,7 @@ void fw_main_task(void *data)
 				{
 					menuClearPrivateCall();
 				}
-				if (!trxIsTransmitting && menuDisplayQSODataState == QSO_DISPLAY_CALLER_DATA && nonVolatileSettings.privateCalls == true)
+				if (!trxTransmissionEnabled && menuDisplayQSODataState == QSO_DISPLAY_CALLER_DATA && nonVolatileSettings.privateCalls == true)
 				{
 					if (HRC6000GetReceivedTgOrPcId() == (trxDMRID | (PC_CALL_FLAG<<24)))
 					{
@@ -601,10 +633,10 @@ void fw_main_task(void *data)
 			}
 
 #if defined(PLATFORM_GD77S) && defined(READ_CPUID)
-	if ((buttons & (BUTTON_SK1 | BUTTON_ORANGE | BUTTON_PTT)) == (BUTTON_SK1 | BUTTON_ORANGE | BUTTON_PTT))
-	{
-		debugReadCPUID();
-	}
+			if ((buttons & (BUTTON_SK1 | BUTTON_ORANGE | BUTTON_PTT)) == (BUTTON_SK1 | BUTTON_ORANGE | BUTTON_PTT))
+			{
+				debugReadCPUID();
+			}
 #endif
 
 			ev.function = 0;
@@ -680,7 +712,45 @@ void fw_main_task(void *data)
 			ev.hasEvent = keyOrButtonChanged || function_event;
 			ev.time = fw_millis();
 
+			/*
+			 * We probably can't terminate voice prompt playback in main, because some screens need to a follow-on playback if the prompt was playing when a button was pressed
+			 *
+			if ((nonVolatileSettings.audioPromptMode == AUDIO_PROMPT_MODE_SILENT || voicePromptIsActive)   && (ev.keys.event & KEY_MOD_DOWN))
+			{
+				voicePromptsTerminate();
+			}
+			*/
+
 			menuSystemCallCurrentMenuTick(&ev);
+
+			// Beep sounds aren't allowed in these modes.
+			if ((nonVolatileSettings.audioPromptMode == AUDIO_PROMPT_MODE_SILENT || voicePromptIsActive) /*|| (nonVolatileSettings.audioPromptMode == AUDIO_PROMPT_MODE_VOICE)*/)
+			{
+				if (melody_play != NULL)
+				{
+					melody_play = NULL;
+				}
+
+				// AMBE thing, if any
+				if ((buttons & BUTTON_PTT) == 0)
+				{
+
+				}
+			}
+			else
+			{
+				if ((((key_event == EVENT_KEY_CHANGE) || (button_event == EVENT_BUTTON_CHANGE))
+						&& ((buttons & BUTTON_PTT) == 0) && (ev.keys.key != 0))
+						|| (function_event == FUNCTION_EVENT))
+				{
+					if (function_event == FUNCTION_EVENT)
+					{
+						ev.keys.event |= KEY_MOD_UP;
+					}
+
+					keyBeepHandler(&ev, PTTToggledDown);
+				}
+			}
 
 #if defined(PLATFORM_RD5R)
 			if (keyFunction == TOGGLE_TORCH)
@@ -693,13 +763,12 @@ void fw_main_task(void *data)
 			if ((battery_voltage < (CUTOFF_VOLTAGE_LOWER_HYST + 6))
 					&& ((lowbatteryTimerForGD77S == 0) || ((fw_millis() - lowbatteryTimerForGD77S) > LOW_BATTERY_INTERVAL_GD77S)))
 			{
-				uint8_t buf[2];
+				//uint8_t buf[2];
 
 				lowbatteryTimerForGD77S = fw_millis();
 
-				buf[0U] = 1;
-				buf[1U] = SPEECH_SYNTHESIS_PLEASE_CHARGE_THE_BATTERY;
-				speechSynthesisSpeak(buf);
+				voicePromptsAppendLanguageString(&currentLanguage->low_battery);
+				voicePromptsPlay();
 			}
 #endif
 
@@ -714,13 +783,13 @@ void fw_main_task(void *data)
 			{
 				if (battery_voltage < CUTOFF_VOLTAGE_LOWER_HYST)
 				{
-					show_lowbattery();
+					showLowBattery();
 #if defined(PLATFORM_RD5R)
-					fw_powerOffFinalStage();
+					powerOffFinalStage();
 #else
 					if (GPIO_PinRead(GPIO_Power_Switch, Pin_Power_Switch) != 0)
 					{
-						fw_powerOffFinalStage();
+						powerOffFinalStage();
 					}
 #endif
 				}
@@ -729,7 +798,7 @@ void fw_main_task(void *data)
 					menuSystemPushNewMenu(UI_POWER_OFF);
 				}
 				GPIO_PinWrite(GPIO_audio_amp_enable, Pin_audio_amp_enable, 0);
-				set_melody(NULL);
+				soundSetMelody(NULL);
 			}
 
 			if (((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO)
@@ -747,8 +816,12 @@ void fw_main_task(void *data)
 					displayEnableBacklight(false);
 				}
 			}
-			tick_melody();
-			speechSynthesisTick();
+
+			if (voicePromptsIsPlaying())
+			{
+				voicePromptsTick();
+			}
+			soundTickMelody();
 			voxTick();
 		}
 		vTaskDelay(0);

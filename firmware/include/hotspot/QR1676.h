@@ -20,7 +20,6 @@
 #ifndef _DMR_QR1676_H_
 #define _DMR_QR1676_H_
 
-#include "main.h"
 
 void CQR1676_encode(unsigned char* data);
 unsigned char CQR1676_decode(const unsigned char* data);

@@ -1017,7 +1017,7 @@ void ucDrawChoice(ucChoice_t choice, bool clearRegion)
 	} choices[] =
 	{
 			{ "OK" 							 , NULL                              }, // UC1701_CHOICE_OK
-			{ (char *)currentLanguage->YES   , (char *)currentLanguage->NO       }, // UC1701_CHOICE_YESNO
+			{ (char *)currentLanguage->yes___in_uppercase   , (char *)currentLanguage->no___in_uppercase       }, // UC1701_CHOICE_YESNO
 			{ NULL						     , (char *)currentLanguage->DISMISS  }  // UC1701_CHOICE_DISMISS
 	};
 	char *lText = NULL;

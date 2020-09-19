@@ -21,8 +21,10 @@
 #include <user_interface/uiUtilities.h>
 #include <wdog.h>
 
-static void updateScreen(void);
+static void updateScreen(bool isFirstRun);
 static void handleEvent(uiEvent_t *ev);
+
+static menuStatus_t menuOptionsExitCode = MENU_STATUS_SUCCESS;
 static bool	doFactoryReset;
 enum OPTIONS_MENU_LIST { OPTIONS_MENU_HOTSPOT_TYPE = 0, OPTIONS_MENU_FACTORY_RESET, OPTIONS_MENU_USE_CALIBRATION,
 							OPTIONS_MENU_TX_FREQ_LIMITS,
@@ -33,28 +35,46 @@ enum OPTIONS_MENU_LIST { OPTIONS_MENU_HOTSPOT_TYPE = 0, OPTIONS_MENU_FACTORY_RES
 							OPTIONS_MENU_PRIVATE_CALLS,
 							NUM_OPTIONS_MENU_ITEMS};
 
-int menuOptions(uiEvent_t *ev, bool isFirstRun)
+menuStatus_t menuOptions(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
 		doFactoryReset=false;
 		// Store original settings, used on cancel event.
 		memcpy(&originalNonVolatileSettings, &nonVolatileSettings, sizeof(settingsStruct_t));
-		updateScreen();
+
+		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+		{
+			voicePromptsInit();
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+			voicePromptsAppendLanguageString(&currentLanguage->options);
+			voicePromptsAppendLanguageString(&currentLanguage->menu);
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+		}
+
+		updateScreen(true);
+		return (MENU_STATUS_LIST_TYPE | MENU_STATUS_SUCCESS);
 	}
 	else
 	{
+		menuOptionsExitCode = MENU_STATUS_SUCCESS;
+
 		if (ev->hasEvent)
 			handleEvent(ev);
 	}
-	return 0;
+	return menuOptionsExitCode;
 }
 
-static void updateScreen(void)
+static void updateScreen(bool isFirstRun)
 {
 	int mNum = 0;
 	static const int bufferLen = 17;
 	char buf[bufferLen];
+	char * const *leftSide = NULL;// initialise to please the compiler
+	char * const *rightSideConst = NULL;// initialise to please the compiler
+	char rightSideVar[bufferLen];
 
 	ucClearBuf();
 	menuDisplayTitle(currentLanguage->options);
@@ -64,83 +84,104 @@ static void updateScreen(void)
 	{
 		mNum = menuGetMenuOffset(NUM_OPTIONS_MENU_ITEMS, i);
 		buf[0] = 0;
+		rightSideVar[0] = 0;
 
 		switch(mNum)
 		{
 			case OPTIONS_MENU_HOTSPOT_TYPE:
-			{
-				const char *hsTypes[] = { currentLanguage->off, "MMDVM", "BlueDV" };
-				snprintf(buf, bufferLen, "Hotspot:%s", hsTypes[nonVolatileSettings.hotspotType]);
-			}
-			break;
+				leftSide = (char * const *)&currentLanguage->hotspot_mode;
+				{
+					const char *hsTypes[] = {"MMDVM", "BlueDV" };
+					if (nonVolatileSettings.hotspotType==0)
+					{
+						rightSideConst = (char * const *)&currentLanguage->off;
+					}
+					else
+					{
+						snprintf(rightSideVar, bufferLen, "%s", hsTypes[nonVolatileSettings.hotspotType-1]);
+					}
+				}
+				break;
 			case OPTIONS_MENU_FACTORY_RESET:
-				if (doFactoryReset == true)
-				{
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->factory_reset, currentLanguage->yes);
-				}
-				else
-				{
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->factory_reset, currentLanguage->no);
-				}
+				leftSide = (char * const *)&currentLanguage->factory_reset;
+				rightSideConst = (char * const *)(doFactoryReset ? &currentLanguage->yes : &currentLanguage->no);
 				break;
 			case OPTIONS_MENU_USE_CALIBRATION:
-				if (nonVolatileSettings.useCalibration)
-				{
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->calibration, currentLanguage->on);
-				}
-				else
-				{
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->calibration, currentLanguage->off);
-				}
+				leftSide = (char * const *)&currentLanguage->calibration;
+				rightSideConst = (char * const *)(nonVolatileSettings.useCalibration ? &currentLanguage->on : &currentLanguage->off);
 				break;
 			case OPTIONS_MENU_TX_FREQ_LIMITS:// Tx Freq limits
-				if (nonVolatileSettings.txFreqLimited)
-				{
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->band_limits, currentLanguage->on);
-				}
-				else
-				{
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->band_limits, currentLanguage->off);
-				}
+				leftSide = (char * const *)&currentLanguage->band_limits;
+				rightSideConst = (char * const *)(nonVolatileSettings.txFreqLimited ? &currentLanguage->on : &currentLanguage->off);
 				break;
 			case OPTIONS_MENU_KEYPAD_TIMER_LONG:// Timer longpress
-				snprintf(buf, bufferLen, "%s:%1d.%1ds", currentLanguage->key_long, nonVolatileSettings.keypadTimerLong / 10, nonVolatileSettings.keypadTimerLong % 10);
+				leftSide = (char * const *)&currentLanguage->key_long;
+				snprintf(rightSideVar, bufferLen, "%1d.%1ds", nonVolatileSettings.keypadTimerLong / 10, nonVolatileSettings.keypadTimerLong % 10);
 				break;
 			case OPTIONS_MENU_KEYPAD_TIMER_REPEAT:// Timer repeat
-				snprintf(buf, bufferLen, "%s:%1d.%1ds", currentLanguage->key_repeat, nonVolatileSettings.keypadTimerRepeat/10, nonVolatileSettings.keypadTimerRepeat % 10);
+				leftSide = (char * const *)&currentLanguage->key_repeat;
+				snprintf(rightSideVar, bufferLen, "%1d.%1ds", nonVolatileSettings.keypadTimerRepeat/10, nonVolatileSettings.keypadTimerRepeat % 10);
 				break;
 			case OPTIONS_MENU_DMR_MONITOR_CAPTURE_TIMEOUT:// DMR filtr timeout repeat
-				snprintf(buf, bufferLen, "%s:%ds", currentLanguage->dmr_filter_timeout, nonVolatileSettings.dmrCaptureTimeout);
+				leftSide = (char * const *)&currentLanguage->dmr_filter_timeout;
+				snprintf(rightSideVar, bufferLen, "%ds", nonVolatileSettings.dmrCaptureTimeout);
 				break;
 			case OPTIONS_MENU_SCAN_DELAY:// Scan hold and pause time
-				snprintf(buf, bufferLen, "%s:%ds", currentLanguage->scan_delay, nonVolatileSettings.scanDelay);
+				leftSide = (char * const *)&currentLanguage->scan_delay;
+				snprintf(rightSideVar, bufferLen, "%ds", nonVolatileSettings.scanDelay);
 				break;
 			case OPTIONS_MENU_SCAN_MODE:// scanning mode
+				leftSide = (char * const *)&currentLanguage->scan_mode;
 				{
-					const char *scanModes[] = { currentLanguage->hold, currentLanguage->pause, currentLanguage->stop };
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->scan_mode, scanModes[nonVolatileSettings.scanModePause]);
+					const char * const *scanModes[] = { &currentLanguage->hold, &currentLanguage->pause, &currentLanguage->stop };
+					rightSideConst = (char * const *)scanModes[nonVolatileSettings.scanModePause];
 				}
 				break;
 			case OPTIONS_MENU_SQUELCH_DEFAULT_VHF:
-				snprintf(buf, bufferLen, "%s VHF:%d%%", currentLanguage->squelch, (nonVolatileSettings.squelchDefaults[RADIO_BAND_VHF] - 1) * 5);// 5% steps
+				leftSide = (char * const *)&currentLanguage->squelch_VHF;
+				snprintf(rightSideVar, bufferLen, "%d%%", (nonVolatileSettings.squelchDefaults[RADIO_BAND_VHF] - 1) * 5);// 5% steps
 				break;
 			case OPTIONS_MENU_SQUELCH_DEFAULT_220MHz:
-				snprintf(buf, bufferLen, "%s 220:%d%%", currentLanguage->squelch, (nonVolatileSettings.squelchDefaults[RADIO_BAND_220MHz] - 1) * 5);// 5% steps
+				leftSide = (char * const *)&currentLanguage->squelch_220;
+				snprintf(rightSideVar, bufferLen, "%d%%", (nonVolatileSettings.squelchDefaults[RADIO_BAND_220MHz] - 1) * 5);// 5% steps
 				break;
 			case OPTIONS_MENU_SQUELCH_DEFAULT_UHF:
-				snprintf(buf, bufferLen, "%s UHF:%d%%", currentLanguage->squelch, (nonVolatileSettings.squelchDefaults[RADIO_BAND_UHF] - 1) * 5);// 5% steps
+				leftSide = (char * const *)&currentLanguage->squelch_UHF;
+				snprintf(rightSideVar, bufferLen, "%d%%", (nonVolatileSettings.squelchDefaults[RADIO_BAND_UHF] - 1) * 5);// 5% steps
 				break;
 			case OPTIONS_MENU_PTT_TOGGLE:
-				snprintf(buf, bufferLen, "%s:%s", currentLanguage->ptt_toggle, (nonVolatileSettings.pttToggle ? currentLanguage->on : currentLanguage->off));
+				leftSide = (char * const *)&currentLanguage->ptt_toggle;
+				rightSideConst = (char * const *)(nonVolatileSettings.pttToggle ? &currentLanguage->on : &currentLanguage->off);
 				break;
 			case OPTIONS_MENU_TALKER_ALIAS_TX:
-				snprintf(buf, bufferLen, "TA Tx:%s",(nonVolatileSettings.transmitTalkerAlias ? currentLanguage->on : currentLanguage->off));
+				leftSide = (char * const *)&currentLanguage->transmitTalkerAlias;
+				rightSideConst = (char * const *)(nonVolatileSettings.transmitTalkerAlias ? &currentLanguage->on : &currentLanguage->off);
 				break;
 			case OPTIONS_MENU_PRIVATE_CALLS:
-				snprintf(buf, bufferLen, "%s:%s", currentLanguage->private_call_handling, (nonVolatileSettings.privateCalls ? currentLanguage->on : currentLanguage->off));
+				leftSide = (char * const *)&currentLanguage->private_call_handling;
+				rightSideConst = (char * const *)(nonVolatileSettings.privateCalls ? &currentLanguage->on : &currentLanguage->off);
 				break;
 		}
 
+		snprintf(buf, bufferLen, "%s:%s", *leftSide, (rightSideVar[0]?rightSideVar:*rightSideConst));
+
+		if (i==0 && nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+		{
+			if (!isFirstRun)
+			{
+				voicePromptsInit();
+			}
+			voicePromptsAppendLanguageString((const char * const *)leftSide);
+			if (rightSideVar[0] !=0)
+			{
+				voicePromptsAppendString(rightSideVar);
+			}
+			else
+			{
+				voicePromptsAppendLanguageString((const char * const *)rightSideConst);
+			}
+			voicePromptsPlay();
+		}
 		buf[bufferLen - 1] = 0;
 		menuDisplayEntry(i, mNum, buf);
 	}
@@ -151,18 +192,24 @@ static void updateScreen(void)
 
 static void handleEvent(uiEvent_t *ev)
 {
+	bool isDirty = false;
 	displayLightTrigger();
 
 	if (KEYCHECK_PRESS(ev->keys,KEY_DOWN))
 	{
-		MENU_INC(gMenusCurrentItemIndex, NUM_OPTIONS_MENU_ITEMS);
+		isDirty = true;
+		menuSystemMenuIncrement(&gMenusCurrentItemIndex, NUM_OPTIONS_MENU_ITEMS);
+		menuOptionsExitCode |= MENU_STATUS_LIST_TYPE;
 	}
 	else if (KEYCHECK_PRESS(ev->keys,KEY_UP))
 	{
-		MENU_DEC(gMenusCurrentItemIndex, NUM_OPTIONS_MENU_ITEMS);
+		isDirty = true;
+		menuSystemMenuDecrement(&gMenusCurrentItemIndex, NUM_OPTIONS_MENU_ITEMS);
+		menuOptionsExitCode |= MENU_STATUS_LIST_TYPE;
 	}
 	else if (KEYCHECK_PRESS(ev->keys,KEY_RIGHT))
 	{
+		isDirty = true;
 		switch(gMenusCurrentItemIndex)
 		{
 			case OPTIONS_MENU_FACTORY_RESET:
@@ -241,7 +288,7 @@ static void handleEvent(uiEvent_t *ev)
 	}
 	else if (KEYCHECK_PRESS(ev->keys,KEY_LEFT))
 	{
-
+		isDirty = true;
 		switch(gMenusCurrentItemIndex)
 		{
 			case OPTIONS_MENU_HOTSPOT_TYPE:
@@ -336,5 +383,9 @@ static void handleEvent(uiEvent_t *ev)
 		menuSystemPopPreviousMenu();
 		return;
 	}
-	updateScreen();
+
+	if (isDirty)
+	{
+		updateScreen(false);
+	}
 }

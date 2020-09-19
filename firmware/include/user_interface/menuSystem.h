@@ -18,6 +18,9 @@
 #ifndef _FW_MENUSYSTEM_H_
 #define _FW_MENUSYSTEM_H_
 #include "main.h"
+#include "sound.h"
+#include "settings.h"
+#include <functions/voicePrompts.h>
 
 typedef enum { NO_EVENT = 0, KEY_EVENT = 0x01, BUTTON_EVENT = 0x02, FUNCTION_EVENT = 0x04, ROTARY_EVENT = 0x08 } uiEventInput_t;
 
@@ -40,15 +43,29 @@ typedef struct
 
 #define MENU_MAX_DISPLAYED_ENTRIES 3
 
-#define MENU_INC(O, M) do { O = (O + 1) % M; } while(0)
-#define MENU_DEC(O, M) do { O = (O + M - 1) % M; } while(0)
+// Short press event
+#define BUTTONCHECK_SHORTUP(e, sk) (((e)->keys.key == 0) && ((e)->buttons & sk ## _SHORT_UP))
+// Long press event
+#define BUTTONCHECK_LONGDOWN(e, sk) (((e)->keys.key == 0) && ((e)->buttons & sk ## _LONG_DOWN))
+// SK*/ORANGE button is down, regardless event status
+#define BUTTONCHECK_DOWN(e, sk) (((e)->buttons & sk))
+
 
 extern bool uiChannelModeScanActive;
 extern int menuDisplayLightTimer;
 extern int uiPrivateCallState;
 extern int uiPrivateCallLastID;
 
-typedef int (*menuFunctionPointer_t)(uiEvent_t *, bool); // Typedef for menu function pointers.  Functions are passed the key, the button and the event data. Event can be a Key or a button or both. Last arg is for when the function is only called to initialise and display its screen.
+typedef enum
+{
+	MENU_STATUS_SUCCESS     = 0,
+	MENU_STATUS_ERROR       = (1 << 0),
+	MENU_STATUS_LIST_TYPE   = (1 << 1),
+	MENU_STATUS_INPUT_TYPE  = (1 << 2),
+	MENU_STATUS_FORCE_FIRST = (1 << 3)
+} menuStatus_t;
+
+typedef menuStatus_t (*menuFunctionPointer_t)(uiEvent_t *, bool); // Typedef for menu function pointers.  Functions are passed the key, the button and the event data. Event can be a Key or a button or both. Last arg is for when the function is only called to initialise and display its screen.
 typedef struct menuControlDataStruct
 {
 	int currentMenuNumber;
@@ -57,11 +74,18 @@ typedef struct menuControlDataStruct
 	int itemIndex[16];
 } menuControlDataStruct_t;
 
-typedef struct menuItemNew
+
+typedef struct menuItemNewData
 {
-       int stringOffset; // String offset in stringsTable_t
-       int menuNum;
-} menuItemNew_t;
+       const int stringOffset; // String offset in stringsTable_t
+       const int menuNum;
+} menuItemNewData_t;
+
+typedef struct menuItemsList
+{
+	const int	numItems;
+	const menuItemNewData_t *items;
+} menuItemsList_t;
 
 extern menuControlDataStruct_t menuControlData;
 
@@ -70,7 +94,7 @@ void menuDisplayEntry(int loopOffset, int focusedItem,const char *entryText);
 int menuGetMenuOffset(int maxMenuEntries, int loopOffset);
 
 void uiChannelModeUpdateScreen(int txTimeSecs);
-void uiChannelModeColdStart();
+void uiChannelModeColdStart(void);
 void uiVFOModeUpdateScreen(int txTimeSecs);
 void uiVFOModeStopScanning(void);
 bool uiVFOModeIsScanning(void);
@@ -83,7 +107,9 @@ void menuSystemLanguageHasChanged(void);
 void displayLightTrigger(void);
 void displayLightOverrideTimeout(int timeout);
 void menuSystemPushNewMenu(int menuNumber);
+#if 0 // Unused
 void menuSystemPushNewMenuWithQuickFunction(int menuNumber, int quickFunction);
+#endif
 
 void menuSystemSetCurrentMenu(int menuNumber);
 int menuSystemGetCurrentMenuNumber(void);
@@ -103,12 +129,18 @@ void menuBatteryPushBackVoltage(int32_t voltage);
 
 void menuLockScreenPop(void);
 
-void menuLastHeardUpdateScreen(bool showTitleOrHeader, bool displayDetails);
+void menuLastHeardUpdateScreen(bool showTitleOrHeader, bool displayDetails, bool isFirstRun);
 
 void menuClearPrivateCall(void);
 void menuAcceptPrivateCall(int id);
 
 void menuHotspotRestoreSettings(void);
+
+void menuSystemMenuIncrement(int32_t *O, int32_t M);
+void menuSystemMenuDecrement(int32_t *O, int32_t M);
+
+void cssIncrement(uint16_t *tone, int32_t *index, CSSTypes_t *type, bool loop);
+
 
 #if defined(PLATFORM_GD77S)
 void heartBeatActivityForGD77S(uiEvent_t *ev);
@@ -169,42 +201,42 @@ extern int gMenusCurrentItemIndex;
 
 extern int gMenusStartIndex;
 extern int gMenusEndIndex;
-extern menuItemNew_t *gMenuCurrentMenuList;
+extern menuItemNewData_t *gMenuCurrentMenuList;
 
 extern const char menuStringTable[32][17];
 
-extern const menuItemNew_t menuDataMainMenu[];
-extern const menuItemNew_t menuDataContact[];
-extern const menuItemNew_t menuDataContactContact [];
-extern const menuItemNew_t * menusData[];
+extern const menuItemsList_t menuDataMainMenu;
+extern const menuItemsList_t menuDataContact;
+extern const menuItemsList_t menuDataContactContact;
+extern const menuItemsList_t * menusData[];
 
-int uiVFOMode(uiEvent_t *event, bool isFirstRun);
-int uiVFOModeQuickMenu(uiEvent_t *event, bool isFirstRun);
-int uiChannelMode(uiEvent_t *event, bool isFirstRun);
-int uiChannelModeQuickMenu(uiEvent_t *event, bool isFirstRun);
-int uiCPS(uiEvent_t *event, bool isFirstRun);
-int uiSplashScreen(uiEvent_t *event, bool isFirstRun);
-int uiPowerOff(uiEvent_t *event, bool isFirstRun);
-int menuZoneList(uiEvent_t *event, bool isFirstRun);
-int menuDisplayMenuList(uiEvent_t *event, bool isFirstRun);
-int menuBattery(uiEvent_t *event, bool isFirstRun);
+menuStatus_t uiVFOMode(uiEvent_t *event, bool isFirstRun);
+menuStatus_t uiVFOModeQuickMenu(uiEvent_t *event, bool isFirstRun);
+menuStatus_t uiChannelMode(uiEvent_t *event, bool isFirstRun);
+menuStatus_t uiChannelModeQuickMenu(uiEvent_t *event, bool isFirstRun);
+menuStatus_t uiCPS(uiEvent_t *event, bool isFirstRun);
+menuStatus_t uiSplashScreen(uiEvent_t *event, bool isFirstRun);
+menuStatus_t uiPowerOff(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuZoneList(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuDisplayMenuList(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuBattery(uiEvent_t *event, bool isFirstRun);
 
-int menuFirmwareInfoScreen(uiEvent_t *event, bool isFirstRun);
-int menuNumericalEntry(uiEvent_t *event, bool isFirstRun);
-int menuTxScreen(uiEvent_t *event, bool isFirstRun);
-int menuRSSIScreen(uiEvent_t *event, bool isFirstRun);
-int menuLastHeard(uiEvent_t *event, bool isFirstRun);
-int menuOptions(uiEvent_t *event, bool isFirstRun);
-int menuDisplayOptions(uiEvent_t *event, bool isFirstRun);
-int menuSoundOptions(uiEvent_t *event, bool isFirstRun);
-int menuCredits(uiEvent_t *event, bool isFirstRun);
-int menuChannelDetails(uiEvent_t *event, bool isFirstRun);
-int menuHotspotMode(uiEvent_t *event, bool isFirstRun);
-int menuLockScreen(uiEvent_t *event, bool isFirstRun);
-int menuContactList(uiEvent_t *event, bool isFirstRun);
-int menuContactListSubMenu(uiEvent_t *event, bool isFirstRun);
-int menuContactDetails(uiEvent_t *event, bool isFirstRun);
-int menuLanguage(uiEvent_t *event, bool isFirstRun);
-int menuPrivateCall(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuFirmwareInfoScreen(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuNumericalEntry(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuTxScreen(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuRSSIScreen(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuLastHeard(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuOptions(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuDisplayOptions(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuSoundOptions(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuCredits(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuChannelDetails(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuHotspotMode(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuLockScreen(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuContactList(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuContactListSubMenu(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuContactDetails(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuLanguage(uiEvent_t *event, bool isFirstRun);
+menuStatus_t menuPrivateCall(uiEvent_t *event, bool isFirstRun);
 
 #endif

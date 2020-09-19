@@ -17,6 +17,7 @@
  */
 
 #include <SPI_Flash.h>
+#include <gpio.h>
 
 // private functions
 static bool spi_flash_busy(void);
@@ -59,18 +60,8 @@ __attribute__((section(".data.$RAM2"))) uint8_t SPI_Flash_sectorbuffer[4096];
 bool SPI_Flash_init(void)
 {
 	int partNumber;
-    PORT_SetPinMux(Port_SPI_FLASH_CS_U, Pin_SPI_FLASH_CS_U, kPORT_MuxAsGpio);//CS
-    GPIO_PinInit(GPIO_SPI_FLASH_CS_U, Pin_SPI_FLASH_CS_U, &pin_config_output);
 
-    PORT_SetPinMux(Port_SPI_FLASH_CLK_U, Pin_SPI_FLASH_CLK_U, kPORT_MuxAsGpio);//CLK
-    GPIO_PinInit(GPIO_SPI_FLASH_CLK_U, Pin_SPI_FLASH_CLK_U, &pin_config_output);
-
-    PORT_SetPinMux(Port_SPI_FLASH_DI_U, Pin_SPI_FLASH_DI_U, kPORT_MuxAsGpio);//Data out
-    GPIO_PinInit(GPIO_SPI_FLASH_DI_U, Pin_SPI_FLASH_DI_U, &pin_config_input);
-
-    PORT_SetPinMux(Port_SPI_FLASH_DO_U, Pin_SPI_FLASH_DO_U, kPORT_MuxAsGpio);//Data in
-    GPIO_PinInit(GPIO_SPI_FLASH_DO_U, Pin_SPI_FLASH_DO_U, &pin_config_output);
-
+	gpioInitFlash();
 
     GPIO_PinWrite(GPIO_SPI_FLASH_CS_U, Pin_SPI_FLASH_CS_U, 1);// Disable
     GPIO_PinWrite(GPIO_SPI_FLASH_CLK_U, Pin_SPI_FLASH_CLK_U, 0);// Default clock pin to low

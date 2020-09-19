@@ -32,6 +32,10 @@ extern volatile uint32_t timer_keypad;
 extern volatile uint32_t timer_keypad_timeout;
 extern volatile uint32_t PITCounter;
 
+// For long press handling
+extern volatile uint32_t timer_mbuttons[3];
+extern volatile uint32_t timer_mbuttons_timeout[3];
+
 void init_pit(void);
 void PIT0_IRQHandler(void);
 

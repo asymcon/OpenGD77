@@ -21,7 +21,7 @@
 static void updateScreen(void);
 static void handleEvent(uiEvent_t *ev);
 
-int menuFirmwareInfoScreen(uiEvent_t *ev, bool isFirstRun)
+menuStatus_t menuFirmwareInfoScreen(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
@@ -34,32 +34,56 @@ int menuFirmwareInfoScreen(uiEvent_t *ev, bool isFirstRun)
 			handleEvent(ev);
 		}
 	}
-	return 0;
+	return MENU_STATUS_SUCCESS;
 }
 
 static void updateScreen(void)
 {
+#if !defined(PLATFORM_GD77S)
 	char buf[17];
+	char * const *radioModel;
 
-	snprintf(buf, 16, "v1.60.20", GITVERSION);
-	buf[11] = 0; // git hash id 7 char long;
+	snprintf(buf, 16, "v1.70.EXP", GITVERSION);
+	buf[9] = 0; // git hash id 7 char long;
+	strcat(buf, " ]");
 
 	ucClearBuf();
 
 #if defined(PLATFORM_GD77)
-	ucPrintCentered(5, "OpenGD77", FONT_SIZE_3);
+	radioModel = (char * const *)&currentLanguage->openGD77;
 #elif defined(PLATFORM_DM1801)
-	ucPrintCentered(5, "OpenDM1801", FONT_SIZE_3);
+	radioModel = (char * const *)&currentLanguage->openDM1801;
 #elif defined(PLATFORM_RD5R)
-	ucPrintCentered(2, "OpenRD5R", FONT_SIZE_3);
+	radioModel = (char * const *)&currentLanguage->openRD5R;
+#endif
+
+#if defined(PLATFORM_RD5R)
+	ucPrintCentered(2, *radioModel, FONT_SIZE_3);
+#else
+	ucPrintCentered(5, *radioModel, FONT_SIZE_3);
 #endif
 
 	ucPrintCentered(24, "Built by NA7Q", FONT_SIZE_2);
 	ucPrintCentered(34,__TIME__, FONT_SIZE_2);
 	ucPrintCentered(44,__DATE__, FONT_SIZE_2);
 	ucPrintCentered(54, buf, FONT_SIZE_2);
+
+
+	if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+	{
+		voicePromptsInit();
+		voicePromptsAppendLanguageString((const char * const *)radioModel);
+		voicePromptsAppendLanguageString(&currentLanguage->built);
+		voicePromptsAppendString(__TIME__);
+		voicePromptsAppendString(__DATE__);
+		voicePromptsAppendLanguageString(&currentLanguage->gitCommit);
+		voicePromptsAppendString(buf);
+		voicePromptsPlay();
+	}
+
 	ucRender();
 	displayLightTrigger();
+#endif
 }
 
 
@@ -67,12 +91,23 @@ static void handleEvent(uiEvent_t *ev)
 {
 	displayLightTrigger();
 
-	if (KEYCHECK_PRESS(ev->keys,KEY_RED))
+	if (ev->events & BUTTON_EVENT)
+	{
+		if (BUTTONCHECK_SHORTUP(ev, BUTTON_SK1))
+		{
+			voicePromptsPlay();
+		}
+		return;
+	}
+
+
+	if (KEYCHECK_SHORTUP(ev->keys,KEY_RED))
 	{
 		menuSystemPopPreviousMenu();
 		return;
 	}
-	else if (KEYCHECK_PRESS(ev->keys,KEY_GREEN))
+
+	if (KEYCHECK_SHORTUP(ev->keys,KEY_GREEN))
 	{
 		menuSystemPopAllAndDisplayRootMenu();
 		return;

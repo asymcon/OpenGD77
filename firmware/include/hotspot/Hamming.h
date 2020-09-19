@@ -19,7 +19,9 @@
  */
 #ifndef _DMR_HAMMING_H_
 #define _DMR_HAMMING_H_
-#include "main.h"
+
+#include <stdbool.h>
+#include <stdint.h>
 
 void Hamming_encode15113_1(bool* d);
 bool Hamming_decode15113_1(bool* d);

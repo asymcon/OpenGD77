@@ -27,7 +27,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include <math.h>
-#include "common.h"
+#include <stdbool.h>
+
 
 typedef enum
 {

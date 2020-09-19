@@ -22,7 +22,7 @@ static void updateScreen(void);
 static void handleEvent(uiEvent_t *ev);
 
 
-int uiPowerOff(uiEvent_t *ev, bool isFirstRun)
+menuStatus_t uiPowerOff(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
@@ -32,7 +32,7 @@ int uiPowerOff(uiEvent_t *ev, bool isFirstRun)
 	{
 		handleEvent(ev);
 	}
-	return 0;
+	return MENU_STATUS_SUCCESS;
 }
 
 static void updateScreen(void)
@@ -68,6 +68,6 @@ static void handleEvent(uiEvent_t *ev)
 
 	if ((ev->time - m) > 500)
 	{
-		fw_powerOffFinalStage();
+		powerOffFinalStage();
 	}
 }

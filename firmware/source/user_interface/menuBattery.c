@@ -18,7 +18,6 @@
 #include <user_interface/menuSystem.h>
 #include <user_interface/uiLocalisation.h>
 
-
 SemaphoreHandle_t battSemaphore = NULL;
 
 #define VOLTAGE_BUFFER_LEN 128
@@ -43,10 +42,8 @@ static int graphStyle = GRAPH_FILL;
 static int battery_stack_iter = 0;
 static const int BATTERY_ITER_PUSHBACK = 20;
 
-
 static void updateScreen(bool forceRedraw);
 static void handleEvent(uiEvent_t *ev);
-
 
 static void circularBufferInit(voltageCircularBuffer_t *cb)
 {
@@ -64,14 +61,18 @@ static void circularBufferPushBack(voltageCircularBuffer_t *cb, const int32_t it
 	cb->head++;
 
     if(cb->head == cb->end)
+    {
     	cb->head = cb->buffer;
+    }
 
     if (cb->tail == cb->head)
     {
     	cb->tail++;
 
     	if(cb->tail == cb->end)
+    	{
     		cb->tail = cb->buffer;
+    	}
     }
 }
 
@@ -88,24 +89,39 @@ static size_t circularBufferGetData(voltageCircularBuffer_t *cb, int32_t *data, 
     	 count++;
 
     	 if (p == cb->end)
+    	 {
     		 p = cb->buffer;
+    	 }
      }
 
      return count;
 }
 
-int menuBattery(uiEvent_t *ev, bool isFirstRun)
+menuStatus_t menuBattery(uiEvent_t *ev, bool isFirstRun)
 {
 	static uint32_t m = 0;
 
 	if (isFirstRun)
 	{
+		char buffer[17];
 		ucClearBuf();
 		menuDisplayTitle(currentLanguage->battery);
 		ucRenderRows(0, 2);
 
 		displayLightTrigger();
 		updateScreen(true);
+
+		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+		{
+			voicePromptsInit();
+			voicePromptsAppendLanguageString(&currentLanguage->battery);
+			int val1 = averageBatteryVoltage / 10;
+			int val2 = averageBatteryVoltage - (val1 * 10);
+			snprintf(buffer, 17, " %1d.%1d", val1, val2);
+			voicePromptsAppendString(buffer);
+			voicePromptsAppendPrompt(PROMPT_VOLTS);
+			voicePromptsPlay();
+		}
 	}
 	else
 	{
@@ -116,9 +132,11 @@ int menuBattery(uiEvent_t *ev, bool isFirstRun)
 		}
 
 		if (ev->hasEvent)
+		{
 			handleEvent(ev);
+		}
 	}
-	return 0;
+	return MENU_STATUS_SUCCESS;
 }
 
 static void updateScreen(bool forceRedraw)
@@ -185,8 +203,8 @@ static void updateScreen(bool forceRedraw)
 
 		case BATTERY_GRAPH:
 		{
-#define  chartWidth 104
-			static int32_t hist[chartWidth];
+#define  CHART_WIDTH 104
+			static int32_t hist[CHART_WIDTH];
 			static size_t histLen = 0;
 			bool newHistAvailable = false;
 
@@ -225,8 +243,8 @@ static void updateScreen(bool forceRedraw)
 					// 2 axis chart
 					ucDrawFastVLine(chartX - 3, chartY - 2, chartHeight + 2 + 3, true);
 					ucDrawFastVLine(chartX - 2, chartY - 2, chartHeight + 2 + 2, true);
-					ucDrawFastHLine(chartX - 3, chartY + chartHeight + 2, chartWidth + 3 + 3, true);
-					ucDrawFastHLine(chartX - 2, chartY + chartHeight + 1, chartWidth + 3 + 2, true);
+					ucDrawFastHLine(chartX - 3, chartY + chartHeight + 2, CHART_WIDTH + 3 + 3, true);
+					ucDrawFastHLine(chartX - 2, chartY + chartHeight + 1, CHART_WIDTH + 3 + 2, true);
 
 					// Min/Max Voltage ticks and values
 					ucDrawFastHLine(chartX - 6, (chartY + chartHeight) - minVH, 3, true);
@@ -235,14 +253,14 @@ static void updateScreen(bool forceRedraw)
 					ucPrintAt(chartX - 3 - 12 - 3, ((chartY + chartHeight) - maxVH) - 3, "8V", FONT_SIZE_1);
 
 					// Time ticks
-					for (uint8_t i = 0; i < chartWidth + 2; i += 22 /* ~ 15 minutes */)
+					for (uint8_t i = 0; i < CHART_WIDTH + 2; i += 22 /* ~ 15 minutes */)
 					{
 						ucSetPixel(chartX + i, (chartY + chartHeight) + 3, true);
 					}
 				}
 				else
 				{
-					ucFillRect(chartX, chartY, chartWidth, chartHeight, true);
+					ucFillRect(chartX, chartY, CHART_WIDTH, chartHeight, true);
 				}
 
 				// Draw chart values, according to style
@@ -251,13 +269,17 @@ static void updateScreen(bool forceRedraw)
 					uint32_t y = (uint32_t)(((hist[i] - CUTOFF_VOLTAGE_UPPER_HYST) * chartHeight) / (BATTERY_MAX_VOLTAGE - CUTOFF_VOLTAGE_UPPER_HYST));
 
 					if (graphStyle == GRAPH_FILL)
+					{
 						ucDrawFastVLine(chartX + i, ((chartY + chartHeight) - y), y, true);
+					}
 					else
+					{
 						ucSetPixel(chartX + i, ((chartY + chartHeight) - y), true);
+					}
 				}
 
 				// Min/Max dot lines
-				for (uint8_t i = 0; i < chartWidth + 2; i++)
+				for (uint8_t i = 0; i < CHART_WIDTH + 2; i++)
 				{
 					ucSetPixel(chartX + i, ((chartY + chartHeight) - minVH), (i % 2) ? false : true);
 					ucSetPixel(chartX + i, ((chartY + chartHeight) - maxVH), (i % 2) ? false : true);
@@ -279,12 +301,17 @@ static void handleEvent(uiEvent_t *ev)
 {
 	displayLightTrigger();
 
+	if (BUTTONCHECK_SHORTUP(ev, BUTTON_SK1))
+	{
+		voicePromptsPlay();
+	}
+
 	if (KEYCHECK_SHORTUP(ev->keys,KEY_RED))
 	{
 		menuSystemPopPreviousMenu();
 		return;
 	}
-	else if (KEYCHECK_PRESS(ev->keys,KEY_GREEN))
+	else if (KEYCHECK_SHORTUP(ev->keys,KEY_GREEN))
 	{
 		menuSystemPopAllAndDisplayRootMenu();
 		return;
@@ -359,4 +386,3 @@ void menuBatteryPushBackVoltage(int32_t voltage)
 
 	battery_stack_iter++;
 }
-

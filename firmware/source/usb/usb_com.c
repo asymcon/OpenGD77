@@ -23,6 +23,8 @@
 #include <usb_com.h>
 #include <ticks.h>
 #include <wdog.h>
+#include <HR-C6000.h>
+#include <sound.h>
 
 static void handleCPSRequest(void);
 
@@ -62,62 +64,75 @@ void tick_com_request(void)
 	}
 }
 
-enum CPS_ACCESS_AREA { CPS_ACCESS_FLASH = 1,CPS_ACCESS_EEPROM = 2, CPS_ACCESS_MCU_ROM=5,CPS_ACCESS_DISPLAY_BUFFER=6};
+enum CPS_ACCESS_AREA { CPS_ACCESS_FLASH = 1,CPS_ACCESS_EEPROM = 2, CPS_ACCESS_MCU_ROM=5,CPS_ACCESS_DISPLAY_BUFFER=6,CPS_ACCESS_WAV_BUFFER=7,CPS_COMPRESS_AND_ACCESS_AMBE_BUFFER=8};
 
-static void handleCPSRequest(void)
+static void cpsHandleReadCommand(void)
 {
-	//Handle read
-	if (com_requestbuffer[0]=='R') // 'R' read data (com_requestbuffer[1]: 1 => external flash, 2 => EEPROM)
+
+	uint32_t address=(com_requestbuffer[2]<<24)+(com_requestbuffer[3]<<16)+(com_requestbuffer[4]<<8)+(com_requestbuffer[5]<<0);
+	uint32_t length=(com_requestbuffer[6]<<8)+(com_requestbuffer[7]<<0);
+	if (length>32)
 	{
-		uint32_t address=(com_requestbuffer[2]<<24)+(com_requestbuffer[3]<<16)+(com_requestbuffer[4]<<8)+(com_requestbuffer[5]<<0);
-		uint32_t length=(com_requestbuffer[6]<<8)+(com_requestbuffer[7]<<0);
-		if (length>32)
-		{
-			length=32;
-		}
-
-		bool result=false;
-		switch(com_requestbuffer[1])
-		{
-			case CPS_ACCESS_FLASH:
-				taskEXIT_CRITICAL();
-				result = SPI_Flash_read(address, &usbComSendBuf[3], length);
-				taskENTER_CRITICAL();
-				break;
-			case CPS_ACCESS_EEPROM:
-				taskEXIT_CRITICAL();
-				result = EEPROM_Read(address, &usbComSendBuf[3], length);
-				taskENTER_CRITICAL();
-				break;
-			case CPS_ACCESS_MCU_ROM:
-				memcpy(&usbComSendBuf[3],(uint8_t *)address,length);
-				result = true;
-				break;
-			case CPS_ACCESS_DISPLAY_BUFFER:
-				memcpy(&usbComSendBuf[3],&screenBuf[address],length);
-				result = true;
-				break;
-		}
-
-		if (result)
-		{
-			usbComSendBuf[0] = com_requestbuffer[0];
-			usbComSendBuf[1]=(length>>8)&0xFF;
-			usbComSendBuf[2]=(length>>0)&0xFF;
-			USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, length+3);
-		}
-		else
-		{
-			usbComSendBuf[0] = '-';
-			USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, 1);
-		}
+		length=32;
 	}
-	// Handle Write
-	else if (com_requestbuffer[0]=='W')
+
+	bool result=false;
+	switch(com_requestbuffer[1])
 	{
-		bool ok=false;
-		if (com_requestbuffer[1]==1)
-		{
+		case CPS_ACCESS_FLASH:
+			taskEXIT_CRITICAL();
+			result = SPI_Flash_read(address, &usbComSendBuf[3], length);
+			taskENTER_CRITICAL();
+			break;
+		case CPS_ACCESS_EEPROM:
+			taskEXIT_CRITICAL();
+			result = EEPROM_Read(address, &usbComSendBuf[3], length);
+			taskENTER_CRITICAL();
+			break;
+		case CPS_ACCESS_MCU_ROM:
+			memcpy(&usbComSendBuf[3],(uint8_t *)address,length);
+			result = true;
+			break;
+		case CPS_ACCESS_DISPLAY_BUFFER:
+			memcpy(&usbComSendBuf[3],&screenBuf[address],length);
+			result = true;
+			break;
+		case CPS_ACCESS_WAV_BUFFER:
+			memcpy(&usbComSendBuf[3],(uint8_t *)&audioAndHotspotDataBuffer.rawBuffer[address],length);
+			result = true;
+			break;
+		case CPS_COMPRESS_AND_ACCESS_AMBE_BUFFER:// read from ambe audio buffer
+			{
+				uint8_t ambeBuf[32];// ambe data is up to 27 bytes long, but the normal transfer length for the CPS is 32, so make the buffer big enough for that transfer size
+				memset(ambeBuf,0,32);// Clear the ambe output buffer
+				codecEncode((uint8_t *)ambeBuf,3);
+				memcpy(&usbComSendBuf[3],ambeBuf,length);// The ambe data is only 27 bytes long but the normal CPS request size is 32
+				memset((uint8_t *)&audioAndHotspotDataBuffer.rawBuffer[0],0x00,960);// clear the input wave buffer, in case the next transfer is not a complete AMBE frame. 960 bytes compresses to 27 bytes of AMBE
+				result = true;
+			}
+			break;
+	}
+
+	if (result)
+	{
+		usbComSendBuf[0] = com_requestbuffer[0];
+		usbComSendBuf[1]=(length>>8)&0xFF;
+		usbComSendBuf[2]=(length>>0)&0xFF;
+		USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, length+3);
+	}
+	else
+	{
+		usbComSendBuf[0] = '-';
+		USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, 1);
+	}
+}
+
+static void cpsHandleWriteCommand()
+{
+	bool ok=false;
+	switch(com_requestbuffer[1])
+	{
+		case 1:
 			if (sector==-1)
 			{
 				sector=(com_requestbuffer[2]<<16)+(com_requestbuffer[3]<<8)+(com_requestbuffer[4]<<0);
@@ -131,9 +146,8 @@ static void handleCPSRequest(void)
 				ok = SPI_Flash_read(sector*4096,SPI_Flash_sectorbuffer,4096);
 				taskENTER_CRITICAL();
 			}
-		}
-		else if (com_requestbuffer[1]==2)
-		{
+			break;
+		case 2:
 			if (sector>=0)
 			{
 				uint32_t address=(com_requestbuffer[2]<<24)+(com_requestbuffer[3]<<16)+(com_requestbuffer[4]<<8)+(com_requestbuffer[5]<<0);
@@ -153,9 +167,8 @@ static void handleCPSRequest(void)
 
 				ok=true;
 			}
-		}
-		else if (com_requestbuffer[1]==3)
-		{
+			break;
+		case 3:
 			if (sector>=0)
 			{
 				taskEXIT_CRITICAL();
@@ -176,123 +189,157 @@ static void handleCPSRequest(void)
 				}
 				sector=-1;
 			}
-		}
-		else if (com_requestbuffer[1]==4)
-		{
-			uint32_t address=(com_requestbuffer[2]<<24)+(com_requestbuffer[3]<<16)+(com_requestbuffer[4]<<8)+(com_requestbuffer[5]<<0);
-			uint32_t length=(com_requestbuffer[6]<<8)+(com_requestbuffer[7]<<0);
-			if (length>32)
+			break;
+		case 4:
 			{
-				length=32;
+				uint32_t address=(com_requestbuffer[2]<<24)+(com_requestbuffer[3]<<16)+(com_requestbuffer[4]<<8)+(com_requestbuffer[5]<<0);
+				uint32_t length=(com_requestbuffer[6]<<8)+(com_requestbuffer[7]<<0);
+				if (length>32)
+				{
+					length=32;
+				}
+
+				ok = EEPROM_Write(address, (uint8_t*)com_requestbuffer+8, length);
 			}
-
-			ok = EEPROM_Write(address, (uint8_t*)com_requestbuffer+8, length);
-		}
-
-		if (ok)
-		{
-			usbComSendBuf[0] = com_requestbuffer[0];
-			usbComSendBuf[1] = com_requestbuffer[1];
-			USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, 2);
-		}
-		else
-		{
-			sector=-1;
-			usbComSendBuf[0] = '-';
-			USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, 1);
-		}
+			break;
+		case CPS_ACCESS_WAV_BUFFER:// write to raw audio buffer
+			{
+				uint32_t address=(com_requestbuffer[2]<<24)+(com_requestbuffer[3]<<16)+(com_requestbuffer[4]<<8)+(com_requestbuffer[5]<<0);
+				uint32_t length=(com_requestbuffer[6]<<8)+(com_requestbuffer[7]<<0);
+				wavbuffer_count = (address + length)/WAV_BUFFER_SIZE;
+				memcpy((uint8_t *)&audioAndHotspotDataBuffer.rawBuffer[address],(uint8_t *)&com_requestbuffer[8],length);
+				ok = true;
+			}
+			break;
 	}
-	// Handle a "Command"
-	else if (com_requestbuffer[0]=='C')
+
+	if (ok)
 	{
-		int command = com_requestbuffer[1];
-		switch(command)
-		{
-			case 0:
-				// Show CPS screen
-				menuSystemPushNewMenu(UI_CPS);
-				break;
-			case 1:
-				// Clear CPS screen
-				uiCPSUpdate(0,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
-				break;
-			case 2:
-				// Write a line of text to CPS screen
-				uiCPSUpdate(1,com_requestbuffer[2],com_requestbuffer[3],(ucFont_t)com_requestbuffer[4],(ucTextAlign_t)com_requestbuffer[5],com_requestbuffer[6],(char *)&com_requestbuffer[7]);
-				break;
-			case 3:
-				// Render CPS screen
-				uiCPSUpdate(2,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
-				break;
-			case 4:
-				// Turn on the display backlight
-				uiCPSUpdate(3,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
-				break;
-			case 5:
-				// Close
-				if (flashingDMRIDs)
-				{
-					dmrIDCacheInit();
-					flashingDMRIDs = false;
-				}
-				uiCPSUpdate(6,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
-				break;
-			case 6:
-				{
-					int subCommand = com_requestbuffer[2];
-					uint32_t m = fw_millis();
-
-					// Do some other processing
-					switch(subCommand)
-					{
-						case 0:
-							// save current settings and reboot
-							m = fw_millis();
-							settingsSaveSettings(false);// Need to save these channels prior to reboot, as reboot does not save
-
-							// Give it a bit of time before pulling the plug as DM-1801 EEPROM looks slower
-							// than GD-77 to write, then quickly power cycling triggers settings reset.
-							while (1U)
-							{
-								if ((fw_millis() - m) > 50)
-								{
-									break;
-								}
-							}
-							watchdogReboot();
-						break;
-						case 1:
-							watchdogReboot();
-							break;
-						case 2:
-							// Save settings VFO's to codeplug
-							settingsSaveSettings(true);
-							break;
-						case 3:
-							// flash green LED
-							uiCPSUpdate(4,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
-							break;
-						case 4:
-							// flash red LED
-							uiCPSUpdate(5,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
-							break;
-						default:
-							break;
-					}
-				}
-				break;
-			default:
-				break;
-		}
-		// Send something generic back.
-		// Probably need to send a response code in the future
-		usbComSendBuf[0] = '-';
-		USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, 1);
+		usbComSendBuf[0] = com_requestbuffer[0];
+		usbComSendBuf[1] = com_requestbuffer[1];
+		USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, 2);
 	}
 	else
 	{
+		sector=-1;
 		usbComSendBuf[0] = '-';
 		USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, 1);
+	}
+}
+
+static void cpsHandleCommand(void)
+{
+
+	int command = com_requestbuffer[1];
+	switch(command)
+	{
+		case 0:
+			// Show CPS screen
+			menuSystemPushNewMenu(UI_CPS);
+			break;
+		case 1:
+			// Clear CPS screen
+			uiCPSUpdate(0,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
+			break;
+		case 2:
+			// Write a line of text to CPS screen
+			uiCPSUpdate(1,com_requestbuffer[2],com_requestbuffer[3],(ucFont_t)com_requestbuffer[4],(ucTextAlign_t)com_requestbuffer[5],com_requestbuffer[6],(char *)&com_requestbuffer[7]);
+			break;
+		case 3:
+			// Render CPS screen
+			uiCPSUpdate(2,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
+			break;
+		case 4:
+			// Turn on the display backlight
+			uiCPSUpdate(3,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
+			break;
+		case 5:
+			// Close
+			if (flashingDMRIDs)
+			{
+				dmrIDCacheInit();
+				flashingDMRIDs = false;
+			}
+			uiCPSUpdate(6,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
+			break;
+		case 6:
+			{
+				int subCommand = com_requestbuffer[2];
+				uint32_t m = fw_millis();
+
+				// Do some other processing
+				switch(subCommand)
+				{
+					case 0:
+						// save current settings and reboot
+						m = fw_millis();
+						settingsSaveSettings(false);// Need to save these channels prior to reboot, as reboot does not save
+
+						// Give it a bit of time before pulling the plug as DM-1801 EEPROM looks slower
+						// than GD-77 to write, then quickly power cycling triggers settings reset.
+						while (1U)
+						{
+							if ((fw_millis() - m) > 50)
+							{
+								break;
+							}
+						}
+						watchdogReboot();
+					break;
+					case 1:
+						watchdogReboot();
+						break;
+					case 2:
+						// Save settings VFO's to codeplug
+						settingsSaveSettings(true);
+						break;
+					case 3:
+						// flash green LED
+						uiCPSUpdate(4,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
+						break;
+					case 4:
+						// flash red LED
+						uiCPSUpdate(5,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
+						break;
+					case 5:
+						codecInitInternalBuffers();
+						break;
+					case 6:
+						soundInit();// Resets the sound buffers
+						memset((uint8_t *)&audioAndHotspotDataBuffer.rawBuffer[0],0,(6 * WAV_BUFFER_SIZE));// clear 1 dmr frame size of wav buffer memory
+						break;
+					default:
+						break;
+				}
+			}
+			break;
+		default:
+			break;
+	}
+	// Send something generic back.
+	// Probably need to send a response code in the future
+	usbComSendBuf[0] = '-';
+	USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, 1);
+}
+
+static void handleCPSRequest(void)
+{
+	//Handle read
+	switch(com_requestbuffer[0])
+	{
+	case 'R':
+		cpsHandleReadCommand();
+		break;
+	case 'W':
+		cpsHandleWriteCommand();
+		break;
+	case 'C':
+		cpsHandleCommand();
+		break;
+	default:
+		usbComSendBuf[0] = '-';
+		USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, 1);
+		break;
 	}
 }
 #if false

@@ -20,7 +20,7 @@
 
 #ifndef _DMR_DMRFULLLC_H_
 #define _DMR_DMRFULLLC_H_
-#include "main.h"
+
 #include "hotspot/dmrDefines.h"
 #include "hotspot/DMRLC.h"
 

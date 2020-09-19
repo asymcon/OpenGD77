@@ -21,287 +21,347 @@
 #include <trx.h>
 
 
-static const uint32_t CALIBRATION_BASE 				= 0xF000;
+static const uint32_t CALIBRATION_BASE = 0xF000;
 
-static const uint32_t EXT_DACDATA_shift 			= CALIBRATION_BASE + 0x00005D;
-static const uint32_t EXT_twopoint_mod  			= CALIBRATION_BASE + 0x000008;
-static const uint32_t EXT_Q_MOD2_offset 			= CALIBRATION_BASE + 0x00000A;
-static const uint32_t EXT_phase_reduce  			= CALIBRATION_BASE + 0x000055;
+typedef struct
+{
+	uint16_t DigitalRxGainNarrowband_NOTCONFIRMED; // IF Gain, RX Fine
+	uint16_t DigitalTxGainNarrowband_NOTCONFIRMED; // IF Gain, TX Fine (hidden in cal window)
+	uint16_t DigitalRxGainWideband_NOTCONFIRMED; // IF Gain, RX Coarse
+	uint16_t DigitalTxGainWideband_NOTCONFIRMED; // IF Gain, TX Coarse (hidden in cal window)
 
-static const uint32_t EXT_pga_gain      			= CALIBRATION_BASE + 0x000065;
-static const uint32_t EXT_voice_gain_tx 			= CALIBRATION_BASE + 0x000066;
-static const uint32_t EXT_gain_tx       			= CALIBRATION_BASE + 0x000067;
-static const uint32_t EXT_padrv_ibit    			= CALIBRATION_BASE + 0x000064;
+	uint16_t DACOscRefTune; // DAC word for frequency reference oscillator
 
-static const uint32_t EXT_xmitter_dev_wideband		= CALIBRATION_BASE + 0x000068;
-static const uint32_t EXT_xmitter_dev_narrowband	= CALIBRATION_BASE + 0x00006A;
+	uint8_t QMod2Offset;
 
-static const uint32_t EXT_dac_vgain_analog 			= CALIBRATION_BASE + 0x00006C;
-static const uint32_t EXT_volume_analog    			= CALIBRATION_BASE + 0x00006D;
+	/* Power settings
+	 * UHF 400 to 475 in 5Mhz stps (16 steps)
+	 * VHF 136Mhz, then 140MHz -  165Mhz in steps of 5Mhz, then 172Mhz  (8 steps - upper 8 array entries contain 0xff )
+	 */
+	uint8_t PowerSettings[16][2];
 
-static const uint32_t EXT_noise1_th_wideband   		= CALIBRATION_BASE + 0x000047;
-static const uint32_t EXT_noise2_th_wideband   		= CALIBRATION_BASE + 0x000049;
-static const uint32_t EXT_rssi3_th_wideband    		= CALIBRATION_BASE + 0x00004b;
-static const uint32_t EXT_noise1_th_narrowband 		= CALIBRATION_BASE + 0x00004d;
-static const uint32_t EXT_noise2_th_narrowband 		= CALIBRATION_BASE + 0x00004f;
-static const uint32_t EXT_rssi3_th_narrowband  		= CALIBRATION_BASE + 0x000051;
+	uint8_t UnknownBlock3[8]; // Unknown
 
-static const uint32_t EXT_squelch_th 				= CALIBRATION_BASE + 0x00003f;
+	uint8_t UknownBlock9[8]; // Note
 
-static const uint32_t EXT_uhf_dev_tone				= CALIBRATION_BASE + 0x00005E;
-static const uint32_t EXT_vhf_dev_tone				= CALIBRATION_BASE + 0x0000CE;
+	uint8_t UnknownBlock4[4]; // Seems to contain 0x00 on both VHF and UHF. Potentially unused
 
-static const uint32_t POWER_ADDRESS_UHF_400MHZ 		= CALIBRATION_BASE + 0x00000B;//UHF is in 5Mhz bands starting at 400Mhz.
-static const uint32_t POWER_ADDRESS_VHF_135MHZ 		= CALIBRATION_BASE + 0x00007B;//VHF is in 5Mhz bands from 135Mhz (Only first 8 entries are used)
+	uint8_t AnalogSquelchThresholds[8]; // Different values on VHF and UHF byt all in the range 0x12 - 0x1D
 
-/*
-calibrationStruct_t calibrationVHF;
-calibrationStruct_t calibrationUHF;
-*/
-void read_val_DACDATA_shift(int offset, uint8_t* val_shift)						//Sent to HRC6000 register 0x37. This sets the DMR received Audio Gain. (And Beep Volume)
-{																				//Effective for DMR Receive Only.
-	uint8_t buffer[1];															//only the low 4 bits are used. 1.5dB change per increment 0-31
-	SPI_Flash_read(EXT_DACDATA_shift+offset,buffer,1);
+	//  Analog Squelch controls
+	uint8_t Noise1ThresholdWideband[2];
+	uint8_t Noise2ThresholdWideband[2];
+	uint8_t RSSI3ThresholdWideband[2];
 
-	*val_shift=buffer[0]+1;
-	if (*val_shift>31)
+	uint8_t Noise1ThresholdNarrowband[2];
+	uint8_t Noise2ThresholdNarrowband[2];
+	uint8_t RSSI3ThresholdNarrowband[2];
+
+	uint8_t RSSILowerThreshold;
+	uint8_t RSSIUpperThreshold;
+
+	/*
+	 * VHF 136Mhz , 140Mhz - 165Mhz (in 5Mhz steps), 172Mhz
+	 * UHF 405Mhz - 475Mhz (in 10Mhz steps)
+	 */
+	uint8_t Dmr4FskDeviation[8]; // Controls the DMR 4FSK deviation produced by the C6000 chip
+
+	uint8_t DigitalRxAudioGainAndBeepVolume; // The Rx audio gain and the beep volume seem linked together.  0x1D on VHF and UHF
+
+	// CAL_DEV_DTMF = 0, CAL_DEV_TONE = 1, CAL_DEV_CTCSS_WIDE = 2,CAL_DEV_CTCSS_NARROW = 3, CAL_DEV_DCS_WIDE = 4, CAL_DEV_DCS_NARROW = 5
+	uint8_t AnalogTxDeviations[6];
+
+	uint8_t PaDrvIBit;
+	uint8_t PgaGain;
+
+	uint8_t AnalogMicGain; // Both wide and narrow band
+	uint8_t ReceiveAGCGainTarget; // Receiver AGC target. Higher values give more gain. Reducing this may improve receiver overload with strong signals, but would reduce sensitivity
+
+	uint16_t AnalogTxOverallDeviationWideband; // CTCSS, DCS, DTMF & voice, deviation .Normally a very low value like 0x0027
+	uint16_t AnalogTxOverallDeviationNarrowband; // CTCSS, DCS, DTMF & voice, deviation .Normally a very low value like 0x0027
+
+	// Not sure why there are 2 of these and what the difference is.
+	uint8_t AnalogRxAudioGainWideband; // normally a 0x0F
+	uint8_t AnalogRxAudioGainNarrowband; // normally a 0x0F
+
+	uint8_t UnknownBlock7[2];
+} CalibrationBandData_t;
+
+typedef struct
+{
+     CalibrationBandData_t band[CalibrationBandMAX];
+} CalibrationData_t;
+
+
+#define CALIBRATION_TABLE_LENGTH 0xE0 // Calibration table is 224 bytes long
+static __attribute__((section(".data.$RAM4"))) CalibrationData_t calibrationData;
+
+
+bool calibrationInit(void)
+{
+	return (SPI_Flash_read(CALIBRATION_BASE, (uint8_t *)&calibrationData, CALIBRATION_TABLE_LENGTH));
+}
+
+bool calibrationGetSectionData(CalibrationBand_t band, CalibrationSection_t section, CalibrationDataResult_t *o)
+{
+	switch(section)
 	{
-		*val_shift=31;
-	}
-	*val_shift|=0x80;
-}
+		/*
+		 * Sent to HRC6000 register 0x37. This sets the DMR received Audio Gain. (And Beep Volume)
+		 * Effective for DMR Receive Only.
+		 * only the low 4 bits are used. 1.5dB change per increment 0-331
+		 */
+		case CalibrationSection_DACDATA_SHIFT:
+			o->value = MIN(calibrationData.band[band].DigitalRxAudioGainAndBeepVolume + 1, 31);
+			o->value |= 0x80;
+			break;
 
-void read_val_twopoint_mod(int offset, uint8_t* val_0x47, uint8_t* val_0x48)      // Sent to HRC6000 register 0x47 and 0x48 to set the DC level of the Mod1 output. This sets the frequency of the AT1846 Reference Oscillator.
-{																				  // Effective for DMR and FM Receive and Transmit. Calibrates the receive and transmit frequencies.
-	uint8_t buffer[2];															  // Only one setting should be required for all frequencies but the Cal table has separate entries for VHF and UHF.
-	SPI_Flash_read(EXT_twopoint_mod+offset,buffer,2);
-	*val_0x47=buffer[0];
-	*val_0x48=buffer[1];
-}
+		/*
+		 * Sent to HRC6000 register 0x47 and 0x48 to set the DC level of the Mod1 output. This sets the frequency of the AT1846 Reference Oscillator.
+		 * Effective for DMR and FM Receive and Transmit. Calibrates the receive and transmit frequencies.
+		 * Only one setting should be required for all frequencies but the Cal table has separate entries for VHF and UHF.
+		 */
+		case CalibrationSection_TWOPOINT_MOD:
+			o->value = calibrationData.band[band].DACOscRefTune;
+			break;
 
-void read_val_Q_MOD2_offset(int offset, uint8_t* val_0x04)						  //Sent to the HRC6000 register 0x04 which is the offset value for the Mod 2 output.
-{																				  //However according to the schematics the Mod 2 output is not connected.
-	uint8_t buffer[1];															  //Therefore the function of this setting is unclear. (possible datasheet error?)
-	SPI_Flash_read(EXT_Q_MOD2_offset+offset,buffer,1);							  //The Cal table has one entry for each band and this is almost identical to 0x47 above.
-	*val_0x04=buffer[0];
-}
+		/*
+		 *
+		 * Sent to the HRC6000 register 0x04 which is the offset value for the Mod 2 output.
+		 * However according to the schematics the Mod 2 output is not connected.
+		 * Therefore the function of this setting is unclear. (possible datasheet error?)
+		 *
+		 */
+		case CalibrationSection_Q_MOD2_OFFSET:
+			// The Cal table has one entry for each band and this is almost identical to 0x47 above.
+			o->value = calibrationData.band[band].QMod2Offset;
+			break;
 
-void read_val_phase_reduce(int offset, uint8_t* val_0x46)						  //Sent to the HRC6000 register 0x46. This adjusts the level of the DMR Modulation on the MOD1 output.
-{																				  //Mod 1 controls the AT1846 Reference oscillator so this is effectively the deviation setting for DMR.
-	uint8_t buffer[1];															  //Because it modulates the reference oscillator the deviation will change depending on the frequency being used.
-	SPI_Flash_read(EXT_phase_reduce+offset,buffer,1);							  //Only affects DMR Transmit. The Cal table has 8 calibration values for each band.
-	*val_0x46=buffer[0];
-}
-
-void read_val_pga_gain(int offset, uint8_t* value)								  //Sent to AT1846S register 0x0a bits 6-10. Sets Voice Analogue Gain for FM Transmit.
-{
-	uint8_t buffer[1];
-	SPI_Flash_read(EXT_pga_gain+offset,buffer,1);
-	*value=buffer[0] & 0x1f;
-}
-
-void read_val_voice_gain_tx(int offset, uint8_t* value)							  //Sent to AT1846S register 0x41 bits 0-6. Sets Voice Digital Gain for FM Transmit.
-{
-	uint8_t buffer[1];
-	SPI_Flash_read(EXT_voice_gain_tx+offset,buffer,1);
-	*value=buffer[0] & 0x7f;
-}
-
-void read_val_gain_tx(int offset, uint8_t* value)   							//Sent to AT1846S register 0x44 bits 8-11. Sets Voice Digital Gain after ADC for FM Transmit.
-{
-	uint8_t buffer[1];
-	SPI_Flash_read(EXT_gain_tx+offset,buffer,1);
-	*value=buffer[0] & 0x0f;
-}
-
-void read_val_padrv_ibit(int offset, uint8_t* value)							//Sent to AT1846S register 0x0a bits 11-14. Sets PA Power Control for DMR and FM Transmit.
-{
-	uint8_t buffer[1];
-	SPI_Flash_read(EXT_padrv_ibit+offset,buffer,1);
-	*value=buffer[0] & 0x0f;
-}
-
-void read_val_xmitter_dev_wideband(int offset, uint16_t* value)					//Sent to AT1846S register 0x59 bits 6-15. Sets Deviation for Wideband FM Transmit
-{
-	uint8_t buffer[2];
-	SPI_Flash_read(EXT_xmitter_dev_wideband+offset,buffer,2);
-	*value=buffer[0] + ((buffer[1] & 0x03) << 8);
-}
-
-void read_val_xmitter_dev_narrowband(int offset, uint16_t* value)				//Sent to AT1846S register 0x59 bits 6-15. Sets Deviation for NarrowBand FM Transmit
-{
-	uint8_t buffer[2];
-	SPI_Flash_read(EXT_xmitter_dev_narrowband+offset,buffer,2);
-	*value=buffer[0] + ((buffer[1] & 0x03) << 8);
-}
-
-void read_val_dev_tone(int index, uint8_t *value)
-{
-	int address;
-
-	if (trxCurrentBand[TRX_TX_FREQ_BAND] == RADIO_BAND_UHF)                    //Sent to AT1846S register 0x59 bits 0-5. Sets Tones Deviation for FM Transmit
-	{
-		address = EXT_uhf_dev_tone+index;
-	}
-	else
-	{
-		address = EXT_vhf_dev_tone+index;
-	}
-	SPI_Flash_read(address, value, 1);
-}
-
-void read_val_dac_vgain_analog(int offset, uint8_t* value)					//Sent to AT1846S register 0x44 bits 0-3. Sets Digital Audio Gain for FM and DMR Receive.
-{
-	uint8_t buffer[1];
-	SPI_Flash_read(EXT_dac_vgain_analog+offset,buffer,1);
-	*value=buffer[0] & 0x0f;
-}
-
-void read_val_volume_analog(int offset, uint8_t* value)						//Sent to AT1846S register 0x44 bits 4-7. Sets Analogue Audio Gain for FM and DMR Receive.
-{
-	uint8_t buffer[1];
-	SPI_Flash_read(EXT_volume_analog+offset,buffer,1);
-	*value=buffer[0] & 0x0f;
-}
-
-void read_val_noise1_th_wideband(int offset, uint16_t* value)				//Sent to AT1846S register 0x48. Sets Noise 1 Threshold  for FM Wideband Receive.
-{
-	uint8_t buffer[2];
-	SPI_Flash_read(EXT_noise1_th_wideband+offset,buffer,2);
-	*value=((buffer[0] & 0x7f) << 7) + ((buffer[1] & 0x7f) << 0);
-}
-
-void read_val_noise2_th_wideband(int offset, uint16_t* value)				//Sent to AT1846S register 0x60. Sets Noise 2 Threshold  for FM  Wideband Receive.
-{
-	uint8_t buffer[2];
-	SPI_Flash_read(EXT_noise2_th_wideband+offset,buffer,2);
-	*value=((buffer[0] & 0x7f) << 7) + ((buffer[1] & 0x7f) << 0);
-}
-
-void read_val_rssi3_th_wideband(int offset, uint16_t* value)				//Sent to AT1846S register 0x3F. Sets RSSI3 Threshold  for  Wideband Receive.
-{
-	uint8_t buffer[2];
-	SPI_Flash_read(EXT_rssi3_th_wideband+offset,buffer,2);
-	*value=((buffer[0] & 0x7f) << 7) + ((buffer[1] & 0x7f) << 0);
-}
-
-void read_val_noise1_th_narrowband(int offset, uint16_t* value)				//Sent to AT1846S register 0x48. Sets Noise 1 Threshold  for FM Narrowband Receive.
-{
-	uint8_t buffer[2];
-	SPI_Flash_read(EXT_noise1_th_narrowband+offset,buffer,2);
-	*value=((buffer[0] & 0x7f) << 7) + ((buffer[1] & 0x7f) << 0);
-}
-
-void read_val_noise2_th_narrowband(int offset, uint16_t* value)				//Sent to AT1846S register 0x60. Sets Noise 2 Threshold  for FM  Narrowband  Receive.
-{
-	uint8_t buffer[2];
-	SPI_Flash_read(EXT_noise2_th_narrowband+offset,buffer,2);
-	*value=((buffer[0] & 0x7f) << 7) + ((buffer[1] & 0x7f) << 0);
-}
-
-void read_val_rssi3_th_narrowband(int offset, uint16_t* value)				//Sent to AT1846S register 0x3F. Sets RSSI3 Threshold  for  Narrowband Receive.
-{
-	uint8_t buffer[2];
-	SPI_Flash_read(EXT_rssi3_th_narrowband+offset,buffer,2);
-	*value=((buffer[0] & 0x7f) << 7) + ((buffer[1] & 0x7f) << 0);
-}
-
-void read_val_squelch_th(int offset, int mod, uint16_t* value)				//Sent to At1846S register 0x49. sets squelch open threshold for FM Receive.
-{																			//8 Cal Table Entries for each band. Frequency Dependent.
-	uint8_t buffer[1];
-	SPI_Flash_read(EXT_squelch_th+offset,buffer,1);
-	uint8_t v1 = buffer[0]-mod;
-	uint8_t v2 = buffer[0]-mod-3;
-	if ( v1 >= 127 || v2 >= 127 || v1 < v2 )
-	{
-	  v1 = 24;
-	  v2 = 21;
-	}
-	*value=(v1 << 7) + (v2 << 0);
-}
-
-bool calibrationGetPowerForFrequency(int freq, calibrationPowerValues_t *powerSettings)				//Power Settings for Transmit
-{																							        //16 Entries of two bytes each.
-	int address;																					//first byte of each entry  is the low power and the second byte is the high power value
-	uint8_t buffer[2];
-
-
-	if (trxCurrentBand[TRX_TX_FREQ_BAND] == RADIO_BAND_UHF)
-	{
-		address =  (freq - RADIO_FREQUENCY_BANDS[RADIO_BAND_UHF].calTableMinFreq) / 500000;
-
-		if (address < 0)
-		{
-			address=0;
-		}
-		else
-		{
-			if (address > 15)
+		/*
+		 * Sent to the HRC6000 register 0x46. This adjusts the level of the DMR Modulation on the MOD1 output.
+		 * Mod 1 controls the AT1846 Reference oscillator so this is effectively the deviation setting for DMR.
+		 * Because it modulates the reference oscillator the deviation will change depending on the frequency being used.
+		 *
+		 * Only affects DMR Transmit. The Cal table has 8 calibration values for each band.
+		 */
+		case CalibrationSection_PHASE_REDUCE:
+			if (o->offset >= 8)
 			{
-				address = 15;
+				o->value = 0;
+				return false;
 			}
-		}
-		address = POWER_ADDRESS_UHF_400MHZ + ( address * 2);
+			o->value = calibrationData.band[band].Dmr4FskDeviation[o->offset];
+			break;
 
-	}
-	else
-	{
-		address = (freq - RADIO_FREQUENCY_BANDS[RADIO_BAND_VHF].calTableMinFreq) / 500000;
+		/*
+		 * Sent to AT1846S register 0x0a bits 6-10. Sets Voice Analogue Gain for FM Transmit.
+		 */
+		case CalibrationSection_PGA_GAIN:
+			o->value = (calibrationData.band[band].PgaGain & 0x1F);
+			break;
 
-		if (address < 0)
-		{
-			address=0;
-		}
-		else
-		{
-			if (address > 7)
+		/*
+		 * Sent to AT1846S register 0x41 bits 0-6. Sets Voice Digital Gain for FM Transmit.
+		 */
+		case CalibrationSection_VOICE_GAIN_TX:
+			o->value = (calibrationData.band[band].AnalogMicGain & 0x7F);
+			break;
+
+		/*
+		 * Sent to AT1846S register 0x44 bits 8-11. Sets Voice Digital Gain after ADC for FM Transmit.
+		 */
+		case CalibrationSection_GAIN_TX:
+			o->value = (calibrationData.band[band].ReceiveAGCGainTarget & 0x0F);
+			break;
+
+		/*
+		 * Sent to AT1846S register 0x0a bits 11-14. Sets PA Power Control for DMR and FM Transmit
+		 */
+		case CalibrationSection_PADRV_IBIT:
+			o->value = (calibrationData.band[band].PaDrvIBit & 0x0F);
+			break;
+
+		/*
+		 * Sent to AT1846S register 0x59 bits 6-15. Sets Deviation for Wideband FM Transmit
+		 */
+		case CalibrationSection_XMITTER_DEV_WIDEBAND:
+			o->value = (calibrationData.band[band].AnalogTxOverallDeviationWideband & 0x03FF);
+			break;
+
+		/*
+		 * Sent to AT1846S register 0x59 bits 6-15. Sets Deviation for NarrowBand FM Transmit
+		 */
+		case CalibrationSection_XMITTER_DEV_NARROWBAND:
+			o->value = (calibrationData.band[band].AnalogTxOverallDeviationNarrowband & 0x03FF);
+			break;
+
+		/*
+		 * Sent to AT1846S register 0x59 bits 0-5. Sets Tones Deviation for FM Transmit
+		 */
+		case CalibrationSection_DEV_TONE:
+			if (o->offset >= 6)
 			{
-				address = 7;
+				o->value = 0;
+				return false;
 			}
-		}
-		address = POWER_ADDRESS_VHF_135MHZ +   (address * 2);
+			o->value = calibrationData.band[band].AnalogTxDeviations[o->offset];
+			break;
+
+		/*
+		 * Sets Digital Audio Gain for FM and DMR Receive.
+		 * Sent to AT1846S register 0x44 bits 0-3.
+		 */
+		case CalibrationSection_DAC_VGAIN_ANALOG:
+			o->value = (calibrationData.band[band].AnalogRxAudioGainWideband & 0x0F);
+			break;
+
+		/*
+		 * Sent to AT1846S register 0x44 bits 4-7.
+		 * Sets Analog Audio Gain for FM and DMR Receive.
+		 */
+		case CalibrationSection_VOLUME_ANALOG:
+			o->value = (calibrationData.band[band].AnalogRxAudioGainNarrowband & 0x0F);
+			break;
+
+		/*
+		 * Sent to AT1846S register 0x48. Sets Noise 1 Threshold  for FM Wideband Receive.
+		 */
+		case CalibrationSection_NOISE1_TH_WIDEBAND:
+			// that bitmask looks weird
+			o->value = ((calibrationData.band[band].Noise1ThresholdWideband[0] & 0x7F) << 7) + ((calibrationData.band[band].Noise1ThresholdWideband[1] & 0x7F) << 0);
+			break;
+
+		/*
+		 * Sent to AT1846S register 0x48. Sets Noise 1 Threshold  for FM Narrowband Receive.
+		 */
+		case CalibrationSection_NOISE1_TH_NARROWBAND:
+			// that bitmask looks weird
+			o->value = ((calibrationData.band[band].Noise1ThresholdNarrowband[0] & 0x7F) << 7) + ((calibrationData.band[band].Noise1ThresholdNarrowband[1] & 0x7F) << 0);
+			break;
+
+		/*
+		 * Sent to AT1846S register 0x60. Sets Noise 2 Threshold  for FM  Wideband Receive.
+		 */
+		case CalibrationSection_NOISE2_TH_WIDEBAND:
+			// that bitmask looks weird
+			o->value = ((calibrationData.band[band].Noise2ThresholdWideband[0] & 0x7F) << 7) + ((calibrationData.band[band].Noise2ThresholdWideband[1] & 0x7F) << 0);
+			break;
+
+		/*
+		 * Sent to AT1846S register 0x60. Sets Noise 2 Threshold  for FM  Narrowband  Receive.
+		 */
+		case CalibrationSection_NOISE2_TH_NARROWBAND:
+			// that bitmask looks weird
+			o->value = ((calibrationData.band[band].Noise2ThresholdNarrowband[0] & 0x7F) << 7) + ((calibrationData.band[band].Noise2ThresholdNarrowband[1] & 0x7F) << 0);
+			break;
+
+		/*
+		 * Sent to AT1846S register 0x3F. Sets RSSI3 Threshold  for  Wideband Receive.
+		 */
+		case CalibrationSection_RSSI3_TH_WIDEBAND:
+			// that bitmask looks weird
+			o->value = ((calibrationData.band[band].RSSI3ThresholdWideband[0] & 0x7F) << 7) + ((calibrationData.band[band].RSSI3ThresholdWideband[1] & 0x7F) << 0);
+			break;
+
+		/*
+		 * Sent to AT1846S register 0x3F. Sets RSSI3 Threshold  for  Narrowband Receive.
+		 */
+		case CalibrationSection_RSSI3_TH_NARROWBAND:
+			// that bitmask looks weird
+			o->value = ((calibrationData.band[band].RSSI3ThresholdNarrowband[0] & 0x7F) << 7) + ((calibrationData.band[band].RSSI3ThresholdNarrowband[1] & 0x7F) << 0);
+			break;
+
+		/*
+		 * THE DESCRIPTION OF THIS FUNCTION IS WRONG
+		 *
+		 * Sent to At1846S register 0x49. sets squelch open threshold for FM Receive.
+		 * 8 Cal Table Entries for each band. Frequency Dependent.
+		 */
+		case CalibrationSection_SQUELCH_TH:
+			if (o->offset >= 8)
+			{
+				o->value = 0;
+				return false;
+			}
+			uint8_t v1 = calibrationData.band[band].AnalogSquelchThresholds[o->offset] - o->mod;
+			uint8_t v2 = calibrationData.band[band].AnalogSquelchThresholds[o->offset] - o->mod - 3;
+			if ((v1 >= 127) || (v2 >= 127) || (v1 < v2))
+			{
+				v1 = 24;
+				v2 = 21;
+			}
+			o->value = (v1 << 7) + (v2 << 0);
+			break;
+
+		default:
+			return false;
 	}
-
-	SPI_Flash_read(address,buffer,2);
-
-#if defined(PLATFORM_RD5R)
-	const int POWER_CAL_MULTIPLIER = 8;
-#else
-	const int POWER_CAL_MULTIPLIER = 16;
-#endif
-
-	powerSettings->lowPower 	= buffer[0] * POWER_CAL_MULTIPLIER;
-	powerSettings->highPower 	= buffer[1] * POWER_CAL_MULTIPLIER;
 
 	return true;
 }
 
-bool calibrationGetRSSIMeterParams(calibrationRSSIMeter_t *rssiMeterValues)							//Signal Level Meter setting
-{																									//two bytes per band
-	int address;																					//Low Byte is low end of meter range
-																									//High Byte is High End of Meter Range
-	if (trxCurrentBand[TRX_RX_FREQ_BAND] == RADIO_BAND_UHF)
+bool calibrationGetPowerForFrequency(int freq, calibrationPowerValues_t *powerSettings)
+{
+	CalibrationBand_t band = CalibrationBandUHF;
+	int32_t offset;
+
+	if (trxCurrentBand[TRX_TX_FREQ_BAND] == RADIO_BAND_UHF)
 	{
-		address = CALIBRATION_BASE + 0x0053;
+		offset = (freq - RADIO_FREQUENCY_BANDS[RADIO_BAND_UHF].calTableMinFreq) / 500000;
+		if (offset < 0)
+		{
+			offset = 0;
+		}
+		else
+		{
+			if (offset > 15)
+			{
+				offset = 15;
+			}
+		}
 	}
 	else
 	{
-		address = CALIBRATION_BASE + 0x0C3;
+		band = CalibrationBandVHF;
+		offset = (freq - RADIO_FREQUENCY_BANDS[RADIO_BAND_VHF].calTableMinFreq) / 500000;;
+		if (offset < 0)
+		{
+			offset = 0;
+		}
+		else
+		{
+			if (offset > 7)
+			{
+				offset = 7;
+			}
+		}
 	}
 
-	if (SPI_Flash_read(address,(uint8_t *)rssiMeterValues,2))
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
+
+	const int POWER_CAL_MULTIPLIER = 16;
+	powerSettings->lowPower  = (calibrationData.band[band].PowerSettings[offset][0] * 16);
+	powerSettings->highPower = (calibrationData.band[band].PowerSettings[offset][1] * POWER_CAL_MULTIPLIER);
+
+	return true;
 }
 
-// This function is used to check if the calibration table has been copied to the common location
-// 0xF000 and if not, to copy it to that location in the external Flash memory
-bool checkAndCopyCalibrationToCommonLocation(void)
+bool calibrationGetRSSIMeterParams(calibrationRSSIMeter_t *rssiMeterValues)
+{
+	CalibrationBand_t band = ((trxCurrentBand[TRX_RX_FREQ_BAND] == RADIO_BAND_UHF) ? CalibrationBandUHF : CalibrationBandVHF);
+
+	memcpy((uint8_t *)rssiMeterValues, (&calibrationData.band[band].RSSILowerThreshold), 2);
+	// OR
+	//rssiMeterValues->minVal = calibrationData.band[band].RSSILowerThreshold;
+	//rssiMeterValues->rangeVal = calibrationData.band[band].RSSIUpperThreshold;
+
+	return true;
+}
+
+/*
+ * This function is used to check if the calibration table has been copied to the common location
+ * 0xF000 and if not, to copy it to that location in the external Flash memory
+ */
+bool calibrationCheckAndCopyToCommonLocation(bool forceReload)
 {
 #if defined(PLATFORM_GD77) || defined(PLATFORM_GD77S)
 
@@ -317,31 +377,34 @@ const uint8_t MARKER_BYTES[] = {0xA0 ,0x0F};// DM-1801 only seems to consistentl
 
 #elif defined(PLATFORM_RD5R)
 
-const uint32_t VARIANT_CALIBRATION_BASE = 0x00017c00;	// Found by marker bytes matching
-const int MARKER_BYTES_LENGTH = 8;
-const uint8_t MARKER_BYTES[] = {0xA0 ,0x0F ,0xC0 ,0x12 ,0xA0 ,0x0F ,0xC0 ,0x12};
+const uint32_t VARIANT_CALIBRATION_BASE = 0x0008F000;	// Found by marker bytes matching
+const int MARKER_BYTES_LENGTH = 2;
+const uint8_t MARKER_BYTES[] = {0xA0 ,0x0F};// ,0x50 ,0x14 ,0xA0 ,0x0F ,0x50 ,0x14};
 
 #endif
 
-	const int CALIBRATION_TABLE_LENGTH = 0xE0;
 	uint8_t tmp[CALIBRATION_TABLE_LENGTH];
 
-	if (SPI_Flash_read(CALIBRATION_BASE,(uint8_t *)tmp,MARKER_BYTES_LENGTH))
+	if (SPI_Flash_read(CALIBRATION_BASE, (uint8_t *)tmp, MARKER_BYTES_LENGTH))
 	{
-		if (memcmp(MARKER_BYTES,tmp,MARKER_BYTES_LENGTH)==0)
+
+		if (!forceReload && (memcmp(MARKER_BYTES, tmp, MARKER_BYTES_LENGTH) == 0))
 		{
 			// found calibration table in common location.
 			return true;
 		}
 		// Need to copy the calibration
 
-		if (SPI_Flash_read(VARIANT_CALIBRATION_BASE,(uint8_t *)tmp,CALIBRATION_TABLE_LENGTH))
+		if (SPI_Flash_read(VARIANT_CALIBRATION_BASE, (uint8_t *)tmp, CALIBRATION_TABLE_LENGTH))
 		{
-			if (memcmp(MARKER_BYTES,tmp,MARKER_BYTES_LENGTH)==0)
+			if (memcmp(MARKER_BYTES, tmp, MARKER_BYTES_LENGTH) == 0)
 			{
 				// found calibration table in variant location.
-				if (SPI_Flash_write(CALIBRATION_BASE, tmp,CALIBRATION_TABLE_LENGTH))
+				if (SPI_Flash_write(CALIBRATION_BASE, tmp, CALIBRATION_TABLE_LENGTH))
 				{
+					// Update current calibration data with the calibration data that just been read
+					memcpy(&calibrationData, tmp, CALIBRATION_TABLE_LENGTH);
+
 					return true;
 				}
 			}

@@ -27,6 +27,9 @@
 
 #include "sound.h"
 
+#define NUM_I2S_BUFFERS 4
+
+
 #if defined(PLATFORM_GD77) || defined(PLATFORM_GD77S)
 
 // I2S to C6000 (I2S)
@@ -90,15 +93,15 @@
 #endif
 
 
-
-
-extern edma_handle_t g_EDMA_TX_Handle;
-extern edma_handle_t g_EDMA_RX_Handle;
-
+extern volatile bool g_TX_SAI_in_use;
 extern sai_edma_handle_t g_SAI_TX_Handle;
 extern sai_edma_handle_t g_SAI_RX_Handle;
 
 void init_I2S(void);
 void setup_I2S(void);
+void I2SReset(void);
+void I2STerminateTransfers(void);
+void I2STransferReceive(uint8_t *buff,size_t bufferLen);
+void I2STransferTransmit(uint8_t *buff,size_t bufferLen);
 
 #endif /* _FW_I2S_H_ */

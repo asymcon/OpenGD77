@@ -21,10 +21,12 @@
 #include <user_interface/uiLocalisation.h>
 #include <user_interface/uiUtilities.h>
 
-static void updateScreen(void);
+static void updateScreen(bool isFirstRun);
 static void handleEvent(uiEvent_t *ev);
 static void updateBacklightMode(uint8_t mode);
 static void setDisplayInvert(bool invert);
+
+static menuStatus_t menuDisplayOptionsExitCode = MENU_STATUS_SUCCESS;
 
 static const int BACKLIGHT_MAX_TIMEOUT = 30;
 #if defined (PLATFORM_RD5R)
@@ -46,30 +48,43 @@ enum DISPLAY_MENU_LIST { 	DISPLAY_MENU_BRIGHTNESS = 0, DISPLAY_MENU_BRIGHTNESS_O
 							DISPLAY_MENU_CONTACT_DISPLAY_ORDER, DISPLAY_MENU_CONTACT_DISPLAY_SPLIT_CONTACT,
 							NUM_DISPLAY_MENU_ITEMS};
 
-
-int menuDisplayOptions(uiEvent_t *ev, bool isFirstRun)
+menuStatus_t menuDisplayOptions(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
 		// Store original settings, used on cancel event.
 		memcpy(&originalNonVolatileSettings, &nonVolatileSettings, sizeof(settingsStruct_t));
-
-		updateScreen();
+		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+		{
+			voicePromptsInit();
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+			voicePromptsAppendLanguageString(&currentLanguage->display_options);
+			voicePromptsAppendLanguageString(&currentLanguage->menu);
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+		}
+		updateScreen(true);
+		return (MENU_STATUS_LIST_TYPE | MENU_STATUS_SUCCESS);
 	}
 	else
 	{
+		menuDisplayOptionsExitCode = MENU_STATUS_SUCCESS;
+
 		if (ev->hasEvent)
 			handleEvent(ev);
 	}
-	return 0;
+	return menuDisplayOptionsExitCode;
 }
 
-static void updateScreen(void)
+static void updateScreen(bool isFirstRun)
 {
 	int mNum = 0;
 	static const int bufferLen = 17;
 	char buf[bufferLen];
-	const char *backlightModes[] = { currentLanguage->Auto, currentLanguage->squelch, currentLanguage->manual, currentLanguage->off };
+	char * const *leftSide = NULL;// initialise to please the compiler
+	char * const *rightSideConst = NULL;// initialise to please the compiler
+	char rightSideVar[bufferLen];
 
 	ucClearBuf();
 	menuDisplayTitle(currentLanguage->display_options);
@@ -79,55 +94,86 @@ static void updateScreen(void)
 	{
 		mNum = menuGetMenuOffset(NUM_DISPLAY_MENU_ITEMS, i);
 		buf[0] = 0;
+		rightSideVar[0] = 0;
+		rightSideConst = NULL;
 
 		switch(mNum)
 		{
 			case DISPLAY_MENU_BRIGHTNESS:
-				snprintf(buf, bufferLen, "%s:%d%%", currentLanguage->brightness, nonVolatileSettings.displayBacklightPercentage);
+				leftSide = (char * const *)&currentLanguage->brightness;
+				snprintf(rightSideVar, bufferLen, "%d%%", nonVolatileSettings.displayBacklightPercentage);
 				break;
 			case DISPLAY_MENU_BRIGHTNESS_OFF:
-				snprintf(buf, bufferLen, "%s:%d%%", currentLanguage->brightness_off, nonVolatileSettings.displayBacklightPercentageOff);
+				leftSide = (char * const *)&currentLanguage->brightness_off;
+				snprintf(rightSideVar, bufferLen, "%d%%", nonVolatileSettings.displayBacklightPercentageOff);
 				break;
 			case DISPLAY_MENU_CONTRAST:
-				snprintf(buf, bufferLen, "%s:%d", currentLanguage->contrast, nonVolatileSettings.displayContrast);
+				leftSide = (char * const *)&currentLanguage->contrast;
+				snprintf(rightSideVar, bufferLen, "%d",nonVolatileSettings.displayContrast);
 				break;
 			case DISPLAY_MENU_BACKLIGHT_MODE:
-				snprintf(buf, bufferLen, "%s:%s", currentLanguage->display, backlightModes[nonVolatileSettings.backlightMode]);
+				leftSide = (char * const *)&currentLanguage->mode;
+				{
+					const char * const *backlightModes[] = { &currentLanguage->Auto, &currentLanguage->squelch, &currentLanguage->manual, &currentLanguage->none };
+					rightSideConst = (char * const *)backlightModes[nonVolatileSettings.backlightMode];
+				}
 				break;
 			case DISPLAY_MENU_TIMEOUT:
+				leftSide = (char * const *)&currentLanguage->backlight_timeout;
 				if ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_AUTO) || (nonVolatileSettings.backlightMode == BACKLIGHT_MODE_SQUELCH))
 				{
 					if (nonVolatileSettings.backLightTimeout == 0)
-						snprintf(buf, bufferLen, "%s:%s", currentLanguage->backlight_timeout, currentLanguage->off);
+					{
+						rightSideConst = (char * const *)&currentLanguage->off;
+					}
 					else
-						snprintf(buf, bufferLen, "%s:%ds", currentLanguage->backlight_timeout, nonVolatileSettings.backLightTimeout);
+					{
+						snprintf(rightSideVar, bufferLen, "%ds", nonVolatileSettings.backLightTimeout);
+					}
 				}
 				else
 				{
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->backlight_timeout, currentLanguage->off);
+					rightSideConst = (char * const *)&currentLanguage->n_a;
 				}
 				break;
 			case DISPLAY_MENU_COLOUR_INVERT:
-				if (nonVolatileSettings.displayInverseVideo)
-				{
-					strncpy(buf, currentLanguage->colour_invert, bufferLen);
-				}
-				else
-				{
-					strncpy(buf, currentLanguage->colour_normal, bufferLen);
-				}
+				leftSide = (char * const *)&currentLanguage->display_background_colour;
+				rightSideConst = nonVolatileSettings.displayInverseVideo?(char * const *)&currentLanguage->colour_invert:(char * const *)&currentLanguage->colour_normal;
 				break;
 			case DISPLAY_MENU_CONTACT_DISPLAY_ORDER:
-				{
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->priority_order, contactOrders[nonVolatileSettings.contactDisplayPriority]);
-				}
+				leftSide = (char * const *)&currentLanguage->priority_order;
+				snprintf(rightSideVar, bufferLen, "%s",contactOrders[nonVolatileSettings.contactDisplayPriority]);
 				break;
 			case DISPLAY_MENU_CONTACT_DISPLAY_SPLIT_CONTACT:
+				leftSide = (char * const *)&currentLanguage->contact;
 				{
-					const char *splitContact[] = { currentLanguage->one_line, currentLanguage->two_lines, currentLanguage->Auto };
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->contact, splitContact[nonVolatileSettings.splitContact]);
+					const char * const *splitContact[] = { &currentLanguage->one_line, &currentLanguage->two_lines, &currentLanguage->Auto };
+					rightSideConst = (char * const *)splitContact[nonVolatileSettings.splitContact];
 				}
 				break;
+		}
+
+		// workaround for non stardard format of line for colour display
+
+		snprintf(buf, bufferLen, "%s:%s", *leftSide,(rightSideVar[0]?rightSideVar:*rightSideConst));
+
+		if (i==0 && nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+		{
+			if (!isFirstRun)
+			{
+				voicePromptsInit();
+			}
+			voicePromptsAppendLanguageString((const char * const *)leftSide);
+
+			if (rightSideVar[0] != 0)
+			{
+				voicePromptsAppendString(rightSideVar);
+			}
+			else
+			{
+				voicePromptsAppendLanguageString((const char * const *)rightSideConst);
+			}
+			voicePromptsPlay();
 		}
 
 		buf[bufferLen - 1] = 0;
@@ -140,10 +186,12 @@ static void updateScreen(void)
 
 static void handleEvent(uiEvent_t *ev)
 {
+	bool isDirty = false;
 	displayLightTrigger();
 
 	if (ev->events & FUNCTION_EVENT)
 	{
+		isDirty = true;
 		if (ev->function == DEC_BRIGHTNESS)
 		{
 			if (nonVolatileSettings.displayBacklightPercentage <= BACKLIGHT_PERCENTAGE_STEP)
@@ -190,14 +238,19 @@ static void handleEvent(uiEvent_t *ev)
 
 		if (KEYCHECK_PRESS(ev->keys,KEY_DOWN))
 		{
-			MENU_INC(gMenusCurrentItemIndex, NUM_DISPLAY_MENU_ITEMS);
+			isDirty = true;
+			menuSystemMenuIncrement(&gMenusCurrentItemIndex, NUM_DISPLAY_MENU_ITEMS);
+			menuDisplayOptionsExitCode |= MENU_STATUS_LIST_TYPE;
 		}
 		else if (KEYCHECK_PRESS(ev->keys,KEY_UP))
 		{
-			MENU_DEC(gMenusCurrentItemIndex, NUM_DISPLAY_MENU_ITEMS);
+			isDirty = true;
+			menuSystemMenuDecrement(&gMenusCurrentItemIndex, NUM_DISPLAY_MENU_ITEMS);
+			menuDisplayOptionsExitCode |= MENU_STATUS_LIST_TYPE;
 		}
 		else if (KEYCHECK_PRESS(ev->keys,KEY_RIGHT))
 		{
+			isDirty = true;
 			switch(gMenusCurrentItemIndex)
 			{
 				case DISPLAY_MENU_BRIGHTNESS:
@@ -239,7 +292,7 @@ static void handleEvent(uiEvent_t *ev)
 
 						if ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_MANUAL) && (!displayIsLit))
 						{
-							displaySetBacklightIntensityPercentage(nonVolatileSettings.displayBacklightPercentageOff);
+							gpioSetDisplayBacklightIntensityPercentage(nonVolatileSettings.displayBacklightPercentageOff);
 						}
 					}
 					break;
@@ -286,6 +339,7 @@ static void handleEvent(uiEvent_t *ev)
 		}
 		else if (KEYCHECK_PRESS(ev->keys,KEY_LEFT))
 		{
+			isDirty = true;
 			switch(gMenusCurrentItemIndex)
 			{
 				case DISPLAY_MENU_BRIGHTNESS:
@@ -325,7 +379,7 @@ static void handleEvent(uiEvent_t *ev)
 
 					if ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_MANUAL) && (!displayIsLit))
 					{
-						displaySetBacklightIntensityPercentage(nonVolatileSettings.displayBacklightPercentageOff);
+						gpioSetDisplayBacklightIntensityPercentage(nonVolatileSettings.displayBacklightPercentageOff);
 					}
 					break;
 				case DISPLAY_MENU_CONTRAST:
@@ -399,14 +453,17 @@ static void handleEvent(uiEvent_t *ev)
 
 			if ((nonVolatileSettings.backlightMode == BACKLIGHT_MODE_MANUAL) && (!displayIsLit))
 			{
-				displaySetBacklightIntensityPercentage(nonVolatileSettings.displayBacklightPercentageOff);
+				gpioSetDisplayBacklightIntensityPercentage(nonVolatileSettings.displayBacklightPercentageOff);
 			}
 
 			menuSystemPopPreviousMenu();
 			return;
 		}
 	}
-	updateScreen();
+	if (isDirty)
+	{
+		updateScreen(false);
+	}
 }
 
 static void updateBacklightMode(uint8_t mode)

@@ -20,7 +20,7 @@
 
 #ifndef _DMR_DMRLC_H_
 #define _DMR_DMRLC_H_
-#include "main.h"
+
 #include "hotspot/dmrDefines.h"
 
 typedef struct DMRLC

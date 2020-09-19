@@ -44,9 +44,12 @@ static const int BAR_Y_POS = 10;
 const int FREQUENCY_X_POS = /* '>Ta'*/ (3 * 8) + 4;
 const int MAX_POWER_SETTING_NUM = 16;
 
+const int NUM_PC_OR_TG_DIGITS = 8;
+const int MAX_TG_OR_PC_VALUE = 16777215;
+
 static const int DMRID_MEMORY_STORAGE_START = 0x30000;
 static const int DMRID_HEADER_LENGTH = 0x0C;
-__attribute__((section(".data.$RAM2"))) LinkItem_t callsList[NUM_LASTHEARD_STORED];
+__attribute__((section(".data.$RAM4"))) LinkItem_t callsList[NUM_LASTHEARD_STORED];
 LinkItem_t *LinkHead = callsList;
 int numLastHeard=0;
 int menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
@@ -56,8 +59,9 @@ const uint32_t RSSI_UPDATE_COUNTER_RELOAD = 100;
 uint32_t menuUtilityReceivedPcId 	= 0;// No current Private call awaiting acceptance
 uint32_t menuUtilityTgBeforePcMode 	= 0;// No TG saved, prior to a Private call being accepted.
 
-const char *POWER_LEVELS[]={"<1mW","1mW","5mW","10mW","25mW","50mW","75mW","100mW","250mW","500mW","750mW","1W","2W","3W","4W","5W","5W++"};
-const char *DMR_FILTER_LEVELS[]={"All","CC","TS","TG","Contact","RxGroup"};
+const char *POWER_LEVELS[]={"<1","1","5","10","25","50","75","100","250","500","750","1","2","3","4","5","5"};
+const char *POWER_LEVEL_UNITS[]={ "mW","mW","mW","mW","mW","mW","mW","mW","mW","mW","mW","W","W","W","W","W","W++"};
+const char *DMR_FILTER_LEVELS[]={"All","TS","TG","Contact","RxGroup"};
 const char *ANALOG_FILTER_LEVELS[]={"None","On"};
 
 volatile uint32_t lastID=0;// This needs to be volatile as lastHeardClearLastID() is called from an ISR
@@ -68,7 +72,7 @@ static dmrIDsCache_t dmrIDsCache;
 int nuisanceDelete[MAX_ZONE_SCAN_NUISANCE_CHANNELS];
 int nuisanceDeleteIndex;
 int scanTimer=0;
-bool scanActive=false;
+bool scanActive = false;
 ScanState_t scanState = SCAN_SCANNING;		//state flag for scan routine.
 int scanDirection = 1;
 
@@ -77,7 +81,7 @@ bool displaySquelch=false;
 char freq_enter_digits[12] = { '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-', '-' };
 int freq_enter_idx;
 
-struct_codeplugRxGroup_t currentRxGroupData;
+__attribute__((section(".data.$RAM4"))) struct_codeplugRxGroup_t currentRxGroupData;
 struct_codeplugContact_t currentContactData;
 
 const int SCAN_SHORT_PAUSE_TIME = 500;			//time to wait after carrier detected to allow time for full signal detection. (CTCSS or DMR)
@@ -85,6 +89,16 @@ const int SCAN_TOTAL_INTERVAL = 30;			    //time between each scan step
 const int SCAN_DMR_SIMPLEX_MIN_INTERVAL=60;		//minimum time between steps when scanning DMR Simplex. (needs extra time to capture TDMA Pulsing)
 const int SCAN_FREQ_CHANGE_SETTLING_INTERVAL = 1;//Time after frequency is changed before RSSI sampling starts
 const int SCAN_SKIP_CHANNEL_INTERVAL = 1;		//This is actually just an implicit flag value to indicate the channel should be skipped
+
+voicePromptItem_t voicePromptSequenceState = PROMPT_SEQUENCE_CHANNEL_NAME_OR_VFO_FREQ;
+struct_codeplugZone_t currentZone;
+static bool voicePromptWasPlaying;
+bool inhibitInitialVoicePrompt =
+#if defined(PLATFORM_GD77S)
+		true;
+#else
+		false;//Used to indicate whether the voice prompts should be reloaded with the channel name or VFO freq
+#endif
 
 
 bool isQSODataAvailableForCurrentTalker(void)
@@ -94,7 +108,7 @@ bool isQSODataAvailableForCurrentTalker(void)
 
 	// We're in digital mode, RXing, and current talker is already at the top of last heard list,
 	// hence immediately display complete contact/TG info on screen
-	if ((trxIsTransmitting == false) && ((trxGetMode() == RADIO_MODE_DIGITAL) && (rxID != 0) && (HRC6000GetReceivedTgOrPcId() != 0)) &&
+	if ((trxTransmissionEnabled == false) && ((trxGetMode() == RADIO_MODE_DIGITAL) && (rxID != 0) && (HRC6000GetReceivedTgOrPcId() != 0)) &&
 			(getAudioAmpStatus() & AUDIO_AMP_MODE_RF)
 			&& checkTalkGroupFilter() &&
 			(((item = lastheardFindInList(rxID)) != NULL) && (item == LinkHead)))
@@ -569,6 +583,11 @@ bool lastHeardListUpdate(uint8_t *dmrDataBuffer, bool forceOnHotspot)
 					// Not in the list
 					item = LinkHead;// setup to traverse the list from the top.
 
+					if (numLastHeard<NUM_LASTHEARD_STORED)
+					{
+						numLastHeard++;
+					}
+
 					// need to use the last item in the list as the new item at the top of the list.
 					// find last item in the list
 					while(item->next != NULL)
@@ -978,7 +997,7 @@ static void displayContactTextInfos(char *text, size_t maxLen, bool isFromTalker
 			buffer[cpos] = 0;
 
 #if defined(PLATFORM_RD5R)
-			ucPrintCentered(28, chomp(buffer), FONT_SIZE_3);
+			ucPrintCentered(24, chomp(buffer), FONT_SIZE_3);
 #else
 			ucPrintCentered(32, chomp(buffer), FONT_SIZE_3);
 #endif
@@ -989,7 +1008,7 @@ static void displayContactTextInfos(char *text, size_t maxLen, bool isFromTalker
 
 			if (strlen(pbuf))
 #if defined(PLATFORM_RD5R)
-				printSplitOrSpanText(32, pbuf);
+				printSplitOrSpanText(33, pbuf);
 #else
 				printSplitOrSpanText(48, pbuf);
 #endif
@@ -1165,7 +1184,7 @@ void menuUtilityRenderHeader(void)
 	static bool scanBlinkPhase = true;
 	static uint32_t blinkTime = 0;
 
-	if (!trxIsTransmitting)
+	if (!trxTransmissionEnabled)
 	{
 		drawRSSIBarGraph();
 	}
@@ -1280,7 +1299,8 @@ void menuUtilityRenderHeader(void)
 		strcat(buffer," L");
 	}*/
 
-	ucPrintCentered(Y_OFFSET, (char *)POWER_LEVELS[nonVolatileSettings.txPowerLevel], FONT_SIZE_1);
+	sprintf(buffer,"%s%s",POWER_LEVELS[nonVolatileSettings.txPowerLevel],POWER_LEVEL_UNITS[nonVolatileSettings.txPowerLevel]);
+	ucPrintCentered(Y_OFFSET,buffer, FONT_SIZE_1);
 
 	if (settingsUsbMode == USB_MODE_HOTSPOT || trxGetMode() == RADIO_MODE_ANALOG)
 	{
@@ -1384,32 +1404,35 @@ void setOverrideTGorPC(int tgOrPc, bool privateCall)
 void printToneAndSquelch(void)
 {
 	char buf[24];
+	int pos = 0;
 	if (trxGetMode() == RADIO_MODE_ANALOG)
 	{
+		pos += snprintf(buf+pos, 24-pos, "Rx:");
 		if (codeplugChannelToneIsCTCSS(currentChannelData->rxTone))
 		{
-			snprintf(buf, 24, "Rx:%d.%dHz|", currentChannelData->rxTone / 10 , currentChannelData->rxTone % 10);
+			pos += snprintf(buf+pos, 24-pos, "%d.%dHz", currentChannelData->rxTone / 10 , currentChannelData->rxTone % 10);
 		}
 		else if (codeplugChannelToneIsDCS(currentChannelData->rxTone))
 		{
-			snprintf(buf, 24, "Rx:D%03oN|", currentChannelData->rxTone & 0777);
+			pos += snprintDCS(buf+pos, 24-pos, currentChannelData->rxTone & 0777, (currentChannelData->rxTone & CODEPLUG_DCS_INVERTED_MASK));
 		}
 		else
 		{
-			snprintf(buf, 24, "Rx:%s|", currentLanguage->off);
+			pos += snprintf(buf+pos, 24-pos, "%s", currentLanguage->none);
 		}
+		pos += snprintf(buf+pos, 24-pos, "|Tx:");
 
 		if (codeplugChannelToneIsCTCSS(currentChannelData->txTone))
 		{
-			snprintf(buf, 24, "%sTx:%d.%dHz", buf, currentChannelData->txTone / 10 , currentChannelData->txTone % 10);
+			pos += snprintf(buf+pos, 24-pos, "%d.%dHz", currentChannelData->txTone / 10 , currentChannelData->txTone % 10);
 		}
 		else if (codeplugChannelToneIsDCS(currentChannelData->txTone))
 		{
-			snprintf(buf, 24, "%sTx:D%03oN", buf, currentChannelData->txTone & 0777);
+			pos += snprintDCS(buf+pos, 24-pos, currentChannelData->txTone & 0777, (currentChannelData->txTone & CODEPLUG_DCS_INVERTED_MASK));
 		}
 		else
 		{
-			snprintf(buf, 24, "%sTx:%s", buf, currentLanguage->off);
+			pos += snprintf(buf+pos, 24-pos, "%s", currentLanguage->none);
 		}
 
 #if defined(PLATFORM_RD5R)
@@ -1454,6 +1477,11 @@ const int VFO_LETTER_Y_OFFSET = 8;// This is the different in height of the SIZE
 	ucPrintAt(DISPLAY_SIZE_X - (3 * 8), y, "MHz", FONT_SIZE_3);
 }
 
+size_t snprintDCS(char *s, size_t n, uint16_t code, bool inverted)
+{
+	return snprintf(s, n, "D%03o%c", code, (inverted ? 'I' : 'N'));
+}
+
 void reset_freq_enter_digits(void)
 {
 	for (int i=0;i<12;i++)
@@ -1492,4 +1520,288 @@ int getBatteryPercentage(void)
 	}
 
 	return batteryPerentage;
+}
+
+void increasePowerLevel(void)
+{
+	nonVolatileSettings.txPowerLevel++;
+	trxSetPowerFromLevel(nonVolatileSettings.txPowerLevel);
+	announceItem(PROMPT_SEQUENCE_POWER,PROMPT_THRESHOLD_3);
+}
+
+void decreasePowerLevel(void)
+{
+	nonVolatileSettings.txPowerLevel--;
+	trxSetPowerFromLevel(nonVolatileSettings.txPowerLevel);
+	announceItem(PROMPT_SEQUENCE_POWER,PROMPT_THRESHOLD_3);
+}
+
+void announceRadioMode(void)
+{
+	if (!voicePromptWasPlaying)
+	{
+		voicePromptsAppendLanguageString(&currentLanguage->mode);
+	}
+	voicePromptsAppendString( (trxGetMode() == RADIO_MODE_DIGITAL)?"DMR":"FM");
+}
+
+void announceZoneName(void)
+{
+	if (!voicePromptWasPlaying)
+	{
+		voicePromptsAppendLanguageString(&currentLanguage->zone);
+	}
+	voicePromptsAppendString(currentZone.name);
+}
+
+void announceContactNameTgOrPc(void)
+{
+	if (nonVolatileSettings.overrideTG == 0)
+	{
+		voicePromptsAppendLanguageString(&currentLanguage->contact);
+		voicePromptsAppendString(currentContactData.name);
+	}
+	else
+	{
+		char buf[17];
+		itoa(nonVolatileSettings.overrideTG & 0xFFFFFF,buf, 10);
+		if ((nonVolatileSettings.overrideTG>>24)  == PC_CALL_FLAG)
+		{
+			voicePromptsAppendLanguageString(&currentLanguage->private_call);
+			voicePromptsAppendString("ID");
+		}
+		else
+		{
+			voicePromptsAppendPrompt(PROMPT_TALKGROUP);
+		}
+		voicePromptsAppendString(buf);
+	}
+}
+void announcePowerLevel(void)
+{
+	voicePromptsInit();
+	voicePromptsAppendString((char *)POWER_LEVELS[nonVolatileSettings.txPowerLevel]);
+	switch(nonVolatileSettings.txPowerLevel)
+	{
+		case 0:// <1mW
+		case 1:// 1mW
+		case 2:// 5mW
+		case 3:// 10mW
+		case 4:// 25mW
+		case 5:// 50mW
+		case 6:// 75mW
+		case 7:// 100mW
+		case 8:// 250mW
+		case 9:// 500mW
+		case 10:// 750mW
+			voicePromptsAppendPrompt(PROMPT_MILLIWATTS);
+			break;
+		case 11://1W
+			voicePromptsAppendPrompt(PROMPT_WATT);
+			break;
+		default:
+			voicePromptsAppendPrompt(PROMPT_WATTS);
+			break;
+	}
+
+	// When in 5W++ mode
+	if (nonVolatileSettings.txPowerLevel == 16) //must match max power levels at top
+	{
+		voicePromptsAppendPrompt(PROMPT_PLUS);
+		voicePromptsAppendPrompt(PROMPT_PLUS);
+	}
+}
+
+void announceBatteryPercentage(void)
+{
+	voicePromptsAppendLanguageString(&currentLanguage->battery);
+	voicePromptsAppendInteger(getBatteryPercentage());
+	voicePromptsAppendPrompt(PROMPT_PERCENT);
+}
+
+void announceTS(void)
+{
+	voicePromptsAppendPrompt(PROMPT_TIMESLOT);
+	voicePromptsAppendInteger(trxGetDMRTimeSlot() + 1);
+}
+
+void announceCC(void)
+{
+	voicePromptsAppendLanguageString(&currentLanguage->colour_code);
+	voicePromptsAppendInteger(trxGetDMRColourCode());
+}
+
+void announceChannelName(void)
+{
+	char voiceBuf[17];
+	codeplugUtilConvertBufToString(channelScreenChannelData.name, voiceBuf, 16);
+
+	if (!voicePromptWasPlaying)
+	{
+		voicePromptsAppendPrompt(PROMPT_CHANNEL);
+	}
+
+	voicePromptsAppendString(voiceBuf);
+}
+
+static void removeUnnecessaryZerosFromVoicePrompts(char *str)
+{
+	const int NUM_DECIMAL_PLACES = 1;
+	int len = strlen(str);
+	for(int i=len;i>2;i--)
+	{
+		if (str[i-1]!='0' || str[i-(NUM_DECIMAL_PLACES+1)]=='.')
+		{
+			str[i] = 0;
+			return;
+		}
+	}
+}
+
+void announceFrequency(void)
+{
+	char buffer[17];
+
+	if (currentChannelData->txFreq!=currentChannelData->rxFreq)
+	{
+		voicePromptsAppendPrompt(PROMPT_RECEIVE);
+	}
+	int val_before_dp = currentChannelData->rxFreq / 100000;
+	int val_after_dp = currentChannelData->rxFreq - val_before_dp * 100000;
+	snprintf(buffer, 17, "%d.%05d", val_before_dp, val_after_dp);
+	removeUnnecessaryZerosFromVoicePrompts(buffer);
+	voicePromptsAppendString(buffer);
+
+	if (currentChannelData->txFreq!=currentChannelData->rxFreq)
+	{
+		voicePromptsAppendPrompt(PROMPT_TRANSMIT);
+		val_before_dp = currentChannelData->txFreq / 100000;
+		val_after_dp = currentChannelData->txFreq - val_before_dp * 100000;
+		snprintf(buffer, 17, "%d.%05d", val_before_dp, val_after_dp);
+		removeUnnecessaryZerosFromVoicePrompts(buffer);
+		voicePromptsAppendString(buffer);
+	}
+}
+
+void announceVFOAndFrequency(void)
+{
+	voicePromptsAppendPrompt(PROMPT_VFO);
+	voicePromptsAppendString((nonVolatileSettings.currentVFONumber == 0) ? "A" : "B");
+	announceFrequency();
+}
+
+void playNextSettingSequence(void)
+{
+	voicePromptSequenceState++;
+
+	if (voicePromptSequenceState == NUM_PROMPT_SEQUENCES)
+	{
+		voicePromptSequenceState = 0;
+	}
+
+	announceItem(voicePromptSequenceState,PROMPT_THRESHOLD_3);
+}
+
+void announceItem(voicePromptItem_t item, audioPromptThreshold_t immediateAnnounceThreshold)
+{
+	if (nonVolatileSettings.audioPromptMode < AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+	{
+		return;
+	}
+	voicePromptWasPlaying = voicePromptIsActive;
+
+	voicePromptSequenceState = item;
+
+	voicePromptsInit();
+
+	switch(voicePromptSequenceState)
+	{
+		case PROMPT_SEQUENCE_CHANNEL_NAME_OR_VFO_FREQ:
+			if (menuSystemGetCurrentMenuNumber() == UI_CHANNEL_MODE)
+			{
+				announceChannelName();
+			}
+			else
+			{
+				announceVFOAndFrequency();
+			}
+			break;
+		case PROMPT_SEQUENCE_ZONE:
+			announceZoneName();
+			break;
+		case PROMPT_SEQUENCE_MODE:
+			announceRadioMode();
+			break;
+		case PROMPT_SEQUENCE_CONTACT_TG_OR_PC:
+			announceContactNameTgOrPc();
+			break;
+		case PROMPT_SEQUENCE_TS:
+			announceTS();
+			break;
+		case PROMPT_SEQUENCE_CC:
+			announceCC();
+			break;
+		case PROMPT_SEQUENCE_POWER:
+			announcePowerLevel();
+			break;
+		case PROMPT_SEQUENCE_BATTERY:
+			announceBatteryPercentage();
+			break;
+		default:
+			break;
+	}
+	// Follow-on when voicePromptWasPlaying is enabled on voice prompt level 2 and above
+	// Prompts are voiced immediately on voice prompt level 3
+	if ((voicePromptWasPlaying && nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_2) || (nonVolatileSettings.audioPromptMode >= immediateAnnounceThreshold) )
+	{
+		voicePromptsPlay();
+	}
+}
+
+void buildTgOrPCDisplayName(char *nameBuf, int bufferLen)
+{
+int contactIndex;
+struct_codeplugContact_t contact;
+uint32_t id = (trxTalkGroupOrPcId & 0x00FFFFFF);
+
+	if ((trxTalkGroupOrPcId >> 24) == TG_CALL_FLAG)
+	{
+		contactIndex = codeplugContactIndexByTGorPC(id, CONTACT_CALLTYPE_TG,	&contact);
+		if (contactIndex == 0)
+		{
+			snprintf(nameBuf, bufferLen, "TG %d",(trxTalkGroupOrPcId & 0x00FFFFFF));
+		}
+		else
+		{
+			codeplugUtilConvertBufToString(contact.name, nameBuf, 16);
+		}
+	}
+	else
+	{
+		contactIndex = codeplugContactIndexByTGorPC(id, CONTACT_CALLTYPE_PC, &contact);
+		if (contactIndex == 0) {
+			dmrIdDataStruct_t currentRec;
+			if (dmrIDLookup(id, &currentRec))
+			{
+				strncpy(nameBuf, currentRec.text, bufferLen);
+			}
+			else
+			{
+				// check LastHeard for TA data.
+				LinkItem_t *item = lastheardFindInList(id);
+				if (item!=NULL && strlen(item->talkerAlias)!=0)
+				{
+					strncpy(nameBuf, item->talkerAlias, bufferLen);
+				}
+				else
+				{
+					snprintf(nameBuf, bufferLen, "ID:%d", id);
+				}
+			}
+		}
+		else
+		{
+			codeplugUtilConvertBufToString(contact.name, nameBuf, 16);
+		}
+	}
 }

@@ -21,8 +21,8 @@
 #ifndef _VOX_H_
 #define _VOX_H_
 
-#include <common.h>
-
+#include <stdbool.h>
+#include <stdint.h>
 
 void voxInit(void);
 void voxSetParameters(uint8_t threshold, uint8_t tailHalfSecond);

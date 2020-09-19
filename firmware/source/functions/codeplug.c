@@ -69,6 +69,7 @@ const int CODEPLUG_MIN_VARIABLE_SQUELCH = 1;
 
 const uint16_t CODEPLUG_CSS_NONE = 0xFFFF;
 const uint16_t CODEPLUG_DCS_FLAGS_MASK = 0xC000;
+const uint16_t CODEPLUG_DCS_INVERTED_MASK = 0x4000;
 
 typedef struct
 {
@@ -86,7 +87,7 @@ typedef struct
 
 __attribute__((section(".data.$RAM2"))) codeplugContactsCache_t codeplugContactsCache;
 
-uint8_t codeplugRXGroupCache[77] = { 0 };
+__attribute__((section(".data.$RAM4"))) uint8_t codeplugRXGroupCache[77] = { 0 };
 
 uint32_t byteSwap32(uint32_t n)
 {
