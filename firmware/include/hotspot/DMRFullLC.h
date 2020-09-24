@@ -24,7 +24,7 @@
 #include "hotspot/dmrDefines.h"
 #include "hotspot/DMRLC.h"
 
-bool DMRFullLC_decode(const unsigned char* data, unsigned char type,DMRLC_T *lc);
-bool DMRFullLC_encode(DMRLC_T *lc, unsigned char* data, unsigned char type);
+bool DMRFullLC_decode(const unsigned char* data, unsigned char type, DMRLC_T *lc);
+bool DMRFullLC_encode(DMRLC_T *lc, unsigned char *data, unsigned char type);
 
 #endif

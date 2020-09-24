@@ -22,8 +22,10 @@
 #include <settings.h>
 #include <trx.h>
 #include <user_interface/menuSystem.h>
+#include <user_interface/uiUtilities.h>
 
 
+uint8_t trx_css_measure_count = 0;
 int trx_measure_count = 0;
 volatile bool trxTransmissionEnabled = false;
 volatile bool trxIsTransmitting = false;
@@ -73,7 +75,7 @@ const frequencyBand_t RADIO_FREQUENCY_BANDS[RADIO_BANDS_TOTAL_NUM] =  {
 #endif
 
 static const int TRX_SQUELCH_MAX = 70;
-const uint8_t TRX_NUM_CTCSS=50;
+const uint8_t TRX_NUM_CTCSS = 50;
 const uint16_t TRX_CTCSSTones[] = {
 	 670,  693,  719,  744,  770,  797,  825,  854,  885,  915,
 	 948,  974, 1000, 1035, 1072, 1109, 1148, 1188, 1230, 1273,
@@ -202,7 +204,7 @@ static uint16_t trxSaveDeviation = 0xff;
 static uint8_t voice_gain_tx = 0x31; // default voice_gain_tx fro calibration, needs to be declared here in case calibration:OFF
 
 int trxDMRMode = DMR_MODE_ACTIVE;// Active is for simplex
-static volatile bool txPAEnabled=false;
+static volatile bool txPAEnabled = false;
 
 static int trxCurrentDMRTimeSlot;
 
@@ -225,9 +227,9 @@ void trxSetModeAndBandwidth(int mode, bool bandwidthIs25kHz)
 {
 	if ((mode != currentMode) || (bandwidthIs25kHz != currentBandWidthIs25kHz))
 	{
-		currentMode=mode;
+		currentMode = mode;
 
-		currentBandWidthIs25kHz=bandwidthIs25kHz;
+		currentBandWidthIs25kHz = bandwidthIs25kHz;
 
 		taskENTER_CRITICAL();
 		switch(mode)
@@ -344,11 +346,11 @@ bool trxCarrierDetected(void)
 		case RADIO_MODE_ANALOG:
 			if (currentChannelData->sql != 0)
 			{
-				squelch =  TRX_SQUELCH_MAX - (((currentChannelData->sql-1)*11)>>2);
+				squelch = TRX_SQUELCH_MAX - (((currentChannelData->sql - 1) * 11) >> 2);
 			}
 			else
 			{
-				squelch =  TRX_SQUELCH_MAX - (((nonVolatileSettings.squelchDefaults[trxCurrentBand[TRX_RX_FREQ_BAND]])*11)>>2);
+				squelch = TRX_SQUELCH_MAX - (((nonVolatileSettings.squelchDefaults[trxCurrentBand[TRX_RX_FREQ_BAND]]) * 11) >> 2);
 			}
 			break;
 
@@ -361,7 +363,7 @@ bool trxCarrierDetected(void)
 			}
 			else*/
 			{
-				squelch =  TRX_SQUELCH_MAX - (((nonVolatileSettings.squelchDefaults[trxCurrentBand[TRX_RX_FREQ_BAND]])*11)>>2);
+				squelch = TRX_SQUELCH_MAX - (((nonVolatileSettings.squelchDefaults[trxCurrentBand[TRX_RX_FREQ_BAND]]) * 11) >> 2);
 			}
 			break;
 	}
@@ -372,7 +374,7 @@ bool trxCarrierDetected(void)
 void trxCheckDigitalSquelch(void)
 {
 	trx_measure_count++;
-	if (trx_measure_count==25)
+	if (trx_measure_count == 25)
 	{
 		uint8_t squelch;
 
@@ -387,7 +389,7 @@ void trxCheckDigitalSquelch(void)
 		}
 		else*/
 		{
-			squelch =  TRX_SQUELCH_MAX - (((nonVolatileSettings.squelchDefaults[trxCurrentBand[TRX_RX_FREQ_BAND]])*11)>>2);
+			squelch = TRX_SQUELCH_MAX - (((nonVolatileSettings.squelchDefaults[trxCurrentBand[TRX_RX_FREQ_BAND]]) * 11) >> 2);
 		}
 
 		if (trxRxNoise < squelch)
@@ -407,27 +409,27 @@ void trxCheckDigitalSquelch(void)
 			}
 		}
 
-		trx_measure_count=0;
+		trx_measure_count = 0;
 	}
 }
 
 void trxCheckAnalogSquelch(void)
 {
 	trx_measure_count++;
-	if (trx_measure_count==25)
+	if (trx_measure_count == 25)
 	{
 		uint8_t squelch;//=45;
 
 		trxReadRSSIAndNoise();
 
 		// check for variable squelch control
-		if (currentChannelData->sql!=0)
+		if (currentChannelData->sql != 0)
 		{
-			squelch =  TRX_SQUELCH_MAX - (((currentChannelData->sql-1)*11)>>2);
+			squelch = TRX_SQUELCH_MAX - (((currentChannelData->sql - 1) * 11) >> 2);
 		}
 		else
 		{
-			squelch =  TRX_SQUELCH_MAX - (((nonVolatileSettings.squelchDefaults[trxCurrentBand[TRX_RX_FREQ_BAND]])*11)>>2);
+			squelch = TRX_SQUELCH_MAX - (((nonVolatileSettings.squelchDefaults[trxCurrentBand[TRX_RX_FREQ_BAND]]) * 11) >> 2);
 		}
 
 		if (trxRxNoise < squelch)
@@ -462,7 +464,13 @@ void trxCheckAnalogSquelch(void)
 
 			if (trxIsTransmittingTone == false)
 			{
-				disableAudioAmp(AUDIO_AMP_MODE_RF);
+				trx_css_measure_count++;
+				// If using CTCSS or DCS and signal isn't lost, allow some loss of tone / code
+				if ((!rxCSSactive) || (trxRxNoise > squelch) || (trx_css_measure_count >= 8))
+				{
+					disableAudioAmp(AUDIO_AMP_MODE_RF);
+					trx_css_measure_count = 0;
+				}
 			}
 		}
 
@@ -481,10 +489,10 @@ void trxSetFrequency(int fRx,int fTx, int dmrMode)
 		calibrationGetPowerForFrequency(fTx, &trxPowerSettings);
 		trxSetPowerFromLevel(nonVolatileSettings.txPowerLevel);
 
-		currentRxFrequency=fRx;
-		currentTxFrequency=fTx;
+		currentRxFrequency = fRx;
+		currentTxFrequency = fTx;
 
-		if (dmrMode==DMR_MODE_AUTO)
+		if (dmrMode == DMR_MODE_AUTO)
 		{
 			// Most DMR radios determine whether to use Active or Passive DMR depending on whether the Tx and Rx freq are the same
 			// This prevents split simplex operation, but since no other radio appears to support split freq simplex
@@ -515,7 +523,7 @@ void trxSetFrequency(int fRx,int fTx, int dmrMode)
 		tx_fh_l = (f & 0x00ff0000) >> 16;
 		tx_fh_h = (f & 0xff000000) >> 24;
 
-		if (currentMode==RADIO_MODE_DIGITAL)
+		if (currentMode == RADIO_MODE_DIGITAL)
 		{
 			terminate_digital();
 		}
@@ -670,7 +678,7 @@ void trxActivateRx(void)
 
 void trxActivateTx(void)
 {
-	txPAEnabled=true;
+	txPAEnabled = true;
 	I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x29, tx_fh_h, tx_fh_l);
 	I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x2a, tx_fl_h, tx_fl_l);
 
@@ -706,9 +714,9 @@ void trxSetPowerFromLevel(int powerLevel)
 //#if//defined(PLATFORM_GD77) || defined(PLATFORM_GD77S) // Support ONLY GD-77 in this build
 
 //fractal powers must match last 2 counts of power level
-static const float fractionalPowers[10][14] = {	{0.20,0.35,0.39,0.42,0.46,0.50,0.53,0.56,0.72,0.85,0.93},// VHF
-												{0.20,0.38,0.42,0.45,0.48,0.52,0.55,0.58,0.73,0.86,0.93},// 220Mhz
-												{0.20,0.41,0.45,0.48,0.51,0.55,0.58,0.64,0.77,0.86,0.93}};// UHF
+static const float fractionalPowers[12][14] = {	{0.10,0.20,0.25,0.30,0.35,0.39,0.42,0.46,0.50,0.53,0.56,0.72,0.85,0.93},// VHF
+												{0.10,0.20,0.25,0.30,0.38,0.42,0.45,0.48,0.52,0.55,0.58,0.73,0.86,0.93},// 220Mhz
+												{0.10,0.20,0.26,0.32,0.41,0.45,0.48,0.51,0.55,0.58,0.64,0.77,0.86,0.93}};// UHF
 
 //#elif defined(PLATFORM_DM1801) //Add extra levels at different time
 
@@ -722,34 +730,36 @@ static const float fractionalPowers[10][14] = {	{0.20,0.35,0.39,0.42,0.46,0.50,0
 // must add in new power levels in uiutilities.c
 	switch(powerLevel)
 	{
-		case 0:// <1mW
-		case 1:// 1mW
-		case 2:// 5mW
-		case 3:// 10mW
-		case 4:// 25mW
-		case 5:// 50mW
-		case 6:// 75mW
-		case 7:// 100mW
-		case 8:// 250mW
-		case 9:// 500mW
-		case 10:// 750mW
+		case 0:// 0.1mW //<1mW
+		case 1:// 0.3mW
+		case 2:// 0.5mW
+		case 3:// 1mW
+		case 4:// 5mW
+		case 5:// 10mW
+		case 6:// 25mW
+		case 7:// 50mW
+		case 8:// 75mW
+		case 9:// 100mW
+		case 10:// 250mW
+		case 11:// 500mW
+		case 12:// 750mW
 			txPower = trxPowerSettings.lowPower * fractionalPowers[trxCurrentBand[TRX_TX_FREQ_BAND]][powerLevel];
 			break;
-		case 11:// 1W //Must match case # in Settings.c / powerlevel - this case
+		case 13:// 1W //Must match case # in Settings.c / powerlevel - this case
 			txPower = trxPowerSettings.lowPower;
 			break;
-		case 12:// 2W
-		case 13:// 3W
-		case 14:// 4W
+		case 14:// 2W
+		case 15:// 3W
+		case 16:// 4W
 			{
 				int stepPerWatt = (trxPowerSettings.highPower - trxPowerSettings.lowPower)/( 5 - 1);
-				txPower = (((powerLevel - 11) * stepPerWatt) * fractionalPowers[trxCurrentBand[TRX_TX_FREQ_BAND]][powerLevel-1]) + trxPowerSettings.lowPower;
+				txPower = (((powerLevel - 13) * stepPerWatt) * fractionalPowers[trxCurrentBand[TRX_TX_FREQ_BAND]][powerLevel-1]) + trxPowerSettings.lowPower;
 			}
 			break;
-		case 15:// 5W
+		case 17:// 5W
 			txPower = trxPowerSettings.highPower;
 			break;
-		case 16:// 5W+
+		case 18:// 5W+
 			txPower = 4095;
 			break;
 		default:
@@ -757,9 +767,9 @@ static const float fractionalPowers[10][14] = {	{0.20,0.35,0.39,0.42,0.46,0.50,0
 			break;
 	}
 
-	if (txPower>4095)
+	if (txPower > 4095)
 	{
-		txPower=4095;
+		txPower = 4095;
 	}
 }
 
@@ -797,7 +807,7 @@ void trxUpdateC6000Calibration(void)
 	CalibrationBand_t calBand;
 	CalibrationDataResult_t calRes;
 
-	if (nonVolatileSettings.useCalibration==false)
+	if (nonVolatileSettings.useCalibration == false)
 	{
 		return;
 	}
@@ -962,18 +972,18 @@ void trxUpdateTsForCurrentChannelWithSpecifiedContact(struct_codeplugContact_t *
 {
 	bool hasManualTsOverride = false;
 
-	// nonVolatileSettings.tsManualOverride stores separate TS overrides for VFO and Channel mode
-	// Lower nibble is the Channel screen override and upper nibble if the VFO
+	// nonVolatileSettings.tsManualOverride stores separate TS overrides for VFO A, VFO B and Channel mode
+	// Use tsIsOverriden(), tsGetOverride(), tsSetOverride() to access the overridden
 	if (nonVolatileSettings.initialMenuNumber == UI_CHANNEL_MODE)
 	{
-		if ((nonVolatileSettings.tsManualOverride & 0x0F) != 0)
+		if (tsIsOverridden(CHANNEL_CHANNEL))
 		{
 			hasManualTsOverride = true;
 		}
 	}
 	else
 	{
-		if ((nonVolatileSettings.tsManualOverride & 0xF0) != 0)
+		if (tsIsOverridden(CHANNEL_VFO_A) || tsIsOverridden(CHANNEL_VFO_B))
 		{
 			hasManualTsOverride = true;
 		}
@@ -983,7 +993,7 @@ void trxUpdateTsForCurrentChannelWithSpecifiedContact(struct_codeplugContact_t *
 	{
 		if ((contactData->reserve1 & 0x01) == 0x00)
 		{
-			if ( (contactData->reserve1 & 0x02) !=0 )
+			if ((contactData->reserve1 & 0x02) != 0)
 			{
 				trxCurrentDMRTimeSlot = 1;
 			}
@@ -994,7 +1004,7 @@ void trxUpdateTsForCurrentChannelWithSpecifiedContact(struct_codeplugContact_t *
 		}
 		else
 		{
-			trxCurrentDMRTimeSlot = ((currentChannelData->flag2 & 0x40)!=0);
+			trxCurrentDMRTimeSlot = ((currentChannelData->flag2 & 0x40) != 0);
 		}
 	}
 }
@@ -1059,7 +1069,7 @@ void trxSetRxCSS(uint16_t tone)
 		if (tone > 2400) threshold=1;
 		// value that is stored is 100 time the tone freq but its stored in the codeplug as freq times 10
 		tone = tone * 10;
-		I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT,	0x4d, (tone >> 8) & 0xff, (tone & 0xff));
+		I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x4d, (tone >> 8) & 0xff, (tone & 0xff));
 		//set the detection thresholds
 		I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x5b, (threshold & 0xFF), (threshold & 0xFF));
 		//set detection to CTCSS2
@@ -1074,8 +1084,8 @@ void trxSetRxCSS(uint16_t tone)
 		I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x4d, 0x00, 0x00);
 		// The AT1846S wants the Golay{23,12} encoding of the DCS code, rather than just the code itself.
 		uint32_t encoded = trxDCSEncode(tone & ~CODEPLUG_DCS_FLAGS_MASK);
-		I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT,	0x4b, 0x00, (encoded >> 16) & 0xff);           // init cdcss_code
-		I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT,	0x4c, (encoded >> 8) & 0xff, encoded & 0xff);  // init cdcss_code
+		I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x4b, 0x00, (encoded >> 16) & 0xff);           // init cdcss_code
+		I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x4c, (encoded >> 8) & 0xff, encoded & 0xff);  // init cdcss_code
 		AT1846SetClearReg2byteWithMask(0x3a, 0xFF, 0xE0, 0x00, 0x06); // enable receive DCS
 		// The cdcss_sel bits have to be set for DCS receive to work
 		AT1846SetClearReg2byteWithMask(0x4e, 0x38, 0x3F, 0x04, 0x00); // enable transmit DCS
@@ -1128,14 +1138,16 @@ void trxUpdateDeviation(int channel)
 			calRes.offset = CAL_DEV_TONE;
 			calibrationGetSectionData(calBand, CalibrationSection_DEV_TONE, &calRes);
 			deviation = (calRes.value & 0x7f);
-			I2C_AT1846_set_register_with_mask(0x59, 0x003f, deviation, 6); // Tone deviation value
+			//I2C_AT1846_set_register_with_mask(0x59, 0x003f, deviation, 6); // THIS IS THE WRONG REGISTER TO CONTROL 'TONE' DEV. SEE THE LINE BELOW INSTEAD , reg  Tone deviation value
+			I2C_AT1846_set_register_with_mask(0x41, 0xFF80, deviation, 0);// Tone deviation value
 			break;
 
 		case AT1846_VOICE_CHANNEL_DTMF:
 			calRes.offset = CAL_DEV_DTMF;
 			calibrationGetSectionData(calBand, CalibrationSection_DEV_TONE, &calRes);
 			deviation = (calRes.value & 0x7f);
-			I2C_AT1846_set_register_with_mask(0x59, 0x003f, deviation, 6); // Tone deviation value
+			//I2C_AT1846_set_register_with_mask(0x59, 0x003f, deviation, 6); // THIS IS THE WRONG REGISTER TO CONTROL DTMF DEV. SEE THE LINE BELOW INSTEAD , reg  Tone deviation value
+			I2C_AT1846_set_register_with_mask(0x41, 0xFF80, deviation, 0);//  Tone deviation value
 			break;
 	}
 	taskEXIT_CRITICAL();
@@ -1167,17 +1179,19 @@ void trxSelectVoiceChannel(uint8_t channel) {
 
 		trxUpdateDeviation(channel);
 
-		AT1846SetClearReg2byteWithMask(0x41, 0xff, 0x80, 0x00, 0x05);
+		//AT1846SetClearReg2byteWithMask(0x41, 0xff, 0x80, 0x00, 0x05);// Commented out because the deviation set in trxUpdateDeviation uses reg 0x41
 		break;
 	default:
 		AT1846SetClearReg2byteWithMask(0x57, 0xff, 0xfe, 0x00, 0x00); // Audio feedback off
 		if (trxSaveVoiceGainTx != 0xff)
 		{
 			I2C_AT1846_set_register_with_mask(0x41, 0xFF80, trxSaveVoiceGainTx, 0);
+			trxSaveVoiceGainTx = 0xff;
 		}
 		if (trxSaveDeviation != 0xFF)
 		{
 			I2C_AT1846_set_register_with_mask(0x59, 0x003f, trxSaveDeviation, 6);
+			trxSaveDeviation = 0xFF;
 		}
 		break;
 	}
@@ -1190,7 +1204,7 @@ void trxSetTone1(int toneFreq)
 
 	toneFreq = toneFreq * 10;
 	taskENTER_CRITICAL();
-	I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x35, (toneFreq >> 8) & 0xff,	(toneFreq & 0xff));   // tone1_freq
+	I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x35, (toneFreq >> 8) & 0xff, (toneFreq & 0xff));   // tone1_freq
 	taskEXIT_CRITICAL();
 }
 
@@ -1198,7 +1212,7 @@ void trxSetTone2(int toneFreq)
 {
 	toneFreq = toneFreq * 10;
 	taskENTER_CRITICAL();
-	I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x36, (toneFreq >> 8) & 0xff,	(toneFreq & 0xff));   // tone2_freq
+	I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, 0x36, (toneFreq >> 8) & 0xff, (toneFreq & 0xff));   // tone2_freq
 	taskEXIT_CRITICAL();
 }
 

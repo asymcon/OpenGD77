@@ -258,27 +258,33 @@ static void handleEvent(uiEvent_t *ev)
 		return;
 	}
 
-	if (KEYCHECK_SHORTUP(ev->keys,KEY_RED))
+	if (KEYCHECK_SHORTUP(ev->keys, KEY_RED))
 	{
 		menuSystemPopPreviousMenu();
 		return;
 	}
 	else
 	{
-		if (KEYCHECK_SHORTUP(ev->keys,KEY_GREEN))
+		if (KEYCHECK_SHORTUP(ev->keys, KEY_GREEN))
 		{
 			tmpID = atoi(digits);
-			if (tmpID > 0 && tmpID <= MAX_TG_OR_PC_VALUE)
+			if ((tmpID > 0) && (tmpID <= MAX_TG_OR_PC_VALUE))
 			{
 				if (gMenusCurrentItemIndex != ENTRY_USER_DMR_ID)
 				{
-					if (gMenusCurrentItemIndex == ENTRY_PC || (pcIdx != 0 && contact.callType == 0x01))
+					if ((gMenusCurrentItemIndex == ENTRY_PC) || ((pcIdx != 0) && (contact.callType == 0x01)))
 					{
 						setOverrideTGorPC(tmpID, true);
 					}
 					else
 					{
 						setOverrideTGorPC(tmpID, false);
+					}
+
+					// Apply TS override, if any
+					if (gMenusCurrentItemIndex == ENTRY_SELECT_CONTACT)
+					{
+						tsSetContactOverride(((menuSystemGetRootMenuNumber() == UI_CHANNEL_MODE) ? CHANNEL_CHANNEL : (CHANNEL_VFO_A + nonVolatileSettings.currentVFONumber)), &contact);
 					}
 				}
 				else
@@ -290,19 +296,19 @@ static void handleEvent(uiEvent_t *ev)
 						codeplugSetUserDMRID(trxDMRID);
 					}
 				}
-				announceItem(PROMPT_SEQUENCE_CONTACT_TG_OR_PC,PROMPT_THRESHOLD_3);
+				announceItem(PROMPT_SEQUENCE_CONTACT_TG_OR_PC, PROMPT_THRESHOLD_3);
 				inhibitInitialVoicePrompt = true;
 				menuSystemPopAllAndDisplayRootMenu();
 			}
 			else
 			{
-				soundSetMelody(melody_ERROR_beep);
+				soundSetMelody(MELODY_ERROR_BEEP);
 			}
 
 		}
 		else
 		{
-			if (KEYCHECK_SHORTUP(ev->keys,KEY_HASH))
+			if (KEYCHECK_SHORTUP(ev->keys, KEY_HASH))
 			{
 				pcIdx = 0;
 
@@ -347,19 +353,20 @@ static void handleEvent(uiEvent_t *ev)
 	{
 		int idx = pcIdx;
 
-		if (KEYCHECK_PRESS(ev->keys,KEY_DOWN))
+		if (KEYCHECK_PRESS(ev->keys, KEY_DOWN))
 		{
 			idx = getNextContact(pcIdx, 1, &contact);
 			announceContactName();
 		}
 		else
 		{
-			if (KEYCHECK_PRESS(ev->keys,KEY_UP))
+			if (KEYCHECK_PRESS(ev->keys, KEY_UP))
 			{
 				idx = getNextContact(pcIdx, -1, &contact);
 				announceContactName();
 			}
 		}
+
 		if (pcIdx != idx)
 		{
 			pcIdx = idx;
@@ -380,13 +387,13 @@ static void handleEvent(uiEvent_t *ev)
 			bool refreshScreen = false;
 
 			// Inc / Dec entered value.
-			if (KEYCHECK_PRESS(ev->keys,KEY_UP) || KEYCHECK_PRESS(ev->keys,KEY_DOWN))
+			if (KEYCHECK_PRESS(ev->keys, KEY_UP) || KEYCHECK_PRESS(ev->keys, KEY_DOWN))
 			{
 				if (strlen(digits))
 				{
 					unsigned long int ccs7 = strtoul(digits, NULL, 10);
 
-					if (KEYCHECK_PRESS(ev->keys,KEY_UP))
+					if (KEYCHECK_PRESS(ev->keys, KEY_UP))
 					{
 						if (ccs7 < MAX_TG_OR_PC_VALUE)
 						{
@@ -411,7 +418,7 @@ static void handleEvent(uiEvent_t *ev)
 			} // Delete a digit
 			else
 			{
-				if (KEYCHECK_PRESS(ev->keys,KEY_LEFT))
+				if (KEYCHECK_PRESS(ev->keys, KEY_LEFT))
 				{
 					if ((sLen = strlen(digits)) > 0)
 					{
@@ -429,7 +436,7 @@ static void handleEvent(uiEvent_t *ev)
 						if (keyval != 99)
 						{
 							char c[2] = {0, 0};
-							c[0] = keyval+'0';
+							c[0] = keyval + '0';
 
 							if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
 							{

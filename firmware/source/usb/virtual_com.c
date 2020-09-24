@@ -158,31 +158,36 @@ usb_status_t USB_DeviceCdcVcomCallback(class_handle_t handle, uint32_t event, vo
             {
                 if ((0 != epCbParam->length) && (0xFFFFFFFF != epCbParam->length))
                 {
-					if (s_currRecvBuf[0]=='B')
+					if (s_currRecvBuf[0] == 'B')
 					{
-						int buff_cnt=0;
-						while ((buff_cnt<(DATA_BUFF_SIZE-3)) && (com_buffer_cnt>0))
+						int buff_cnt = 0;
+
+						while ((buff_cnt < (DATA_BUFF_SIZE - 3)) && (com_buffer_cnt > 0))
 						{
-							s_currSendBuf[buff_cnt+3]=com_buffer[com_buffer_read_idx];
+							s_currSendBuf[buff_cnt + 3] = com_buffer[com_buffer_read_idx];
+
 							com_buffer_cnt--;
 							com_buffer_read_idx++;
-							if (com_buffer_read_idx==COM_BUFFER_SIZE)
+
+							if (com_buffer_read_idx == COM_BUFFER_SIZE)
 							{
-								com_buffer_read_idx=0;
+								com_buffer_read_idx = 0;
 							}
+
 							buff_cnt++;
 						}
+
 						s_currSendBuf[0] = s_currRecvBuf[0];
-						s_currSendBuf[1]=(buff_cnt>>8) & 0xff;
-						s_currSendBuf[2]=(buff_cnt>>0) & 0xff;
-						error = USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, s_currSendBuf, buff_cnt+3);
+						s_currSendBuf[1] = (buff_cnt>>8) & 0xff;
+						s_currSendBuf[2] = (buff_cnt>>0) & 0xff;
+						error = USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, s_currSendBuf, buff_cnt + 3);
 					}
 					else
 					{
-						if (com_request==0)
+						if (com_request == 0)
 						{
-							memcpy((uint8_t*)com_requestbuffer,s_currRecvBuf,COM_REQUESTBUFFER_SIZE);
-							com_request=1;
+							memcpy((uint8_t*)com_requestbuffer, s_currRecvBuf, COM_REQUESTBUFFER_SIZE);
+							com_request = 1;
 						}
 						else
 						{
@@ -357,7 +362,7 @@ usb_status_t USB_DeviceCallback(usb_device_handle handle, uint32_t event, void *
         }
         break;
         case kUSB_DeviceEventSetConfiguration:
-            if (0U ==(*temp8))
+            if (0U == (*temp8))
             {
                 s_cdcVcom.attach = 0;
                 s_cdcVcom.currentConfiguration = 0U;
@@ -399,8 +404,7 @@ usb_status_t USB_DeviceCallback(usb_device_handle handle, uint32_t event, void *
         case kUSB_DeviceEventGetConfigurationDescriptor:
             if (param)
             {
-                error = USB_DeviceGetConfigurationDescriptor(handle,
-                                                             (usb_device_get_configuration_descriptor_struct_t *)param);
+                error = USB_DeviceGetConfigurationDescriptor(handle, (usb_device_get_configuration_descriptor_struct_t *)param);
             }
             break;
         case kUSB_DeviceEventGetStringDescriptor:

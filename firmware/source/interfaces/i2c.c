@@ -124,7 +124,7 @@ static void I2C0Setup(void)
 	I2C_MasterInit(I2C0, &masterConfig, CLOCK_GetFreq(I2C0_CLK_SRC));
 }
 
-int I2CReadReg2byte(uint8_t addr, uint8_t reg, uint8_t* val1, uint8_t* val2)
+int I2CReadReg2byte(uint8_t addr, uint8_t reg, uint8_t *val1, uint8_t *val2)
 {
     i2c_master_transfer_t masterXfer;
     status_t status;

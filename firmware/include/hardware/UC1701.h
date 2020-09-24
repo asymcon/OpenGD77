@@ -56,10 +56,18 @@ typedef enum
 
 extern uint8_t screenBuf[];
 
+#if defined(PLATFORM_RD5R)
+#define FONT_SIZE_3_HEIGHT                        8
+#define DISPLAY_SIZE_Y                           48
+#else
+#define FONT_SIZE_3_HEIGHT                       16
+#define DISPLAY_SIZE_Y                           64
+#endif
 
-extern const int FONT_SIZE_3_HEIGHT;
-extern const int DISPLAY_SIZE_Y;
-extern const int DISPLAY_SIZE_X;
+#define DISPLAY_SIZE_X                          128
+#define DISPLAY_NUMBER_OF_ROWS  (DISPLAY_SIZE_Y / 8)
+
+
 
 void ucBegin(bool isInverted);
 void ucClearBuf(void);

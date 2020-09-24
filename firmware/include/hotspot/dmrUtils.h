@@ -23,13 +23,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-void dmrUtils_byteToBitsBE(unsigned char byte, bool* bits);
-void dmrUtils_byteToBitsLE(unsigned char byte, bool* bits);
+void dmrUtils_byteToBitsBE(unsigned char byte, bool *bits);
+void dmrUtils_byteToBitsLE(unsigned char byte, bool *bits);
 
-void dmrUtils_bitsToByteBE(const bool* bits, uint8_t * out);
-void dmrUtils_bitsToByteLE(const bool* bits, uint8_t * out);
+void dmrUtils_bitsToByteBE(const bool *bits, uint8_t *out);
+void dmrUtils_bitsToByteLE(const bool *bits, uint8_t *out);
 
-unsigned int dmrUtils_compare(const unsigned char* bytes1, const unsigned char* bytes2, unsigned int length);
-
+unsigned int dmrUtils_compare(const unsigned char *bytes1, const unsigned char *bytes2, unsigned int length);
 
 #endif

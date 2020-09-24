@@ -171,7 +171,10 @@ const stringsTable_t portuguesLanguage =
 .openRD5R 				= "OpenRD5R",// Do not translate
 .gitCommit				= "Git commit",
 .voice_prompt_level_2	= "Voice L2", // Maxlen 16 (with : + audio_prompt)
-.voice_prompt_level_3	= "Voice L3" // Maxlen 16 (with : + audio_prompt)
+.voice_prompt_level_3	= "Voice L3", // Maxlen 16 (with : + audio_prompt)
+.dmr_filter				= "DMR Filter",// MaxLen: 12 (with ':' + settings: "TG" or "Ct" or "RxG")
+.dmr_cc_filter			= "CC Filter", // MaxLen: 12 (with ':' + settings: .on or .off)
+.dmr_ts_filter			= "TS Filter" // MaxLen: 12 (with ':' + settings: .on or .off)
 };
 /********************************************************************
  *

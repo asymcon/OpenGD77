@@ -311,7 +311,8 @@ static uint8_t cwBuffer[64U];
 static uint16_t cwpoLen;
 static uint16_t cwpoPtr;
 static bool cwKeying = false;
-static uint8_t savedDMRFilterLevel = 0xFF; // 0xFF value means unset
+static uint8_t savedDMRDestinationFilter = 0xFF; // 0xFF value means unset
+static uint8_t savedDMRCcTsFilter = 0xFF; // 0xFF value means unset
 
 // End of CWID related
 
@@ -341,11 +342,13 @@ menuStatus_t menuHotspotMode(uiEvent_t *ev, bool isFirstRun)
 	{
 		// DMR filter level isn't saved yet (cycling power OFF/ON quickly can corrupt
 		// this value otherwise, as menuHotspotMode(true) could be called twice.
-		if (savedDMRFilterLevel == 0xFF)
+		if (savedDMRDestinationFilter == 0xFF)
 		{
 			// Override DMR filtering
-			savedDMRFilterLevel = nonVolatileSettings.dmrFilterLevel;
-			nonVolatileSettings.dmrFilterLevel = DMR_FILTER_CC_TS;
+			savedDMRDestinationFilter = nonVolatileSettings.dmrDestinationFilter;
+			savedDMRCcTsFilter = nonVolatileSettings.dmrCcTsFilter;
+			settingsSet(nonVolatileSettings.dmrDestinationFilter, DMR_DESTINATION_FILTER_NONE);
+			settingsSet(nonVolatileSettings.dmrCcTsFilter, DMR_CCTS_FILTER_CC_TS);
 		}
 
 		hotspotState = HOTSPOT_STATE_NOT_CONNECTED;
@@ -462,10 +465,13 @@ menuStatus_t menuHotspotMode(uiEvent_t *ev, bool isFirstRun)
 
 void menuHotspotRestoreSettings(void)
 {
-	if (savedDMRFilterLevel != 0xFF)
+	if (savedDMRDestinationFilter != 0xFF)
 	{
-		nonVolatileSettings.dmrFilterLevel = savedDMRFilterLevel;
-		savedDMRFilterLevel = 0xFF; // Unset saved DMR filter level
+		settingsSet(nonVolatileSettings.dmrDestinationFilter, savedDMRDestinationFilter);
+		savedDMRDestinationFilter = 0xFF; // Unset saved DMR destination filter level
+
+		settingsSet(nonVolatileSettings.dmrCcTsFilter, savedDMRCcTsFilter);
+		savedDMRCcTsFilter = 0xFF; // Unset saved CC TS filter level
 	}
 }
 
@@ -826,7 +832,7 @@ static void enableTransmission(void)
 	GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 0);
 	GPIO_PinWrite(GPIO_LEDred, Pin_LEDred, 1);
 
-	txstopdelay=0;
+	txstopdelay = 0;
 	trx_setTX();
 }
 
@@ -1953,7 +1959,9 @@ static void getVersion(void)
 			,(nonVolatileSettings.hotspotType == HOTSPOT_TYPE_MMDVM ? "MMDVM" : "BlueDV"));
 
 	for (uint8_t i = 0U; buffer[i] != 0x00U; i++, count++)
+	{
 		buf[count] = buffer[i];
+	}
 
 	buf[1U] = count;
 
@@ -2110,7 +2118,9 @@ static uint8_t setQSOInfo(volatile const uint8_t *data, uint8_t length)
 static void cwProcess(void)
 {
 	if (cwpoLen == 0U)
+	{
 		return;
+	}
 
 	if (PITCounter > cwNextPeriod)
 	{

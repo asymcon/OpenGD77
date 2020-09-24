@@ -55,8 +55,8 @@ void debugBitPatterns(bool *data)
 
 void BPTC19696_init(void)
 {
-	memset(BPTC19696_rawData,0,sizeof(BPTC19696_rawData));
-	memset(BPTC19696_deInterData,0,sizeof(BPTC19696_deInterData));
+	memset(BPTC19696_rawData, 0, sizeof(BPTC19696_rawData));
+	memset(BPTC19696_deInterData, 0, sizeof(BPTC19696_deInterData));
 }
 
 // The main decode function
@@ -157,16 +157,20 @@ static void BPTC19696_decodeErrorCheck(void)
 
 		// Run through each of the 15 columns
 		bool col[13U];
-		for (unsigned int c = 0U; c < 15U; c++) {
+		for (unsigned int c = 0U; c < 15U; c++)
+		{
 			unsigned int pos = c + 1U;
-			for (unsigned int a = 0U; a < 13U; a++) {
+			for (unsigned int a = 0U; a < 13U; a++)
+			{
 				col[a] = BPTC19696_deInterData[pos];
 				pos = pos + 15U;
 			}
 
-			if (Hamming_decode1393(col)) {
+			if (Hamming_decode1393(col))
+			{
 				unsigned int pos = c + 1U;
-				for (unsigned int a = 0U; a < 13U; a++) {
+				for (unsigned int a = 0U; a < 13U; a++)
+				{
 					BPTC19696_deInterData[pos] = col[a];
 					pos = pos + 15U;
 				}
@@ -305,16 +309,19 @@ static void BPTC19696_encodeErrorCheck(void)
 {
 
 	// Run through each of the 9 rows containing data
-	for (unsigned int r = 0U; r < 9U; r++) {
+	for (unsigned int r = 0U; r < 9U; r++)
+	{
 		unsigned int pos = (r * 15U) + 1U;
 		Hamming_encode15113_2(BPTC19696_deInterData + pos);
 	}
 
 	// Run through each of the 15 columns
 	bool col[13U];
-	for (unsigned int c = 0U; c < 15U; c++) {
+	for (unsigned int c = 0U; c < 15U; c++)
+	{
 		unsigned int pos = c + 1U;
-		for (unsigned int a = 0U; a < 13U; a++) {
+		for (unsigned int a = 0U; a < 13U; a++)
+		{
 			col[a] = BPTC19696_deInterData[pos];
 			pos = pos + 15U;
 		}
@@ -322,7 +329,8 @@ static void BPTC19696_encodeErrorCheck(void)
 		Hamming_encode1393(col);
 
 		pos = c + 1U;
-		for (unsigned int a = 0U; a < 13U; a++) {
+		for (unsigned int a = 0U; a < 13U; a++)
+		{
 			BPTC19696_deInterData[pos] = col[a];
 			pos = pos + 15U;
 		}
@@ -336,7 +344,8 @@ static void BPTC19696_encodeInterleave(void)
 		BPTC19696_rawData[i] = false;
 
 	// The first bit is R(3) which is not used so can be ignored
-	for (unsigned int a = 0U; a < 196U; a++)	{
+	for (unsigned int a = 0U; a < 196U; a++)
+	{
 		// Calculate the interleave sequence
 		unsigned int interleaveSequence = (a * 181U) % 196U;
 		// Unshuffle the data

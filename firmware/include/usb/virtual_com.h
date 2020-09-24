@@ -78,8 +78,7 @@ typedef struct _usb_cdc_vcom_struct
     volatile uint8_t attach;     /* A flag to indicate whether a usb device is attached. 1: attached, 0: not attached */
     uint8_t speed; /* Speed of USB device. USB_SPEED_FULL/USB_SPEED_LOW/USB_SPEED_HIGH.                 */
     uint8_t currentConfiguration; /* Current configuration value. */
-    uint8_t currentInterfaceAlternateSetting
-        [USB_CDC_VCOM_INTERFACE_COUNT]; /* Current alternate setting value for each interface. */
+    uint8_t currentInterfaceAlternateSetting[USB_CDC_VCOM_INTERFACE_COUNT]; /* Current alternate setting value for each interface. */
 } usb_cdc_vcom_struct_t;
 
 /* Define the information relates to abstract control model */
@@ -93,6 +92,8 @@ typedef struct _usb_cdc_acm_info
     uint8_t currentInterface; /* Current interface index.                           */
     uint16_t uartState;       /* UART state of the CDC device.                      */
 } usb_cdc_acm_info_t;
-#endif /* _USB_CDC_VCOM_H_ */
+
 
 extern usb_cdc_vcom_struct_t s_cdcVcom;
+
+#endif /* _USB_CDC_VCOM_H_ */

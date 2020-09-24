@@ -25,21 +25,21 @@
 
 typedef struct DMRLC
 {
-bool        PF;
-bool        R;
-int         FLCO;
-uint8_t 	FID;
-uint8_t 	options;
-uint32_t  	srcId;
-uint32_t  	dstId;
-uint8_t		rawData[12];
+	bool        PF;
+	bool        R;
+	int         FLCO;
+	uint8_t 	FID;
+	uint8_t 	options;
+	uint32_t  	srcId;
+	uint32_t  	dstId;
+	uint8_t		rawData[12];
 } DMRLC_T;
 
-void DMRLC3(int flco, unsigned int srcId, unsigned int dstId,DMRLC_T *lc);
-void DMRLCfromBytes(const unsigned char* bytes,DMRLC_T *lc);
-void DMRLCfromBits(const bool* bits,DMRLC_T *lc);
+void DMRLC3(int flco, unsigned int srcId, unsigned int dstId, DMRLC_T *lc);
+void DMRLCfromBytes(const unsigned char *bytes, DMRLC_T *lc);
+void DMRLCfromBits(const bool *bits, DMRLC_T *lc);
 
-void DMRLC_getDataFromBytes(unsigned char* bytes,const DMRLC_T *lc);
-void DMRLC_getDataFromBits(bool* bits,const DMRLC_T *lc);
+void DMRLC_getDataFromBytes(unsigned char *bytes, const DMRLC_T *lc);
+void DMRLC_getDataFromBits(bool *bits, const DMRLC_T *lc);
 
 #endif

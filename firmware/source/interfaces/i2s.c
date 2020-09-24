@@ -30,7 +30,8 @@ volatile bool g_TX_SAI_in_use = false;
 
 void I2STransferTransmit(uint8_t *buff,size_t bufferLen)
 {
-	sai_transfer_t xfer = {
+	sai_transfer_t xfer =
+	{
 			.data = buff,
 			.dataSize = bufferLen
 	};
@@ -41,7 +42,8 @@ void I2STransferTransmit(uint8_t *buff,size_t bufferLen)
 
 void I2STransferReceive(uint8_t *buff,size_t bufferLen)
 {
-	sai_transfer_t xfer = {
+	sai_transfer_t xfer =
+	{
 			.data = buff,
 			.dataSize = bufferLen
 	};

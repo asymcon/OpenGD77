@@ -91,19 +91,19 @@ static void handleEvent(uiEvent_t *ev)
 {
 	displayLightTrigger();
 
-	if (KEYCHECK_PRESS(ev->keys,KEY_DOWN))
+	if (KEYCHECK_PRESS(ev->keys, KEY_DOWN))
 	{
 		menuSystemMenuIncrement(&gMenusCurrentItemIndex, gMenusEndIndex);
 		updateScreen(false);
 		menuDisplayListExitCode |= MENU_STATUS_LIST_TYPE;
 	}
-	else if (KEYCHECK_PRESS(ev->keys,KEY_UP))
+	else if (KEYCHECK_PRESS(ev->keys, KEY_UP))
 	{
 		menuSystemMenuDecrement(&gMenusCurrentItemIndex, gMenusEndIndex);
 		updateScreen(false);
 		menuDisplayListExitCode |= MENU_STATUS_LIST_TYPE;
 	}
-	else if (KEYCHECK_SHORTUP(ev->keys,KEY_GREEN))
+	else if (KEYCHECK_SHORTUP(ev->keys, KEY_GREEN))
 	{
 		if (gMenuCurrentMenuList[gMenusCurrentItemIndex].menuNum!=-1)
 		{
@@ -111,19 +111,19 @@ static void handleEvent(uiEvent_t *ev)
 		}
 		return;
 	}
-	else if (KEYCHECK_SHORTUP(ev->keys,KEY_RED))
+	else if (KEYCHECK_SHORTUP(ev->keys, KEY_RED))
 	{
 		menuSystemPopPreviousMenu();
 		return;
 	}
-	else if (KEYCHECK_SHORTUP(ev->keys,KEY_STAR) && (menuSystemGetCurrentMenuNumber() == MENU_MAIN_MENU))
+	else if (KEYCHECK_SHORTUP(ev->keys, KEY_STAR) && (menuSystemGetCurrentMenuNumber() == MENU_MAIN_MENU))
 	{
 		keypadLocked = true;
 		menuSystemPopAllAndDisplayRootMenu();
 		menuSystemPushNewMenu(UI_LOCK_SCREEN);
 		return;
 	}
-	else if (KEYCHECK_SHORTUP(ev->keys,KEY_HASH) && (menuSystemGetCurrentMenuNumber() == MENU_MAIN_MENU))
+	else if (KEYCHECK_SHORTUP(ev->keys, KEY_HASH) && (menuSystemGetCurrentMenuNumber() == MENU_MAIN_MENU))
 	{
 		PTTLocked = !PTTLocked;
 		menuSystemPopAllAndDisplayRootMenu();

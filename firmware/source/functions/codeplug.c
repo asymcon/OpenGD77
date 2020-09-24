@@ -67,10 +67,6 @@ const int VFO_FREQ_STEP_TABLE[8] = {250,500,625,1000,1250,2500,3000,5000};
 const int CODEPLUG_MAX_VARIABLE_SQUELCH = 21;
 const int CODEPLUG_MIN_VARIABLE_SQUELCH = 1;
 
-const uint16_t CODEPLUG_CSS_NONE = 0xFFFF;
-const uint16_t CODEPLUG_DCS_FLAGS_MASK = 0xC000;
-const uint16_t CODEPLUG_DCS_INVERTED_MASK = 0x4000;
-
 typedef struct
 {
 	uint32_t tgOrPCNum;
@@ -91,7 +87,7 @@ __attribute__((section(".data.$RAM4"))) uint8_t codeplugRXGroupCache[77] = { 0 }
 
 uint32_t byteSwap32(uint32_t n)
 {
-    return ((((n)&0x000000FFU) << 24U) | (((n)&0x0000FF00U) << 8U) | (((n)&0x00FF0000U) >> 8U) | (((n)&0xFF000000U) >> 24U));// from usb_misc.h
+    return ((((n) & 0x000000FFU) << 24U) | (((n) & 0x0000FF00U) << 8U) | (((n) & 0x00FF0000U) >> 8U) | (((n) & 0xFF000000U) >> 24U));// from usb_misc.h
 }
 
 // BCD encoding to integer conversion
@@ -101,8 +97,8 @@ uint32_t bcd2int(uint32_t i)
     int multiplier = 1;
     while (i)
     {
-        result +=  (i &0x0f)* multiplier;
-        multiplier *=10;
+        result += (i & 0x0f) * multiplier;
+        multiplier *= 10;
         i = i >> 4;
     }
     return result;
@@ -191,21 +187,21 @@ uint16_t codeplugIntToCSS(uint16_t i)
 	return i;
 }
 
-void codeplugUtilConvertBufToString(char *inBuf,char *outBuf,int len)
+void codeplugUtilConvertBufToString(char *inBuf, char *outBuf, int len)
 {
-	for(int i=0;i<len;i++)
+	for(int i = 0; i < len; i++)
 	{
-		if (inBuf[i]==0xff)
+		if (inBuf[i] == 0xff)
 		{
-			inBuf[i]=0;
+			inBuf[i] = 0;
 		}
-		outBuf[i]=inBuf[i];
+		outBuf[i] = inBuf[i];
 	}
-	outBuf[len]=0;
+	outBuf[len] = 0;
 	return;
 }
 
-void codeplugUtilConvertStringToBuf(char *inBuf,char *outBuf,int len)
+void codeplugUtilConvertStringToBuf(char *inBuf, char *outBuf, int len)
 {
 	memset(outBuf,0xff,len);
 	for (int i = 0; i < len; i++)
@@ -225,26 +221,25 @@ int codeplugZonesGetCount(void)
 	int numZones = 0;
 
 	EEPROM_Read(CODEPLUG_ADDR_EX_ZONE_INUSE_PACKED_DATA, (uint8_t*)&buf, CODEPLUG_ADDR_EX_ZONE_INUSE_PACKED_DATA_SIZE);
-	for(int i=0;i<CODEPLUG_ADDR_EX_ZONE_INUSE_PACKED_DATA_SIZE;i++)
+	for(int i = 0; i < CODEPLUG_ADDR_EX_ZONE_INUSE_PACKED_DATA_SIZE; i++)
 	{
 		numZones += __builtin_popcount(buf[i]);
 	}
-	return numZones+1; // Add one extra zone to allow for the special 'All Channels' Zone
+	return (numZones + 1); // Add one extra zone to allow for the special 'All Channels' Zone
 }
 
 void codeplugZoneGetDataForNumber(int zoneNum, struct_codeplugZone_t *returnBuf)
 {
-
-	if (zoneNum==codeplugZonesGetCount()-1) //special case: return a special Zone called 'All Channels'
+	if (zoneNum == codeplugZonesGetCount() - 1) //special case: return a special Zone called 'All Channels'
 	{
 		memset(returnBuf->name, 0, sizeof(returnBuf->name));
 		strncpy(returnBuf->name, currentLanguage->all_channels, sizeof(returnBuf->name) - 1);
 
-		for(int i=0;i<codeplugChannelsPerZone;i++)
+		for(int i = 0; i < codeplugChannelsPerZone; i++)
 		{
-			returnBuf->channels[i]=0;
+			returnBuf->channels[i] = 0;
 		}
-		returnBuf->NOT_IN_MEMORY_numChannelsInZone=0;
+		returnBuf->NOT_IN_MEMORY_numChannelsInZone = 0;
 		returnBuf->NOT_IN_MEMORY_isAllChannelsZone = true;
 	}
 	else
@@ -256,16 +251,16 @@ void codeplugZoneGetDataForNumber(int zoneNum, struct_codeplugZone_t *returnBuf)
 		uint8_t inUseBuf[CODEPLUG_ADDR_EX_ZONE_INUSE_PACKED_DATA_SIZE];
 		EEPROM_Read(CODEPLUG_ADDR_EX_ZONE_INUSE_PACKED_DATA, (uint8_t*)&inUseBuf, CODEPLUG_ADDR_EX_ZONE_INUSE_PACKED_DATA_SIZE);
 
-		int count=-1;// Need to start counting at -1 because the Zone number is zero indexed
-		int foundIndex=-1;
+		int count = -1;// Need to start counting at -1 because the Zone number is zero indexed
+		int foundIndex = -1;
 
 		// Go though each byte in the In Use table
-		for(int i=0;(i<32 && foundIndex==-1);i++)
+		for(int i = 0; ((i < 32) && (foundIndex == -1)); i++)
 		{
 			// Go though each binary bit, counting them one by one
-			for(int j=0;j<8;j++)
+			for(int j = 0; j < 8; j++)
 			{
-				if ((inUseBuf[i] & 0x01 )==0x01)
+				if ((inUseBuf[i] & 0x01 ) == 0x01)
 				{
 					count++;
 					if (count == zoneNum)
@@ -275,14 +270,14 @@ void codeplugZoneGetDataForNumber(int zoneNum, struct_codeplugZone_t *returnBuf)
 						break;// Will break out of this loop, but the outer loop breaks becuase it also checks for foundIndex
 					}
 				}
-				inUseBuf[i] = inUseBuf[i]>>1;
+				inUseBuf[i] = inUseBuf[i] >> 1;
 			}
 		}
 
 		// IMPORTANT. read size is different from the size of the data, because I added a extra property to the struct to hold the number of channels in the zone.
 		EEPROM_Read(CODEPLUG_ADDR_EX_ZONE_LIST + (foundIndex  * (16 + (2 * codeplugChannelsPerZone))), (uint8_t*)returnBuf, sizeof(struct_codeplugZone_t));
 		returnBuf->NOT_IN_MEMORY_isAllChannelsZone = false;
-		for(int i=0;i<codeplugChannelsPerZone;i++)
+		for(int i = 0; i < codeplugChannelsPerZone; i++)
 		{
 			// Empty channels seem to be filled with zeros
 			if (returnBuf->channels[i] == 0)
@@ -291,7 +286,7 @@ void codeplugZoneGetDataForNumber(int zoneNum, struct_codeplugZone_t *returnBuf)
 				return;
 			}
 		}
-		returnBuf->NOT_IN_MEMORY_numChannelsInZone=codeplugChannelsPerZone;
+		returnBuf->NOT_IN_MEMORY_numChannelsInZone = codeplugChannelsPerZone;
 
 	}
 }
@@ -301,20 +296,20 @@ bool codeplugChannelIndexIsValid(int index)
 	uint8_t bitarray[16];
 
 	index--;
-	int channelbank=index/128;
-	int channeloffset=index%128;
+	int channelbank=index / 128;
+	int channeloffset=index % 128;
 
-	if(channelbank==0)
+	if(channelbank == 0)
 	{
-		EEPROM_Read(CODEPLUG_ADDR_CHANNEL_EEPROM-16,(uint8_t *)bitarray,16);
+		EEPROM_Read(CODEPLUG_ADDR_CHANNEL_EEPROM - 16, (uint8_t *)bitarray, 16);
 	}
 	else
 	{
-		SPI_Flash_read(CODEPLUG_ADDR_CHANNEL_FLASH-16+(channelbank-1)*(128*CODEPLUG_CHANNEL_DATA_SIZE+16),(uint8_t *)bitarray,16);
+		SPI_Flash_read(CODEPLUG_ADDR_CHANNEL_FLASH - 16 + (channelbank - 1) * (128 * CODEPLUG_CHANNEL_DATA_SIZE + 16), (uint8_t *)bitarray, 16);
 	}
 
-	int byteno=channeloffset/8;
-	int bitno=channeloffset%8;
+	int byteno = channeloffset / 8;
+	int bitno = channeloffset % 8;
 	if (((bitarray[byteno] >> bitno) & 0x01) == 0)
 	{
 		return false;
@@ -330,30 +325,30 @@ void codeplugChannelIndexSetValid(int index)
 	uint8_t bitarray[16];
 
 	index--;
-	int channelbank=index/128;
-	int channeloffset=index%128;
+	int channelbank=index / 128;
+	int channeloffset=index % 128;
 
-	if(channelbank==0)
+	if(channelbank == 0)
 	{
-		EEPROM_Read(CODEPLUG_ADDR_CHANNEL_EEPROM-16,(uint8_t *)bitarray,16);
+		EEPROM_Read(CODEPLUG_ADDR_CHANNEL_EEPROM - 16, (uint8_t *)bitarray, 16);
 	}
 	else
 	{
-		SPI_Flash_read(CODEPLUG_ADDR_CHANNEL_FLASH-16+(channelbank-1)*(128*CODEPLUG_CHANNEL_DATA_SIZE+16),(uint8_t *)bitarray,16);
+		SPI_Flash_read(CODEPLUG_ADDR_CHANNEL_FLASH - 16 + (channelbank - 1) * (128 * CODEPLUG_CHANNEL_DATA_SIZE + 16), (uint8_t *)bitarray, 16);
 	}
 
-	int byteno=channeloffset/8;
-	int bitno=channeloffset%8;
+	int byteno = channeloffset / 8;
+	int bitno = channeloffset % 8;
 
 	bitarray[byteno] |= 1 << bitno;
 
-	if(channelbank==0)
+	if(channelbank == 0)
 	{
-		EEPROM_Write(CODEPLUG_ADDR_CHANNEL_EEPROM-16,(uint8_t *)bitarray,16);
+		EEPROM_Write(CODEPLUG_ADDR_CHANNEL_EEPROM - 16, (uint8_t *)bitarray, 16);
 	}
 	else
 	{
-		SPI_Flash_write(CODEPLUG_ADDR_CHANNEL_FLASH-16+(channelbank-1)*(128*CODEPLUG_CHANNEL_DATA_SIZE+16),(uint8_t *)bitarray,16);
+		SPI_Flash_write(CODEPLUG_ADDR_CHANNEL_FLASH - 16 + (channelbank - 1) * (128 * CODEPLUG_CHANNEL_DATA_SIZE + 16), (uint8_t *)bitarray, 16);
 	}
 }
 
@@ -361,9 +356,9 @@ void codeplugChannelGetDataForIndex(int index, struct_codeplugChannel_t *channel
 {
 	// lower 128 channels are in EEPROM. Remaining channels are in Flash ! (What a mess...)
 	index--; // I think the channel index numbers start from 1 not zero.
-	if (index<128)
+	if (index < 128)
 	{
-		EEPROM_Read(CODEPLUG_ADDR_CHANNEL_EEPROM + index*sizeof(struct_codeplugChannel_t),(uint8_t *)channelBuf,sizeof(struct_codeplugChannel_t));
+		EEPROM_Read(CODEPLUG_ADDR_CHANNEL_EEPROM + index * sizeof(struct_codeplugChannel_t), (uint8_t *)channelBuf, sizeof(struct_codeplugChannel_t));
 	}
 	else
 	{
@@ -372,12 +367,12 @@ void codeplugChannelGetDataForIndex(int index, struct_codeplugChannel_t *channel
 		index -= 128;// First 128 channels are in the EEPOM, so subtract 128 from the number when looking in the Flash
 
 		// Every 128 bytes there seem to be 16 bytes gaps. I don't know why,bits since 16*8 = 128 bits, its likely they are flag bytes to indicate which channel in the next block are in use
-		flashReadPos += 16 * (index/128);// we just need to skip over that these flag bits when calculating the position of the channel data in memory
+		flashReadPos += 16 * (index / 128);// we just need to skip over that these flag bits when calculating the position of the channel data in memory
 
-		SPI_Flash_read(flashReadPos + index*sizeof(struct_codeplugChannel_t),(uint8_t *)channelBuf,sizeof(struct_codeplugChannel_t));
+		SPI_Flash_read(flashReadPos + index * sizeof(struct_codeplugChannel_t), (uint8_t *)channelBuf, sizeof(struct_codeplugChannel_t));
 	}
 
-	channelBuf->chMode = (channelBuf->chMode==0)?RADIO_MODE_ANALOG:RADIO_MODE_DIGITAL;
+	channelBuf->chMode = (channelBuf->chMode == 0) ? RADIO_MODE_ANALOG : RADIO_MODE_DIGITAL;
 	// Convert legacy codeplug tx and rx freq values into normal integers
 	channelBuf->txFreq = bcd2int(channelBuf->txFreq);
 	channelBuf->rxFreq = bcd2int(channelBuf->rxFreq);
@@ -385,7 +380,7 @@ void codeplugChannelGetDataForIndex(int index, struct_codeplugChannel_t *channel
 	channelBuf->rxTone = codeplugCSSToInt(channelBuf->rxTone);
 
 	// Sanity check the sql value, because its not used by the official firmware and may contain random value e.g. 255
-	if (channelBuf->sql>21)
+	if (channelBuf->sql > 21)
 	{
 		channelBuf->sql = 10;
 	}
@@ -394,15 +389,13 @@ void codeplugChannelGetDataForIndex(int index, struct_codeplugChannel_t *channel
 	{
 		channelBuf->contact = 1;
 	}
-
 }
-
 
 bool codeplugChannelSaveDataForIndex(int index, struct_codeplugChannel_t *channelBuf)
 {
-	bool retVal=true;
+	bool retVal = true;
 
-	channelBuf->chMode = (channelBuf->chMode==RADIO_MODE_ANALOG)?0:1;
+	channelBuf->chMode = (channelBuf->chMode == RADIO_MODE_ANALOG) ? 0 : 1;
 	// Convert normal integers into legacy codeplug tx and rx freq values
 	channelBuf->txFreq = int2bcd(channelBuf->txFreq);
 	channelBuf->rxFreq = int2bcd(channelBuf->rxFreq);
@@ -411,9 +404,9 @@ bool codeplugChannelSaveDataForIndex(int index, struct_codeplugChannel_t *channe
 
 	// lower 128 channels are in EEPROM. Remaining channels are in Flash ! (What a mess...)
 	index--; // I think the channel index numbers start from 1 not zero.
-	if (index<128)
+	if (index < 128)
 	{
-		retVal = EEPROM_Write(CODEPLUG_ADDR_CHANNEL_EEPROM + index*sizeof(struct_codeplugChannel_t),(uint8_t *)channelBuf,sizeof(struct_codeplugChannel_t));
+		retVal = EEPROM_Write(CODEPLUG_ADDR_CHANNEL_EEPROM + index * sizeof(struct_codeplugChannel_t), (uint8_t *)channelBuf, sizeof(struct_codeplugChannel_t));
 	}
 	else
 	{
@@ -425,57 +418,53 @@ bool codeplugChannelSaveDataForIndex(int index, struct_codeplugChannel_t *channe
 		index -= 128;// First 128 channels are in the EEPOM, so subtract 128 from the number when looking in the Flash
 
 		// Every 128 bytes there seem to be 16 bytes gaps. I don't know why,bits since 16*8 = 128 bits, its likely they are flag bytes to indicate which channel in the next block are in use
-		flashWritePos += 16 * (index/128);// we just need to skip over that these flag bits when calculating the position of the channel data in memory
-		flashWritePos += index*sizeof(struct_codeplugChannel_t);// go to the position of the specific index
+		flashWritePos += 16 * (index / 128);// we just need to skip over that these flag bits when calculating the position of the channel data in memory
+		flashWritePos += index * sizeof(struct_codeplugChannel_t);// go to the position of the specific index
 
-		flashSector 	= flashWritePos/4096;
-		flashEndSector 	= (flashWritePos+sizeof(struct_codeplugChannel_t))/4096;
+		flashSector 	= flashWritePos / 4096;
+		flashEndSector 	= (flashWritePos + sizeof(struct_codeplugChannel_t)) / 4096;
 
-		if (flashSector!=flashEndSector)
+		if (flashSector != flashEndSector)
 		{
-			bytesToWriteInCurrentSector = (flashEndSector*4096) - flashWritePos;
+			bytesToWriteInCurrentSector = (flashEndSector * 4096) - flashWritePos;
 		}
 
-		SPI_Flash_read(flashSector*4096,SPI_Flash_sectorbuffer,4096);
-		uint8_t *writePos = SPI_Flash_sectorbuffer + flashWritePos - (flashSector *4096);
-		memcpy( writePos,
-				channelBuf,
-				bytesToWriteInCurrentSector);
+		SPI_Flash_read(flashSector * 4096, SPI_Flash_sectorbuffer, 4096);
+		uint8_t *writePos = SPI_Flash_sectorbuffer + flashWritePos - (flashSector * 4096);
+		memcpy(writePos, channelBuf, bytesToWriteInCurrentSector);
 
-		retVal = SPI_Flash_eraseSector(flashSector*4096);
+		retVal = SPI_Flash_eraseSector(flashSector * 4096);
 		if (!retVal)
 		{
 			return false;
 		}
 
-		for (int i=0;i<16;i++)
+		for (int i = 0; i < 16; i++)
 		{
-			retVal = SPI_Flash_writePage(flashSector*4096+i*256,SPI_Flash_sectorbuffer+i*256);
+			retVal = SPI_Flash_writePage(flashSector * 4096 + i * 256, SPI_Flash_sectorbuffer + i * 256);
 			if (!retVal)
 			{
 				return false;
 			}
 		}
 
-		if (flashSector!=flashEndSector)
+		if (flashSector != flashEndSector)
 		{
 			uint8_t *channelBufPusOffset = (uint8_t *)channelBuf + bytesToWriteInCurrentSector;
 			bytesToWriteInCurrentSector = sizeof(struct_codeplugChannel_t) - bytesToWriteInCurrentSector;
 
-			SPI_Flash_read(flashEndSector*4096,SPI_Flash_sectorbuffer,4096);
-			memcpy(SPI_Flash_sectorbuffer,
-					(uint8_t *)channelBufPusOffset,
-					bytesToWriteInCurrentSector);
+			SPI_Flash_read(flashEndSector * 4096, SPI_Flash_sectorbuffer, 4096);
+			memcpy(SPI_Flash_sectorbuffer, (uint8_t *)channelBufPusOffset, bytesToWriteInCurrentSector);
 
-			retVal = SPI_Flash_eraseSector(flashEndSector*4096);
+			retVal = SPI_Flash_eraseSector(flashEndSector * 4096);
 
 			if (!retVal)
 			{
 				return false;
 			}
-			for (int i=0;i<16;i++)
+			for (int i = 0; i < 16; i++)
 			{
-				retVal = SPI_Flash_writePage(flashEndSector*4096+i*256,SPI_Flash_sectorbuffer+i*256);
+				retVal = SPI_Flash_writePage(flashEndSector * 4096 + i * 256, SPI_Flash_sectorbuffer + i * 256);
 
 				if (!retVal)
 				{
@@ -488,7 +477,7 @@ bool codeplugChannelSaveDataForIndex(int index, struct_codeplugChannel_t *channe
 
 	// Need to restore the values back to what we need for the operation of the firmware rather than the BCD values the codeplug uses
 
-	channelBuf->chMode = (channelBuf->chMode==0)?RADIO_MODE_ANALOG:RADIO_MODE_DIGITAL;
+	channelBuf->chMode = (channelBuf->chMode == 0) ? RADIO_MODE_ANALOG : RADIO_MODE_DIGITAL;
 	// Convert the the legacy codeplug tx and rx freq values into normal integers
 	channelBuf->txFreq = bcd2int(channelBuf->txFreq);
 	channelBuf->rxFreq = bcd2int(channelBuf->rxFreq);
@@ -536,8 +525,6 @@ bool codeplugRxGroupGetDataForIndex(int index, struct_codeplugRxGroup_t *rxGroup
 	}
 }
 
-
-
 int codeplugContactsGetCount(int callType) // 0:TG 1:PC
 {
 	if (callType == CONTACT_CALLTYPE_PC)
@@ -556,7 +543,7 @@ int codeplugContactGetDataForNumber(int number, int callType, struct_codeplugCon
 
 	for (int i = 0; i < 1024; i++)
 	{
-		if ((codeplugContactsCache.contactsLookupCache[i].tgOrPCNum>>24) == callType)
+		if ((codeplugContactsCache.contactsLookupCache[i].tgOrPCNum >> 24) == callType)
 		{
 			number--;
 		}
@@ -564,7 +551,7 @@ int codeplugContactGetDataForNumber(int number, int callType, struct_codeplugCon
 		if (number == 0)
 		{
 			codeplugContactGetDataForIndex(codeplugContactsCache.contactsLookupCache[i].index, contact);
-			pos = i+1;
+			pos = i + 1;
 			break;
 		}
 	}
@@ -573,10 +560,11 @@ int codeplugContactGetDataForNumber(int number, int callType, struct_codeplugCon
 
 int codeplugContactIndexByTGorPC(int tgorpc, int callType, struct_codeplugContact_t *contact)
 {
-	int numContacts =  codeplugContactsCache.numTGContacts + codeplugContactsCache.numPCContacts;
+	int numContacts = codeplugContactsCache.numTGContacts + codeplugContactsCache.numPCContacts;
 	for (int i = 0; i < numContacts; i++)
 	{
-		if ((codeplugContactsCache.contactsLookupCache[i].tgOrPCNum&0xFFFFFF) == tgorpc && (codeplugContactsCache.contactsLookupCache[i].tgOrPCNum>>24) == callType)
+		if (((codeplugContactsCache.contactsLookupCache[i].tgOrPCNum & 0xFFFFFF) == tgorpc) &&
+				((codeplugContactsCache.contactsLookupCache[i].tgOrPCNum >> 24) == callType))
 		{
 			codeplugContactGetDataForIndex(codeplugContactsCache.contactsLookupCache[i].index, contact);
 			return i;
@@ -604,18 +592,18 @@ bool codeplugContactsContainsPC(uint32_t pc)
 void codeplugInitContactsCache(void)
 {
 	struct_codeplugContact_t contact;
-	int codeplugNumContacts=0;
-	codeplugContactsCache.numTGContacts=0;
-	codeplugContactsCache.numPCContacts=0;
+	int codeplugNumContacts = 0;
+	codeplugContactsCache.numTGContacts = 0;
+	codeplugContactsCache.numPCContacts = 0;
 
-	for(int i=0;i<1024;i++)
+	for(int i = 0; i < 1024; i++)
 	{
-		SPI_Flash_read((CODEPLUG_ADDR_CONTACTS + (i * CODEPLUG_CONTACT_DATA_LEN)), (uint8_t *)&contact, 16+4+1);// Name + TG/ID + Call type
+		SPI_Flash_read((CODEPLUG_ADDR_CONTACTS + (i * CODEPLUG_CONTACT_DATA_LEN)), (uint8_t *)&contact, 16 + 4 + 1);// Name + TG/ID + Call type
 		if (contact.name[0]!=0xFF)
 		{
 			codeplugContactsCache.contactsLookupCache[codeplugNumContacts].tgOrPCNum = bcd2int(byteSwap32(contact.tgNumber));
-			codeplugContactsCache.contactsLookupCache[codeplugNumContacts].index=i+1;// Contacts are numbered from 1 to 1024
-			codeplugContactsCache.contactsLookupCache[codeplugNumContacts].tgOrPCNum |= (contact.callType<<24);// Store the call type in the upper byte
+			codeplugContactsCache.contactsLookupCache[codeplugNumContacts].index = i + 1;// Contacts are numbered from 1 to 1024
+			codeplugContactsCache.contactsLookupCache[codeplugNumContacts].tgOrPCNum |= (contact.callType << 24);// Store the call type in the upper byte
 			if (contact.callType == CONTACT_CALLTYPE_PC)
 			{
 				codeplugContactsCache.numPCContacts++;
@@ -632,14 +620,14 @@ void codeplugInitContactsCache(void)
 void codeplugContactsCacheUpdateOrInsertContactAt(int index, struct_codeplugContact_t *contact)
 {
 	int numContacts =  codeplugContactsCache.numTGContacts + codeplugContactsCache.numPCContacts;
-	int numContactsMinus1 = numContacts-1;
+	int numContactsMinus1 = numContacts - 1;
 
-	for(int i = 0;i < numContacts;i++)
+	for(int i = 0; i < numContacts; i++)
 	{
 		// Check if the contact is already in the cache, and is being modified
 		if (codeplugContactsCache.contactsLookupCache[i].index == index)
 		{
-			uint8_t callType = codeplugContactsCache.contactsLookupCache[i].tgOrPCNum>>24;// get call type from cache
+			uint8_t callType = codeplugContactsCache.contactsLookupCache[i].tgOrPCNum >> 24;// get call type from cache
 			if (callType != contact->callType)
 			{
 				if (contact->callType == CONTACT_CALLTYPE_PC)
@@ -655,13 +643,13 @@ void codeplugContactsCacheUpdateOrInsertContactAt(int index, struct_codeplugCont
 			}
 			//update the
 			codeplugContactsCache.contactsLookupCache[i].tgOrPCNum = bcd2int(byteSwap32(contact->tgNumber));
-			codeplugContactsCache.contactsLookupCache[i].tgOrPCNum |= (contact->callType<<24);// Store the call type in the upper byte
+			codeplugContactsCache.contactsLookupCache[i].tgOrPCNum |= (contact->callType << 24);// Store the call type in the upper byte
 
 			return;
 		}
 		else
 		{
-			if(i < numContactsMinus1 && codeplugContactsCache.contactsLookupCache[i].index < index && codeplugContactsCache.contactsLookupCache[i+1].index > index)
+			if((i < numContactsMinus1) && (codeplugContactsCache.contactsLookupCache[i].index < index) && (codeplugContactsCache.contactsLookupCache[i + 1].index > index))
 			{
 				if (contact->callType == CONTACT_CALLTYPE_PC)
 				{
@@ -675,11 +663,11 @@ void codeplugContactsCacheUpdateOrInsertContactAt(int index, struct_codeplugCont
 				numContacts++;// Total contacts increases by 1
 
 				// Note . Need to use memmove as the source and destination overlap.
-				memmove(&codeplugContactsCache.contactsLookupCache[i+2],&codeplugContactsCache.contactsLookupCache[i+1],(numContacts - 2 - i) *sizeof(codeplugContactCache_t));
+				memmove(&codeplugContactsCache.contactsLookupCache[i + 2], &codeplugContactsCache.contactsLookupCache[i + 1], (numContacts - 2 - i) * sizeof(codeplugContactCache_t));
 
-				codeplugContactsCache.contactsLookupCache[i+1].tgOrPCNum = bcd2int(byteSwap32(contact->tgNumber));
-				codeplugContactsCache.contactsLookupCache[i+1].index=index;// Contacts are numbered from 1 to 1024
-				codeplugContactsCache.contactsLookupCache[i+1].tgOrPCNum |= (contact->callType<<24);// Store the call type in the upper byte
+				codeplugContactsCache.contactsLookupCache[i + 1].tgOrPCNum = bcd2int(byteSwap32(contact->tgNumber));
+				codeplugContactsCache.contactsLookupCache[i + 1].index = index;// Contacts are numbered from 1 to 1024
+				codeplugContactsCache.contactsLookupCache[i + 1].tgOrPCNum |= (contact->callType << 24);// Store the call type in the upper byte
 				return;
 			}
 		}
@@ -699,18 +687,18 @@ void codeplugContactsCacheUpdateOrInsertContactAt(int index, struct_codeplugCont
 	// Note. We can use numContacts as the the index as the array is zero indexed but the number of contacts is starts from 1
 	// Hence is already in some ways pre incremented in terms of being an array index
 	codeplugContactsCache.contactsLookupCache[numContacts].tgOrPCNum = bcd2int(byteSwap32(contact->tgNumber));
-	codeplugContactsCache.contactsLookupCache[numContacts].index=index;// Contacts are numbered from 1 to 1024
-	codeplugContactsCache.contactsLookupCache[numContacts].tgOrPCNum |= (contact->callType<<24);// Store the call type in the upper byte
+	codeplugContactsCache.contactsLookupCache[numContacts].index = index;// Contacts are numbered from 1 to 1024
+	codeplugContactsCache.contactsLookupCache[numContacts].tgOrPCNum |= (contact->callType << 24);// Store the call type in the upper byte
 }
 
 void codeplugContactsCacheRemoveContactAt(int index)
 {
-	int numContacts =  codeplugContactsCache.numTGContacts + codeplugContactsCache.numPCContacts;
-	for(int i=0;i<numContacts;i++)
+	int numContacts = codeplugContactsCache.numTGContacts + codeplugContactsCache.numPCContacts;
+	for(int i = 0; i < numContacts; i++)
 	{
 		if(codeplugContactsCache.contactsLookupCache[i].index == index)
 		{
-			if ((codeplugContactsCache.contactsLookupCache[i].tgOrPCNum>>24) == CONTACT_CALLTYPE_PC)
+			if ((codeplugContactsCache.contactsLookupCache[i].tgOrPCNum >> 24) == CONTACT_CALLTYPE_PC)
 			{
 				codeplugContactsCache.numPCContacts--;
 			}
@@ -719,7 +707,7 @@ void codeplugContactsCacheRemoveContactAt(int index)
 				codeplugContactsCache.numTGContacts--;
 			}
 			// Note memcpy should work here, because memcpy normally copys from the lowest memory location upwards
-			memcpy(&codeplugContactsCache.contactsLookupCache[i],&codeplugContactsCache.contactsLookupCache[i+1],(numContacts - 1 - i) *sizeof(codeplugContactCache_t));
+			memcpy(&codeplugContactsCache.contactsLookupCache[i], &codeplugContactsCache.contactsLookupCache[i + 1], (numContacts - 1 - i) * sizeof(codeplugContactCache_t));
 			return;
 		}
 	}
@@ -728,22 +716,22 @@ void codeplugContactsCacheRemoveContactAt(int index)
 int codeplugContactGetFreeIndex(void)
 {
 	int i;
-	int lastIndex=0;
+	int lastIndex = 0;
 
-	int numContacts =  codeplugContactsCache.numTGContacts + codeplugContactsCache.numPCContacts;
+	int numContacts = codeplugContactsCache.numTGContacts + codeplugContactsCache.numPCContacts;
 
 	for (i = 0; i < numContacts; i++)
 	{
-		if (codeplugContactsCache.contactsLookupCache[i].index!=lastIndex+1)
+		if (codeplugContactsCache.contactsLookupCache[i].index != lastIndex + 1)
 		{
-			return lastIndex+1;
+			return lastIndex + 1;
 		}
 		lastIndex = codeplugContactsCache.contactsLookupCache[i].index;
 	}
 
 	if (i < 1024)
 	{
-		return codeplugContactsCache.contactsLookupCache[i-1].index+1;
+		return codeplugContactsCache.contactsLookupCache[i - 1].index + 1;
 	}
 
 	return 0;
@@ -751,22 +739,20 @@ int codeplugContactGetFreeIndex(void)
 
 bool codeplugContactGetDataForIndex(int index, struct_codeplugContact_t *contact)
 {
-	if (index>0 && index<=1024)
+	if ((index > 0) && (index <= 1024))
 	{
 		index--;
-		SPI_Flash_read(CODEPLUG_ADDR_CONTACTS + index* CODEPLUG_CONTACT_DATA_LEN,(uint8_t *)contact, CODEPLUG_CONTACT_DATA_LEN);
-		contact->NOT_IN_CODEPLUGDATA_indexNumber = index+1;
+		SPI_Flash_read(CODEPLUG_ADDR_CONTACTS + index * CODEPLUG_CONTACT_DATA_LEN, (uint8_t *)contact, CODEPLUG_CONTACT_DATA_LEN);
+		contact->NOT_IN_CODEPLUGDATA_indexNumber = index + 1;
 		contact->tgNumber = bcd2int(byteSwap32(contact->tgNumber));
 		return true;
 	}
-	else
-	{
-		// If an invalid contact number has been requested, return a TG 9 contact
-		contact->tgNumber = 9;
-		contact->reserve1=0xff;
-		codeplugUtilConvertStringToBuf("TG 9",contact->name,16);
-		return false;
-	}
+
+	// If an invalid contact number has been requested, return a TG 9 contact
+	contact->tgNumber = 9;
+	contact->reserve1 = 0xff;
+	codeplugUtilConvertStringToBuf("TG 9", contact->name, 16);
+	return false;
 }
 
 int codeplugContactSaveDataForIndex(int index, struct_codeplugContact_t *contact)
@@ -781,56 +767,52 @@ int codeplugContactSaveDataForIndex(int index, struct_codeplugContact_t *contact
 	contact->tgNumber = byteSwap32(int2bcd(contact->tgNumber));
 
 
-	flashWritePos += index*CODEPLUG_CONTACT_DATA_LEN;// go to the position of the specific index
+	flashWritePos += index * CODEPLUG_CONTACT_DATA_LEN;// go to the position of the specific index
 
-	flashSector 	= flashWritePos/4096;
-	flashEndSector 	= (flashWritePos+CODEPLUG_CONTACT_DATA_LEN)/4096;
+	flashSector 	= flashWritePos / 4096;
+	flashEndSector 	= (flashWritePos + CODEPLUG_CONTACT_DATA_LEN) / 4096;
 
-	if (flashSector!=flashEndSector)
+	if (flashSector != flashEndSector)
 	{
-		bytesToWriteInCurrentSector = (flashEndSector*4096) - flashWritePos;
+		bytesToWriteInCurrentSector = (flashEndSector * 4096) - flashWritePos;
 	}
 
-	SPI_Flash_read(flashSector*4096,SPI_Flash_sectorbuffer,4096);
-	uint8_t *writePos = SPI_Flash_sectorbuffer + flashWritePos - (flashSector *4096);
-	memcpy( writePos,
-			contact,
-			bytesToWriteInCurrentSector);
+	SPI_Flash_read(flashSector * 4096, SPI_Flash_sectorbuffer, 4096);
+	uint8_t *writePos = SPI_Flash_sectorbuffer + flashWritePos - (flashSector * 4096);
+	memcpy(writePos, contact, bytesToWriteInCurrentSector);
 
-	retVal = SPI_Flash_eraseSector(flashSector*4096);
+	retVal = SPI_Flash_eraseSector(flashSector * 4096);
 	if (!retVal)
 	{
 		return false;
 	}
 
-	for (int i=0;i<16;i++)
+	for (int i = 0; i < 16; i++)
 	{
-		retVal = SPI_Flash_writePage(flashSector*4096+i*256,SPI_Flash_sectorbuffer+i*256);
+		retVal = SPI_Flash_writePage(flashSector * 4096 + i * 256, SPI_Flash_sectorbuffer + i * 256);
 		if (!retVal)
 		{
 			return false;
 		}
 	}
 
-	if (flashSector!=flashEndSector)
+	if (flashSector != flashEndSector)
 	{
 		uint8_t *channelBufPusOffset = (uint8_t *)contact + bytesToWriteInCurrentSector;
 		bytesToWriteInCurrentSector = CODEPLUG_CONTACT_DATA_LEN - bytesToWriteInCurrentSector;
 
-		SPI_Flash_read(flashEndSector*4096,SPI_Flash_sectorbuffer,4096);
-		memcpy(SPI_Flash_sectorbuffer,
-				(uint8_t *)channelBufPusOffset,
-				bytesToWriteInCurrentSector);
+		SPI_Flash_read(flashEndSector * 4096, SPI_Flash_sectorbuffer, 4096);
+		memcpy(SPI_Flash_sectorbuffer, (uint8_t *)channelBufPusOffset, bytesToWriteInCurrentSector);
 
-		retVal = SPI_Flash_eraseSector(flashEndSector*4096);
+		retVal = SPI_Flash_eraseSector(flashEndSector * 4096);
 
 		if (!retVal)
 		{
 			return false;
 		}
-		for (int i=0;i<16;i++)
+		for (int i = 0; i < 16; i++)
 		{
-			retVal = SPI_Flash_writePage(flashEndSector*4096+i*256,SPI_Flash_sectorbuffer+i*256);
+			retVal = SPI_Flash_writePage(flashEndSector * 4096 + i * 256, SPI_Flash_sectorbuffer + i * 256);
 
 			if (!retVal)
 			{
@@ -839,13 +821,13 @@ int codeplugContactSaveDataForIndex(int index, struct_codeplugContact_t *contact
 		}
 
 	}
-	if (contact->name[0]==0xff || contact->callType == 0xFF)
+	if ((contact->name[0] == 0xff) || (contact->callType == 0xFF))
 	{
-		codeplugContactsCacheRemoveContactAt(index+1);// index was decremented at the start of the function
+		codeplugContactsCacheRemoveContactAt(index + 1);// index was decremented at the start of the function
 	}
 	else
 	{
-		codeplugContactsCacheUpdateOrInsertContactAt(index+1,contact);
+		codeplugContactsCacheUpdateOrInsertContactAt(index + 1, contact);
 		//initCodeplugContactsCache();// Update the cache
 	}
 	return retVal;
@@ -856,10 +838,13 @@ bool codeplugContactGetRXGroup(int index)
 	struct_codeplugRxGroup_t rxGroupBuf;
 	int i;
 
-	for (i = 1; i <= 76; i++) {
+	for (i = 1; i <= 76; i++)
+	{
 		codeplugRxGroupGetDataForIndex(i, &rxGroupBuf);
-		for (int j = 0; j<32; j++) {
-			if (rxGroupBuf.contacts[j] == index) {
+		for (int j = 0; j < 32; j++)
+		{
+			if (rxGroupBuf.contacts[j] == index)
+			{
 				return true;
 			}
 		}
@@ -871,9 +856,9 @@ void codeplugDTMFContactGetDataForIndex(struct_codeplugDTMFContactList_t *contac
 {
 	int i;
 
-	EEPROM_Read(CODEPLUG_ADDR_DTMF_CONTACTS,(uint8_t *)contactList, sizeof(struct_codeplugDTMFContact_t) * CODEPLUG_DTMF_CONTACTS_MAX_COUNT);
+	EEPROM_Read(CODEPLUG_ADDR_DTMF_CONTACTS, (uint8_t *)contactList, sizeof(struct_codeplugDTMFContact_t) * CODEPLUG_DTMF_CONTACTS_MAX_COUNT);
 
-	for(i=0;i<CODEPLUG_DTMF_CONTACTS_MAX_COUNT;i++)
+	for(i = 0; i < CODEPLUG_DTMF_CONTACTS_MAX_COUNT; i++)
 	{
 		// Empty contact names contain 0xFF
 		if (contactList->contacts->name[0] == 0xff)
@@ -888,65 +873,67 @@ void codeplugDTMFContactGetDataForIndex(struct_codeplugDTMFContactList_t *contac
 int codeplugGetUserDMRID(void)
 {
 	int dmrId;
-	EEPROM_Read(CODEPLUG_ADDR_USER_DMRID,(uint8_t *)&dmrId,4);
+	EEPROM_Read(CODEPLUG_ADDR_USER_DMRID, (uint8_t *)&dmrId, 4);
 	return bcd2int(byteSwap32(dmrId));
 }
 
 void codeplugSetUserDMRID(uint32_t dmrId)
 {
 	dmrId = byteSwap32(int2bcd(dmrId));
-	EEPROM_Write(CODEPLUG_ADDR_USER_DMRID,(uint8_t *)&dmrId,4);
+	EEPROM_Write(CODEPLUG_ADDR_USER_DMRID, (uint8_t *)&dmrId, 4);
 }
 
 // Max length the user can enter is 8. Hence buf must be 16 chars to allow for the termination
 void codeplugGetRadioName(char *buf)
 {
 	memset(buf,0,9);
-	EEPROM_Read(CODEPLUG_ADDR_USER_CALLSIGN,(uint8_t *)buf,8);
-	codeplugUtilConvertBufToString(buf,buf,8);
+	EEPROM_Read(CODEPLUG_ADDR_USER_CALLSIGN, (uint8_t *)buf, 8);
+	codeplugUtilConvertBufToString(buf, buf, 8);
 }
 
 // Max length the user can enter is 15. Hence buf must be 16 chars to allow for the termination
-void codeplugGetBootScreenData(char *line1, char *line2,uint8_t *displayType, uint8_t *passwordEnable, uint32_t *passwordNumber)
+void codeplugGetBootScreenData(char *line1, char *line2, uint8_t *displayType, uint8_t *passwordEnable, uint32_t *passwordNumber)
 {
 	uint8_t tmp[8];
-	memset(line1,0,16);
-	memset(line2,0,16);
 
-	EEPROM_Read(CODEPLUG_ADDR_BOOT_LINE1,(uint8_t *)line1,15);
-	codeplugUtilConvertBufToString(line1,line1,15);
-	EEPROM_Read(CODEPLUG_ADDR_BOOT_LINE2,(uint8_t *)line2,15);
-	codeplugUtilConvertBufToString(line2,line2,15);
+	memset(line1, 0, 16);
+	memset(line2, 0, 16);
 
-	EEPROM_Read(CODEPLUG_ADDR_BOOT_INTRO_SCREEN,(uint8_t *)tmp,8);// read the display type, and password enable and password
+	EEPROM_Read(CODEPLUG_ADDR_BOOT_LINE1, (uint8_t *)line1, 15);
+	codeplugUtilConvertBufToString(line1, line1, 15);
+	EEPROM_Read(CODEPLUG_ADDR_BOOT_LINE2, (uint8_t *)line2, 15);
+	codeplugUtilConvertBufToString(line2, line2, 15);
+
+	EEPROM_Read(CODEPLUG_ADDR_BOOT_INTRO_SCREEN, (uint8_t *)tmp, 8);// read the display type, and password enable and password
 	*displayType = tmp[0];
 	*passwordEnable = tmp[1];
-	*passwordNumber = bcd2int((tmp[4]<<16) + (tmp[5]<<8) + tmp[6]);
+	*passwordNumber = bcd2int((tmp[4] << 16) + (tmp[5] << 8) + tmp[6]);
 }
 
 
-void codeplugGetVFO_ChannelData(struct_codeplugChannel_t *vfoBuf,int VFONumber)
+void codeplugGetVFO_ChannelData(struct_codeplugChannel_t *vfoBuf, int VFONumber)
 {
-	EEPROM_Read(CODEPLUG_ADDR_VFO_A_CHANNEL + (sizeof(struct_codeplugChannel_t)*VFONumber),(uint8_t *)vfoBuf,sizeof(struct_codeplugChannel_t));
+	EEPROM_Read(CODEPLUG_ADDR_VFO_A_CHANNEL + (sizeof(struct_codeplugChannel_t) * VFONumber), (uint8_t *)vfoBuf, sizeof(struct_codeplugChannel_t));
 
 	// Convert the the legacy codeplug tx and rx freq values into normal integers
-	vfoBuf->chMode = (vfoBuf->chMode==0)?RADIO_MODE_ANALOG:RADIO_MODE_DIGITAL;
+	vfoBuf->chMode = (vfoBuf->chMode == 0) ? RADIO_MODE_ANALOG : RADIO_MODE_DIGITAL;
 	vfoBuf->txFreq = bcd2int(vfoBuf->txFreq);
 	vfoBuf->rxFreq = bcd2int(vfoBuf->rxFreq);
 	vfoBuf->txTone = codeplugCSSToInt(vfoBuf->txTone);
 	vfoBuf->rxTone = codeplugCSSToInt(vfoBuf->rxTone);
 }
 
-void codeplugSetVFO_ChannelData(struct_codeplugChannel_t *vfoBuf,int VFONumber)
+void codeplugSetVFO_ChannelData(struct_codeplugChannel_t *vfoBuf, int VFONumber)
 {
 	struct_codeplugChannel_t tmpChannel;
-	memcpy(&tmpChannel,vfoBuf,sizeof(struct_codeplugChannel_t));// save current VFO data as we need to modify
-	tmpChannel.chMode = (vfoBuf->chMode==RADIO_MODE_ANALOG)?0:1;
+
+	memcpy(&tmpChannel, vfoBuf, sizeof(struct_codeplugChannel_t));// save current VFO data as we need to modify
+	tmpChannel.chMode = (vfoBuf->chMode == RADIO_MODE_ANALOG) ? 0 : 1;
 	tmpChannel.txFreq = int2bcd(vfoBuf->txFreq);
 	tmpChannel.rxFreq = int2bcd(vfoBuf->rxFreq);
 	tmpChannel.txTone = codeplugIntToCSS(vfoBuf->txTone);
 	tmpChannel.rxTone = codeplugIntToCSS(vfoBuf->rxTone);
-	EEPROM_Write(CODEPLUG_ADDR_VFO_A_CHANNEL+(sizeof(struct_codeplugChannel_t)*VFONumber),(uint8_t *)&tmpChannel,sizeof(struct_codeplugChannel_t));
+	EEPROM_Write(CODEPLUG_ADDR_VFO_A_CHANNEL + (sizeof(struct_codeplugChannel_t) * VFONumber), (uint8_t *)&tmpChannel, sizeof(struct_codeplugChannel_t));
 }
 
 void codeplugInitChannelsPerZone(void)
@@ -958,10 +945,10 @@ void codeplugInitChannelsPerZone(void)
 	// this value can never me 0xff if its a channel number
 
 	// Note. I tried to read just 1 byte but it crashed. So I am now reading 16 bytes and checking the last one
-	EEPROM_Read(0x8060,(uint8_t *)buf,16);
-	if (buf[15] >= 0x00 && buf[15]<=0x04)
+	EEPROM_Read(0x8060, (uint8_t *)buf, 16);
+	if ((buf[15] >= 0x00) && (buf[15] <= 0x04))
 	{
-		codeplugChannelsPerZone=80;// Must be the new 80 channel per zone format
+		codeplugChannelsPerZone = 80;// Must be the new 80 channel per zone format
 	}
 }
 
@@ -971,23 +958,23 @@ typedef struct
 	int dataLength;
 } codeplugCustomDataBlockHeader_t;
 
-bool codeplugGetOpenGD77CustomData(codeplugCustomDataType_t dataType,uint8_t *dataBuf)
+bool codeplugGetOpenGD77CustomData(codeplugCustomDataType_t dataType, uint8_t *dataBuf)
 {
 	uint8_t tmpBuf[12];
 	int dataHeaderAddress = 12;
 	const int MAX_BLOCK_ADDRESS = 0x10000;
 
-	SPI_Flash_read(0,tmpBuf,12);
+	SPI_Flash_read(0, tmpBuf, 12);
 
-	if (memcmp("OpenGD77",tmpBuf,8)==0)
+	if (memcmp("OpenGD77", tmpBuf, 8) == 0)
 	{
 		codeplugCustomDataBlockHeader_t blockHeader;
 		do
 		{
-			SPI_Flash_read(dataHeaderAddress,(uint8_t *)&blockHeader,sizeof(codeplugCustomDataBlockHeader_t));
+			SPI_Flash_read(dataHeaderAddress, (uint8_t *)&blockHeader, sizeof(codeplugCustomDataBlockHeader_t));
 			if (blockHeader.dataType == dataType)
 			{
-				SPI_Flash_read(dataHeaderAddress + sizeof(codeplugCustomDataBlockHeader_t),dataBuf,blockHeader.dataLength);
+				SPI_Flash_read(dataHeaderAddress + sizeof(codeplugCustomDataBlockHeader_t), dataBuf,blockHeader.dataLength);
 				return true;
 			}
 			dataHeaderAddress += sizeof(codeplugCustomDataBlockHeader_t) + blockHeader.dataLength;
@@ -1002,10 +989,10 @@ int codeplugGetQuickkeyFunctionID(int key)
 {
 	uint16_t functionId = 0;
 
-	if (key >='0' && key <='9')
+	if ((key >= '0') && (key <= '9'))
 	{
-		key = key-'0';
-		EEPROM_Read(CODEPLUG_ADDR_QUICKKEYS+2*key,(uint8_t *)&functionId,2);
+		key = key - '0';
+		EEPROM_Read(CODEPLUG_ADDR_QUICKKEYS + 2 * key, (uint8_t *)&functionId, 2);
 	}
 
 	return functionId;

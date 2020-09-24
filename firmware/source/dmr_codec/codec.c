@@ -31,9 +31,9 @@ short bitbuffer_encode[72];
 
 void codecInitInternalBuffers(void)
 {
-	memcpy(ambebuffer_decode,ambebuffer_decode_init,0x7ec);
-	memcpy(ambebuffer_encode,ambebuffer_encode_init,0x2000);
-	memcpy(ambebuffer_encode_ecc,ambebuffer_encode_ecc_init,0x100);
+	memcpy(ambebuffer_decode, ambebuffer_decode_init, 0x7ec);
+	memcpy(ambebuffer_encode, ambebuffer_encode_init, 0x2000);
+	memcpy(ambebuffer_encode_ecc, ambebuffer_encode_ecc_init, 0x100);
 }
 
 void codecInit(void)
@@ -57,14 +57,14 @@ void codecDecode(uint8_t *indata_ptr, int numbBlocks)
 	register int r1 asm ("r1") __attribute__((unused));
 	register int r2 asm ("r2") __attribute__((unused));
 
-    for (int idx=0;idx<numbBlocks;idx++)
+    for (int idx = 0; idx < numbBlocks; idx++)
     {
 		prepare_framedata(indata_ptr, ambe_d, &errs1, &errs2);
-		indata_ptr=indata_ptr+9;
+		indata_ptr = indata_ptr + 9;
 
-		for (int i=0;i<49;i++)
+		for (int i = 0; i < 49; i++)
 		{
-			bitbuffer_decode[i]=(short)ambe_d[i];
+			bitbuffer_decode[i] = (short)ambe_d[i];
 		}
 		soundSetupBuffer();// this just sets currentWaveBuffer but the compiler seems to optimise out the code if I try to do it in this file
 		r2 = (int)bitbuffer_decode;
@@ -120,10 +120,10 @@ void codecEncode(uint8_t *outdata_ptr, int numbBlocks)
 	register int r1 asm ("r1") __attribute__((unused));
 	register int r2 asm ("r2") __attribute__((unused));
 
-	for (int i=0; i<numbBlocks;i++)
+	for (int i = 0; i < numbBlocks; i++)
 	{
 
-		memset(bitbuffer_encode,0,72);// faster to call memset as it will be compiled as optimised code
+		memset(bitbuffer_encode, 0, 72);// faster to call memset as it will be compiled as optimised code
 
 		soundRetrieveBuffer();// gets currentWaveBuffer pointer used as input r2 to the encoder
 
@@ -185,14 +185,14 @@ void codecEncode(uint8_t *outdata_ptr, int numbBlocks)
 			"POP {R4-R11}"
 		);
 
-		for (int i = 0; i<72; i++)
+		for (int i = 0; i < 72; i++)
 		{
 			if (bitbuffer_encode[i] & 1)
 			{
-				outdata_ptr[i>>3] |= 128 >> (i & 7);
+				outdata_ptr[i >> 3] |= 128 >> (i & 7);
 			}
 		}
 
-		outdata_ptr=outdata_ptr+9;
+		outdata_ptr = outdata_ptr + 9;
 	}
 }

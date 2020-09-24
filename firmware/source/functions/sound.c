@@ -42,7 +42,7 @@ volatile int sine_beep_freq;
 volatile int sine_beep_duration;
 volatile int micAudioSamplesTotal;
 
-static volatile uint32_t runningMaxValue=0;
+static volatile uint32_t runningMaxValue = 0;
 static const int MIC_AVERAGE_COUNTER_RELOAD = 10;
 static volatile int micAudioAverageCounter = MIC_AVERAGE_COUNTER_RELOAD;
 
@@ -50,7 +50,7 @@ __attribute__((section(".data.$RAM2"))) int melody_generic[512];// Note. As we d
 #define DIT_LENGTH  60
 #define DAH_LENGTH  3 * DIT_LENGTH
 //const int melody_poweron[] = { 440, 300, 466, 300, 494, 300, -1, -1 };
-const int melody_poweron[] = { 880, DAH_LENGTH,
+const int MELODY_POWER_ON[] = { 880, DAH_LENGTH,
 								0, DIT_LENGTH,
 								880, DIT_LENGTH,
 								0, DIT_LENGTH,
@@ -60,7 +60,7 @@ const int melody_poweron[] = { 880, DAH_LENGTH,
 								0, DIT_LENGTH,
 								880, DAH_LENGTH,
 								-1, -1 };
-const int melody_private_call[] = {
+const int MELODY_PRIVATE_CALL[] = {
 								880, DIT_LENGTH,
 								0, DIT_LENGTH,
 								880, DAH_LENGTH,
@@ -78,22 +78,25 @@ const int melody_private_call[] = {
 								0, DIT_LENGTH,
 								880, DIT_LENGTH
 
-								-1, -1 };// Morse letters PC for Priavte Call
-const int melody_key_beep[] = { 600, 60, -1, -1 };
-const int melody_key_long_beep[] = { 880, 60, -1, -1 };
+								-1, -1 };// Morse letters PC for Private Call
+const int MELODY_KEY_BEEP[] = { 600, 60, -1, -1 };
+const int MELODY_KEY_LONG_BEEP[] = { 880, 60, -1, -1 };
+/* These melodies are not currently used
 const int melody_sk1_beep[] = { 466, 60, 0, 60, 466, 60, -1, -1 };
 const int melody_sk2_beep[] = { 494, 60, 0, 60, 494, 60, -1, -1 };
 const int melody_orange_beep[] = { 440, 60, 494, 60, 440, 60, 494, 60, -1, -1 };
-const int melody_ACK_beep[] = { 440, 120, 660, 120, 880, 120, -1, -1 };
-const int melody_NACK_beep[] = { 494, 120, 466, 120, -1, -1 };
-const int melody_ERROR_beep[] = { 440, 30, 0, 30, 440, 30, 0, 30, 440, 30, -1, -1 };
-const int melody_tx_timeout_beep[] = { 440, 60, 494, 60, 440, 60, 494, 60, 440, 60, 494, 60, 440, 60, 494, 60, -1, -1 };
-const int melody_dmr_tx_start_beep[] = { 800, 50, -1, -1 };
-const int melody_dmr_tx_stop_beep[] = { 500, 50, -1, -1 };
-const int melody_key_beep_first_item[] = { 800, 100, -1, -1 };
+*/
+const int MELODY_ACK_BEEP[] = { 440, 120, 660, 120, 880, 120, -1, -1 };
+const int MELODY_NACK_BEEP[] = { 494, 120, 466, 120, -1, -1 };
+const int MELODY_ERROR_BEEP[] = { 440, 30, 0, 30, 440, 30, 0, 30, 440, 30, -1, -1 };
+const int MELODY_TX_TIMEOUT_BEEP[] = { 440, 60, 494, 60, 440, 60, 494, 60, 440, 60, 494, 60, 440, 60, 494, 60, -1, -1 };
+const int MELODY_DMR_TX_START_BEEP[] = { 800, 50, -1, -1 };
+const int MELODY_DMR_TX_STOP_BEEP[] = { 500, 50, -1, -1 };
+const int MELODY_KEY_BEEP_FIRST_ITEM[] = { 800, 100, -1, -1 };
+const int MELODY_LOW_BATTERY[] = { 440, 200, 415, 200, 392, 200,-1, -1 };
 
 // To calculate the pitch use a spreadsheet etc   =ROUND(98*POWER(2, (NOTE_NUMBER/12)),0)
-static const int freqs[] = {0,104,110,117,123,131,139,147,156,165,175,185,196,208,220,233,247,262,277,294,311,330,349,370,392,415,440,466,494,523,554,587,622,659,698,740,784,831,880,932,988,1047,1109,1175,1245,1319,1397,1480};
+static const int freqs[64] = {0,104,110,117,123,131,139,147,156,165,175,185,196,208,220,233,247,262,277,294,311,330,349,370,392,415,440,466,494,523,554,587,622,659,698,740,784,831,880,932,988,1047,1109,1175,1245,1319,1397,1480,1568,1661,1760,1865,1976,2093,2217,2349,2489,2637,2794,2960,3136,3322,3520,3729};
 
 volatile int *melody_play = NULL;
 volatile int melody_idx = 0;
@@ -131,10 +134,10 @@ void disableAudioAmp(uint8_t mode)
 void soundSetMelody(const int *melody)
 {
 	taskENTER_CRITICAL();
-	sine_beep_freq=0;
-	sine_beep_duration=0;
-	melody_play=(int *)melody;
-	melody_idx=0;
+	sine_beep_freq = 0;
+	sine_beep_duration = 0;
+	melody_play = (int *)melody;
+	melody_idx = 0;
 	taskEXIT_CRITICAL();
 }
 
@@ -142,18 +145,23 @@ void soundSetMelody(const int *melody)
 void soundCreateSong(const uint8_t *melody)
 {
 	int song_idx = 0;
-	for (int i=0;i<256;i++)
+	for (int i = 0; i < 256; i++)
 	{
-		if (melody[2*i+1]!=0)
+		if (melody[2 * i + 1] != 0)
 		{
-			melody_generic[song_idx++]=freqs[melody[2*i]];
-			melody_generic[song_idx++]=melody[2*i+1]*27;
+			int freqNum = melody[2 * i];
+			if ((freqNum > 63) || (freqNum < 0))
+			{
+				freqNum = 63;
+			}
+			melody_generic[song_idx++] = freqs[freqNum];
+			melody_generic[song_idx++] = melody[2 * i + 1] * 27;
 		}
 		else
 		{
-			melody_generic[song_idx++]=-1;
-			melody_generic[song_idx++]=-1;
-			song_idx=song_idx+2;
+			melody_generic[song_idx++] = -1;
+			melody_generic[song_idx++] = -1;
+			song_idx = song_idx + 2;
 			break;
 		}
 	}
@@ -174,8 +182,6 @@ void soundInitBeepTask(void)
 				fwBeepTaskHandle					 /* optional task handle to create */
 				);
 }
-
-
 
 
 void soundInit(void)
@@ -202,12 +208,12 @@ void soundStoreBuffer(void)
 	taskENTER_CRITICAL();
 	int tmp_wavbuffer_count = wavbuffer_count;
 
-	if (tmp_wavbuffer_count<WAV_BUFFER_COUNT)
+	if (tmp_wavbuffer_count < WAV_BUFFER_COUNT)
 	{
 		wavbuffer_write_idx++;
-		if (wavbuffer_write_idx>=WAV_BUFFER_COUNT)
+		if (wavbuffer_write_idx >= WAV_BUFFER_COUNT)
 		{
-			wavbuffer_write_idx=0;
+			wavbuffer_write_idx = 0;
 		}
 		wavbuffer_count++;
 	}
@@ -217,13 +223,13 @@ void soundStoreBuffer(void)
 void soundRetrieveBuffer(void)
 {
 	taskENTER_CRITICAL();
-	if (wavbuffer_count>0)
+	if (wavbuffer_count > 0)
 	{
 		currentWaveBuffer = (uint8_t *)audioAndHotspotDataBuffer.wavbuffer[wavbuffer_read_idx];// cast just to prevent compiler warning
 		wavbuffer_read_idx++;
-		if (wavbuffer_read_idx>=WAV_BUFFER_COUNT)
+		if (wavbuffer_read_idx >= WAV_BUFFER_COUNT)
 		{
-			wavbuffer_read_idx=0;
+			wavbuffer_read_idx = 0;
 		}
 		wavbuffer_count--;
 	}
@@ -234,48 +240,46 @@ void soundRetrieveBuffer(void)
 // This function is used when receiving
 void soundSendData(void)
 {
-
-	if (wavbuffer_count>0)
+	if (wavbuffer_count > 0)
 	{
 		spi_soundBuf = spi_sound[g_SAI_TX_Handle.queueUser];
 
-		for (int i=0; i<(WAV_BUFFER_SIZE/2); i++)
+		for (int i = 0; i < (WAV_BUFFER_SIZE / 2); i++)
 		{
-			*(spi_soundBuf +4*i +3) = audioAndHotspotDataBuffer.wavbuffer[wavbuffer_read_idx][2*i+1];
-			*(spi_soundBuf +4*i +2) = audioAndHotspotDataBuffer.wavbuffer[wavbuffer_read_idx][2*i];
+			*(spi_soundBuf + 4 * i + 3) = audioAndHotspotDataBuffer.wavbuffer[wavbuffer_read_idx][2 * i + 1];
+			*(spi_soundBuf + 4 * i + 2) = audioAndHotspotDataBuffer.wavbuffer[wavbuffer_read_idx][2 * i];
 		}
 
-		I2STransferTransmit(spi_soundBuf,WAV_BUFFER_SIZE*2);
+		I2STransferTransmit(spi_soundBuf,WAV_BUFFER_SIZE * 2);
 
 		wavbuffer_read_idx++;
-		if (wavbuffer_read_idx>=WAV_BUFFER_COUNT)
+		if (wavbuffer_read_idx >= WAV_BUFFER_COUNT)
 		{
-			wavbuffer_read_idx=0;
+			wavbuffer_read_idx = 0;
 		}
 		wavbuffer_count--;
 	}
 }
 
-
 // This function is used during transmission.
 void soundReceiveData(void)
 {
-	if (trxTransmissionEnabled==false)
+	if (trxTransmissionEnabled == false)
 	{
 		return;
 	}
 
-	if (wavbuffer_count<WAV_BUFFER_COUNT)
+	if (wavbuffer_count < WAV_BUFFER_COUNT)
 	{
 		// spi_soundBuf == NULL  happens the first time through there is no previously sampled buffer to load into the wave buffer
-		if (spi_soundBuf!=NULL)
+		if (spi_soundBuf != NULL)
 		{
-			for (int i=0; i<(WAV_BUFFER_SIZE/2); i++)
+			for (int i = 0; i < (WAV_BUFFER_SIZE / 2); i++)
 			{
-				swapper.bytes8[1] = *(spi_soundBuf +4*i +3);
-				audioAndHotspotDataBuffer.wavbuffer[wavbuffer_write_idx][2*i+1] = swapper.bytes8[1];
-				swapper.bytes8[0] = *(spi_soundBuf +4*i +2);
-				audioAndHotspotDataBuffer.wavbuffer[wavbuffer_write_idx][2*i] = swapper.bytes8[0];
+				swapper.bytes8[1] = *(spi_soundBuf + 4 * i + 3);
+				audioAndHotspotDataBuffer.wavbuffer[wavbuffer_write_idx][ 2 * i + 1] = swapper.bytes8[1];
+				swapper.bytes8[0] = *(spi_soundBuf + 4 * i + 2);
+				audioAndHotspotDataBuffer.wavbuffer[wavbuffer_write_idx][2 * i] = swapper.bytes8[0];
 				if (abs(swapper.byte16) > runningMaxValue)
 				{
 					runningMaxValue = abs(swapper.byte16);
@@ -283,22 +287,22 @@ void soundReceiveData(void)
 			}
 			if (micAudioAverageCounter-- == 0)
 			{
-				micAudioAverageCounter=MIC_AVERAGE_COUNTER_RELOAD;
+				micAudioAverageCounter = MIC_AVERAGE_COUNTER_RELOAD;
 				micAudioSamplesTotal = runningMaxValue;
-				runningMaxValue=0;
+				runningMaxValue = 0;
 			}
 
 			wavbuffer_write_idx++;
 
-			if (wavbuffer_write_idx>=WAV_BUFFER_COUNT)
+			if (wavbuffer_write_idx >= WAV_BUFFER_COUNT)
 			{
-				wavbuffer_write_idx=0;
+				wavbuffer_write_idx = 0;
 			}
 			wavbuffer_count++;
 		}
 
 		spi_soundBuf = spi_sound[g_SAI_RX_Handle.queueUser];
-		I2STransferReceive(spi_soundBuf,WAV_BUFFER_SIZE*2);
+		I2STransferReceive(spi_soundBuf,WAV_BUFFER_SIZE * 2);
 	}
 }
 
@@ -317,11 +321,11 @@ void soundTickRXBuffer(void)
 void soundTickMelody(void)
 {
 	taskENTER_CRITICAL();
-	if (melody_play!=NULL)
+	if (melody_play != NULL)
 	{
-		if (sine_beep_duration==0)
+		if (sine_beep_duration == 0)
 		{
-			if (melody_play[melody_idx]==-1)
+			if (melody_play[melody_idx] == -1)
 			{
 				if (trxGetMode() == RADIO_MODE_ANALOG)
 				{
@@ -351,7 +355,7 @@ void soundTickMelody(void)
 			}
 			else
 			{
-				if (melody_idx==0)
+				if (melody_idx == 0)
 				{
 					enableAudioAmp(AUDIO_AMP_MODE_BEEP);
 				    if (trxGetMode() == RADIO_MODE_ANALOG)
@@ -359,9 +363,9 @@ void soundTickMelody(void)
 					    GPIO_PinWrite(GPIO_RX_audio_mux, Pin_RX_audio_mux, 0);// set the audio mux   HR-C6000 -> audio amp
 					}
 				}
-				sine_beep_freq=melody_play[melody_idx];
-				sine_beep_duration=melody_play[melody_idx+1];
-				melody_idx=melody_idx+2;
+				sine_beep_freq = melody_play[melody_idx];
+				sine_beep_duration = melody_play[melody_idx + 1];
+				melody_idx = melody_idx + 2;
 			}
 		}
 	}
@@ -379,15 +383,15 @@ static void soundBeepTask(void *data)
     while (1U)
     {
     	taskENTER_CRITICAL();
-    	uint32_t tmp_timer_beeptask=timer_beeptask;
+    	uint32_t tmp_timer_beeptask = timer_beeptask;
     	taskEXIT_CRITICAL();
-    	if (tmp_timer_beeptask==0)
+    	if (tmp_timer_beeptask == 0)
     	{
         	taskENTER_CRITICAL();
-        	timer_beeptask=10;
-        	alive_beeptask=true;
+        	timer_beeptask = 10;
+        	alive_beeptask = true;
 
-    		if (sine_beep_duration>0)
+    		if (sine_beep_duration > 0)
     		{
     			if (!beep)
     			{
@@ -396,19 +400,19 @@ static void soundBeepTask(void *data)
     			}
 
     			SPI0ReadPageRegByte(0x04, 0x88, &tmp_val);
-    			if ( !(tmp_val & 1) )
+    			if ( !(tmp_val & 1))
     			{
-    				for (int i=0; i<16 ;i++)
+    				for (int i = 0; i < 16; i++)
     				{
-    					swapper.byte16 = ((int)sine_beep16[beep_idx])>>soundBeepVolumeDivider;
-    					spi_sound[2*i+1]=swapper.bytes8[0];// low byte
-    					spi_sound[2*i]=swapper.bytes8[1];// high byte
-    					if (sine_beep_freq!=0)
+    					swapper.byte16 = ((int)sine_beep16[beep_idx]) >> soundBeepVolumeDivider;
+    					spi_sound[2 * i + 1] = swapper.bytes8[0];// low byte
+    					spi_sound[2 * i] = swapper.bytes8[1];// high byte
+    					if (sine_beep_freq != 0)
     					{
-							beep_idx = beep_idx + (int)(sine_beep_freq/3.915f);
-    						if (beep_idx>=0x0800)
+							beep_idx = beep_idx + (int)(sine_beep_freq / 3.915f);
+    						if (beep_idx >= 0x0800)
     						{
-    							beep_idx=beep_idx-0x0800;
+    							beep_idx = beep_idx - 0x0800;
     						}
     					}
     				}

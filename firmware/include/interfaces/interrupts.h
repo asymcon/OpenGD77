@@ -9,6 +9,6 @@
 
 
 void interruptsInitC6000Interface(void);
-bool interruptsWasPinTriggered(PORT_Type *port,uint32_t pin);
+bool interruptsWasPinTriggered(PORT_Type *port, uint32_t pin);
 bool interruptsClearPinFlags(PORT_Type *port, uint32_t pin);
 #endif

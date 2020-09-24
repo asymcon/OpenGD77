@@ -24,7 +24,6 @@
 #include <stdbool.h>
 
 
-
 extern uint8_t SPI_Flash_sectorbuffer[4096];
 
 // Public functions

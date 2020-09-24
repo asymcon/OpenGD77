@@ -44,7 +44,7 @@ void tick_com_request(void)
 		switch (settingsUsbMode)
 		{
 			case USB_MODE_CPS:
-				if (com_request==1)
+				if (com_request == 1)
 				{
 					if ((nonVolatileSettings.hotspotType != HOTSPOT_TYPE_OFF) && (com_requestbuffer[0] == 0xE0U /* MMDVM_FRAME_START */))
 					{
@@ -55,7 +55,7 @@ void tick_com_request(void)
 					taskENTER_CRITICAL();
 					handleCPSRequest();
 					taskEXIT_CRITICAL();
-					com_request=0;
+					com_request = 0;
 				}
 
 				break;
@@ -69,14 +69,15 @@ enum CPS_ACCESS_AREA { CPS_ACCESS_FLASH = 1,CPS_ACCESS_EEPROM = 2, CPS_ACCESS_MC
 static void cpsHandleReadCommand(void)
 {
 
-	uint32_t address=(com_requestbuffer[2]<<24)+(com_requestbuffer[3]<<16)+(com_requestbuffer[4]<<8)+(com_requestbuffer[5]<<0);
-	uint32_t length=(com_requestbuffer[6]<<8)+(com_requestbuffer[7]<<0);
-	if (length>32)
+	uint32_t address = (com_requestbuffer[2] << 24) + (com_requestbuffer[3] << 16) + (com_requestbuffer[4] << 8) + (com_requestbuffer[5] << 0);
+	uint32_t length = (com_requestbuffer[6] << 8) + (com_requestbuffer[7] << 0);
+	bool result = false;
+
+	if (length > 32)
 	{
-		length=32;
+		length = 32;
 	}
 
-	bool result=false;
 	switch(com_requestbuffer[1])
 	{
 		case CPS_ACCESS_FLASH:
@@ -90,24 +91,24 @@ static void cpsHandleReadCommand(void)
 			taskENTER_CRITICAL();
 			break;
 		case CPS_ACCESS_MCU_ROM:
-			memcpy(&usbComSendBuf[3],(uint8_t *)address,length);
+			memcpy(&usbComSendBuf[3], (uint8_t *)address, length);
 			result = true;
 			break;
 		case CPS_ACCESS_DISPLAY_BUFFER:
-			memcpy(&usbComSendBuf[3],&screenBuf[address],length);
+			memcpy(&usbComSendBuf[3], &screenBuf[address], length);
 			result = true;
 			break;
 		case CPS_ACCESS_WAV_BUFFER:
-			memcpy(&usbComSendBuf[3],(uint8_t *)&audioAndHotspotDataBuffer.rawBuffer[address],length);
+			memcpy(&usbComSendBuf[3], (uint8_t *)&audioAndHotspotDataBuffer.rawBuffer[address], length);
 			result = true;
 			break;
 		case CPS_COMPRESS_AND_ACCESS_AMBE_BUFFER:// read from ambe audio buffer
 			{
 				uint8_t ambeBuf[32];// ambe data is up to 27 bytes long, but the normal transfer length for the CPS is 32, so make the buffer big enough for that transfer size
-				memset(ambeBuf,0,32);// Clear the ambe output buffer
-				codecEncode((uint8_t *)ambeBuf,3);
-				memcpy(&usbComSendBuf[3],ambeBuf,length);// The ambe data is only 27 bytes long but the normal CPS request size is 32
-				memset((uint8_t *)&audioAndHotspotDataBuffer.rawBuffer[0],0x00,960);// clear the input wave buffer, in case the next transfer is not a complete AMBE frame. 960 bytes compresses to 27 bytes of AMBE
+				memset(ambeBuf, 0, 32);// Clear the ambe output buffer
+				codecEncode((uint8_t *)ambeBuf, 3);
+				memcpy(&usbComSendBuf[3], ambeBuf, length);// The ambe data is only 27 bytes long but the normal CPS request size is 32
+				memset((uint8_t *)&audioAndHotspotDataBuffer.rawBuffer[0], 0x00, 960);// clear the input wave buffer, in case the next transfer is not a complete AMBE frame. 960 bytes compresses to 27 bytes of AMBE
 				result = true;
 			}
 			break;
@@ -116,9 +117,9 @@ static void cpsHandleReadCommand(void)
 	if (result)
 	{
 		usbComSendBuf[0] = com_requestbuffer[0];
-		usbComSendBuf[1]=(length>>8)&0xFF;
-		usbComSendBuf[2]=(length>>0)&0xFF;
-		USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, length+3);
+		usbComSendBuf[1] = (length >> 8) & 0xFF;
+		usbComSendBuf[2] = (length >> 0) & 0xFF;
+		USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, length + 3);
 	}
 	else
 	{
@@ -127,15 +128,16 @@ static void cpsHandleReadCommand(void)
 	}
 }
 
-static void cpsHandleWriteCommand()
+static void cpsHandleWriteCommand(void)
 {
-	bool ok=false;
+	bool ok = false;
+
 	switch(com_requestbuffer[1])
 	{
 		case 1:
-			if (sector==-1)
+			if (sector == -1)
 			{
-				sector=(com_requestbuffer[2]<<16)+(com_requestbuffer[3]<<8)+(com_requestbuffer[4]<<0);
+				sector=(com_requestbuffer[2] << 16) + (com_requestbuffer[3] << 8) + (com_requestbuffer[4] << 0);
 
 				if ((sector * 4096) == 0x30000) // start address of DMRIDs DB
 				{
@@ -143,43 +145,44 @@ static void cpsHandleWriteCommand()
 				}
 
 				taskEXIT_CRITICAL();
-				ok = SPI_Flash_read(sector*4096,SPI_Flash_sectorbuffer,4096);
+				ok = SPI_Flash_read(sector * 4096, SPI_Flash_sectorbuffer, 4096);
 				taskENTER_CRITICAL();
 			}
 			break;
 		case 2:
-			if (sector>=0)
+			if (sector >= 0)
 			{
-				uint32_t address=(com_requestbuffer[2]<<24)+(com_requestbuffer[3]<<16)+(com_requestbuffer[4]<<8)+(com_requestbuffer[5]<<0);
-				uint32_t length=(com_requestbuffer[6]<<8)+(com_requestbuffer[7]<<0);
-				if (length>32)
+				uint32_t address = (com_requestbuffer[2] << 24) + (com_requestbuffer[3] << 16) + (com_requestbuffer[4] << 8) + (com_requestbuffer[5] << 0);
+				uint32_t length = (com_requestbuffer[6] << 8) + (com_requestbuffer[7] << 0);
+
+				if (length > 32)
 				{
-					length=32;
+					length = 32;
 				}
 
-				for (int i=0;i<length;i++)
+				for (int i = 0; i < length; i++)
 				{
-					if (sector==(address+i)/4096)
+					if (sector == (address + i) / 4096)
 					{
-						SPI_Flash_sectorbuffer[(address+i) % 4096]=com_requestbuffer[i+8];
+						SPI_Flash_sectorbuffer[(address + i) % 4096] = com_requestbuffer[i + 8];
 					}
 				}
 
-				ok=true;
+				ok = true;
 			}
 			break;
 		case 3:
-			if (sector>=0)
+			if (sector >= 0)
 			{
 				taskEXIT_CRITICAL();
-				ok = SPI_Flash_eraseSector(sector*4096);
+				ok = SPI_Flash_eraseSector(sector * 4096);
 				taskENTER_CRITICAL();
 				if (ok)
 				{
-					for (int i=0;i<16;i++)
+					for (int i = 0; i < 16; i++)
 					{
 						taskEXIT_CRITICAL();
-						ok = SPI_Flash_writePage(sector*4096+i*256,SPI_Flash_sectorbuffer+i*256);
+						ok = SPI_Flash_writePage(sector * 4096 + i * 256, SPI_Flash_sectorbuffer + i * 256);
 						taskENTER_CRITICAL();
 						if (!ok)
 						{
@@ -187,27 +190,29 @@ static void cpsHandleWriteCommand()
 						}
 					}
 				}
-				sector=-1;
+				sector = -1;
 			}
 			break;
 		case 4:
 			{
-				uint32_t address=(com_requestbuffer[2]<<24)+(com_requestbuffer[3]<<16)+(com_requestbuffer[4]<<8)+(com_requestbuffer[5]<<0);
-				uint32_t length=(com_requestbuffer[6]<<8)+(com_requestbuffer[7]<<0);
-				if (length>32)
+				uint32_t address = (com_requestbuffer[2] << 24) + (com_requestbuffer[3] << 16) + (com_requestbuffer[4] << 8) + (com_requestbuffer[5] << 0);
+				uint32_t length = (com_requestbuffer[6] << 8) + (com_requestbuffer[7] << 0);
+
+				if (length > 32)
 				{
-					length=32;
+					length = 32;
 				}
 
-				ok = EEPROM_Write(address, (uint8_t*)com_requestbuffer+8, length);
+				ok = EEPROM_Write(address, (uint8_t*)com_requestbuffer + 8, length);
 			}
 			break;
 		case CPS_ACCESS_WAV_BUFFER:// write to raw audio buffer
 			{
-				uint32_t address=(com_requestbuffer[2]<<24)+(com_requestbuffer[3]<<16)+(com_requestbuffer[4]<<8)+(com_requestbuffer[5]<<0);
-				uint32_t length=(com_requestbuffer[6]<<8)+(com_requestbuffer[7]<<0);
-				wavbuffer_count = (address + length)/WAV_BUFFER_SIZE;
-				memcpy((uint8_t *)&audioAndHotspotDataBuffer.rawBuffer[address],(uint8_t *)&com_requestbuffer[8],length);
+				uint32_t address = (com_requestbuffer[2] << 24) + (com_requestbuffer[3] << 16) + (com_requestbuffer[4] << 8) + (com_requestbuffer[5] << 0);
+				uint32_t length = (com_requestbuffer[6] << 8) + (com_requestbuffer[7] << 0);
+
+				wavbuffer_count = (address + length) / WAV_BUFFER_SIZE;
+				memcpy((uint8_t *)&audioAndHotspotDataBuffer.rawBuffer[address], (uint8_t *)&com_requestbuffer[8], length);
 				ok = true;
 			}
 			break;
@@ -229,7 +234,6 @@ static void cpsHandleWriteCommand()
 
 static void cpsHandleCommand(void)
 {
-
 	int command = com_requestbuffer[1];
 	switch(command)
 	{
@@ -239,19 +243,19 @@ static void cpsHandleCommand(void)
 			break;
 		case 1:
 			// Clear CPS screen
-			uiCPSUpdate(0,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
+			uiCPSUpdate(CPS2UI_COMMAND_CLEARBUF, 0, 0, FONT_SIZE_1, TEXT_ALIGN_LEFT, 0, NULL);
 			break;
 		case 2:
 			// Write a line of text to CPS screen
-			uiCPSUpdate(1,com_requestbuffer[2],com_requestbuffer[3],(ucFont_t)com_requestbuffer[4],(ucTextAlign_t)com_requestbuffer[5],com_requestbuffer[6],(char *)&com_requestbuffer[7]);
+			uiCPSUpdate(CPS2UI_COMMAND_PRINT, com_requestbuffer[2], com_requestbuffer[3], (ucFont_t)com_requestbuffer[4], (ucTextAlign_t)com_requestbuffer[5], com_requestbuffer[6], (char *)&com_requestbuffer[7]);
 			break;
 		case 3:
 			// Render CPS screen
-			uiCPSUpdate(2,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
+			uiCPSUpdate(CPS2UI_COMMAND_RENDER_DISPLAY, 0, 0, FONT_SIZE_1, TEXT_ALIGN_LEFT, 0, NULL);
 			break;
 		case 4:
 			// Turn on the display backlight
-			uiCPSUpdate(3,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
+			uiCPSUpdate(CPS2UI_COMMAND_BACKLIGHT, 0, 0, FONT_SIZE_1, TEXT_ALIGN_LEFT, 0, NULL);
 			break;
 		case 5:
 			// Close
@@ -260,7 +264,7 @@ static void cpsHandleCommand(void)
 				dmrIDCacheInit();
 				flashingDMRIDs = false;
 			}
-			uiCPSUpdate(6,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
+			uiCPSUpdate(CPS2UI_COMMAND_END, 0, 0, FONT_SIZE_1, TEXT_ALIGN_LEFT, 0, NULL);
 			break;
 		case 6:
 			{
@@ -295,18 +299,18 @@ static void cpsHandleCommand(void)
 						break;
 					case 3:
 						// flash green LED
-						uiCPSUpdate(4,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
+						uiCPSUpdate(CPS2UI_COMMAND_GREEN_LED, 0, 0, FONT_SIZE_1, TEXT_ALIGN_LEFT, 0, NULL);
 						break;
 					case 4:
 						// flash red LED
-						uiCPSUpdate(5,0,0,FONT_SIZE_1,TEXT_ALIGN_LEFT,0,NULL);
+						uiCPSUpdate(CPS2UI_COMMAND_RED_LED, 0, 0, FONT_SIZE_1, TEXT_ALIGN_LEFT, 0, NULL);
 						break;
 					case 5:
 						codecInitInternalBuffers();
 						break;
 					case 6:
 						soundInit();// Resets the sound buffers
-						memset((uint8_t *)&audioAndHotspotDataBuffer.rawBuffer[0],0,(6 * WAV_BUFFER_SIZE));// clear 1 dmr frame size of wav buffer memory
+						memset((uint8_t *)&audioAndHotspotDataBuffer.rawBuffer[0], 0, (6 * WAV_BUFFER_SIZE));// clear 1 dmr frame size of wav buffer memory
 						break;
 					default:
 						break;
@@ -327,22 +331,22 @@ static void handleCPSRequest(void)
 	//Handle read
 	switch(com_requestbuffer[0])
 	{
-	case 'R':
-		cpsHandleReadCommand();
-		break;
-	case 'W':
-		cpsHandleWriteCommand();
-		break;
-	case 'C':
-		cpsHandleCommand();
-		break;
-	default:
-		usbComSendBuf[0] = '-';
-		USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, 1);
-		break;
+		case 'R':
+			cpsHandleReadCommand();
+			break;
+		case 'W':
+			cpsHandleWriteCommand();
+			break;
+		case 'C':
+			cpsHandleCommand();
+			break;
+		default:
+			usbComSendBuf[0] = '-';
+			USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, 1);
+			break;
 	}
 }
-#if false
+#if 0
 void send_packet(uint8_t val_0x82, uint8_t val_0x86, int ram)
 {
 	taskENTER_CRITICAL();
@@ -405,13 +409,13 @@ void add_to_commbuffer(uint8_t value)
 #endif
 void USB_DEBUG_PRINT(char *str)
 {
-	strcpy((char*)usbComSendBuf,str);
+	strcpy((char*)usbComSendBuf, str);
 	USB_DeviceCdcAcmSend(s_cdcVcom.cdcAcmHandle, USB_CDC_VCOM_BULK_IN_ENDPOINT, usbComSendBuf, strlen(str));
 }
 
-void USB_DEBUG_printf(const char *format, ...) {
+void USB_DEBUG_printf(const char *format, ...)
+{
 	  char buf[80];
-
 	  va_list params;
 
 	  va_start(params, format);

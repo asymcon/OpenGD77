@@ -173,9 +173,9 @@ const uint8_t AT1846DMRSettings[][AT1846_BYTES_PER_COMMAND] = {
 void I2C_AT1846S_send_Settings(const uint8_t settings[][3],int numSettings)
 {
 	taskENTER_CRITICAL();
-	for(int i=0;i<numSettings;i++)
+	for(int i = 0; i < numSettings; i++)
 	{
-		I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT,	settings[i][0], settings[i][1],	settings[i][2]);
+		I2CWriteReg2byte(AT1846S_I2C_MASTER_SLAVE_ADDR_7BIT, settings[i][0], settings[i][1],	settings[i][2]);
 	}
 	taskEXIT_CRITICAL();
 }

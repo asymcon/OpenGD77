@@ -20,13 +20,15 @@
 
 static void updateScreen(void);
 static void handleEvent(uiEvent_t *ev);
-
+static uint32_t initialEventTime;
+const uint32_t POWEROFF_DURATION_MILLISECONDS = 500;
 
 menuStatus_t uiPowerOff(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
 		updateScreen();
+		initialEventTime = ev->time;
 	}
 	else
 	{
@@ -46,8 +48,6 @@ static void updateScreen(void)
 
 static void handleEvent(uiEvent_t *ev)
 {
-	static uint32_t m = 0;
-
 #if defined(PLATFORM_RD5R)
 	if (battery_voltage > CUTOFF_VOLTAGE_LOWER_HYST)
 #else
@@ -56,17 +56,11 @@ static void handleEvent(uiEvent_t *ev)
 	{
 		// I think this is to handle if the power button is turned back on during shutdown
 		menuSystemPopPreviousMenu();
-		m = 0; // Reset timeout
+		initialEventTime = 0; // Reset timeout
 		return;
 	}
 
-	if (m == 0)
-	{
-		m = ev->time;
-		return;
-	}
-
-	if ((ev->time - m) > 500)
+	if ((ev->time - initialEventTime) > POWEROFF_DURATION_MILLISECONDS)
 	{
 		powerOffFinalStage();
 	}

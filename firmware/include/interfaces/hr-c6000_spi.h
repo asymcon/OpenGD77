@@ -153,12 +153,12 @@ extern uint8_t SPI_masterSendBuffer_SPI1[SPI_DATA_LENGTH];
 void SPIInit(void);
 
 int SPI0WritePageRegByte(uint8_t page, uint8_t reg, uint8_t val);
-int SPI0ReadPageRegByte(uint8_t page, uint8_t reg, volatile uint8_t* val);
+int SPI0ReadPageRegByte(uint8_t page, uint8_t reg, volatile uint8_t *val);
 int SPI0SeClearPageRegByteWithMask(uint8_t page, uint8_t reg, uint8_t mask, uint8_t val);
-int SPI0WritePageRegByteArray(uint8_t page, uint8_t reg, const uint8_t* values, uint8_t length);
-int SPI0ReadPageRegBytAarray(uint8_t page, uint8_t reg, volatile uint8_t* values, uint8_t length);
+int SPI0WritePageRegByteArray(uint8_t page, uint8_t reg, const uint8_t *values, uint8_t length);
+int SPI0ReadPageRegBytAarray(uint8_t page, uint8_t reg, volatile uint8_t *values, uint8_t length);
 
-int SPI1WritePageRegByteArray(uint8_t page, uint8_t reg, const uint8_t* values, uint8_t length);
-int SPI1ReadPageRegByteArray(uint8_t page, uint8_t reg, volatile uint8_t* values, uint8_t length);
+int SPI1WritePageRegByteArray(uint8_t page, uint8_t reg, const uint8_t *values, uint8_t length);
+int SPI1ReadPageRegByteArray(uint8_t page, uint8_t reg, volatile uint8_t *values, uint8_t length);
 
 #endif /* _FW_SPI_H_ */

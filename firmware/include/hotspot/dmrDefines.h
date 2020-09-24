@@ -122,7 +122,8 @@ extern const uint8_t DPF_PROPRIETARY;////      = 0x0FU;//
 extern const uint8_t FID_ETSI;// = 0U;//
 extern const uint8_t FID_DMRA;// = 16U;//
 
-enum FLCO {
+enum FLCO
+{
 	FLCO_GROUP               = 0,
 	FLCO_USER_USER           = 3,
 	FLCO_TALKER_ALIAS_HEADER = 4,

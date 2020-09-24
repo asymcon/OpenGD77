@@ -97,7 +97,8 @@
 extern volatile bool keypadLocked;
 extern volatile bool keypadAlphaEnable;
 
-typedef struct keyboardCode {
+typedef struct keyboardCode
+{
 		uint8_t event;
 		char key;
 } keyboardCode_t;
@@ -106,6 +107,7 @@ typedef struct keyboardCode {
 
 void keyboardInit(void);
 void keyboardReset(void);
+bool keyboardKeyIsDTMFKey(char key);
 uint32_t keyboardRead(void);
 void keyboardCheckKeyEvent(keyboardCode_t *keys, int *event);
 bool heyboardScanKey(uint32_t scancode, char *keycode);

@@ -39,7 +39,7 @@ menuStatus_t menuOptions(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
-		doFactoryReset=false;
+		doFactoryReset = false;
 		// Store original settings, used on cancel event.
 		memcpy(&originalNonVolatileSettings, &nonVolatileSettings, sizeof(settingsStruct_t));
 
@@ -62,7 +62,9 @@ menuStatus_t menuOptions(uiEvent_t *ev, bool isFirstRun)
 		menuOptionsExitCode = MENU_STATUS_SUCCESS;
 
 		if (ev->hasEvent)
+		{
 			handleEvent(ev);
+		}
 	}
 	return menuOptionsExitCode;
 }
@@ -90,17 +92,21 @@ static void updateScreen(bool isFirstRun)
 		{
 			case OPTIONS_MENU_HOTSPOT_TYPE:
 				leftSide = (char * const *)&currentLanguage->hotspot_mode;
+#if defined(PLATFORM_RD5R)
+				rightSideConst = (char * const *)&currentLanguage->n_a;
+#else
 				{
 					const char *hsTypes[] = {"MMDVM", "BlueDV" };
-					if (nonVolatileSettings.hotspotType==0)
+					if (nonVolatileSettings.hotspotType == 0)
 					{
 						rightSideConst = (char * const *)&currentLanguage->off;
 					}
 					else
 					{
-						snprintf(rightSideVar, bufferLen, "%s", hsTypes[nonVolatileSettings.hotspotType-1]);
+						snprintf(rightSideVar, bufferLen, "%s", hsTypes[nonVolatileSettings.hotspotType - 1]);
 					}
 				}
+#endif
 				break;
 			case OPTIONS_MENU_FACTORY_RESET:
 				leftSide = (char * const *)&currentLanguage->factory_reset;
@@ -153,26 +159,28 @@ static void updateScreen(bool isFirstRun)
 				leftSide = (char * const *)&currentLanguage->ptt_toggle;
 				rightSideConst = (char * const *)(nonVolatileSettings.pttToggle ? &currentLanguage->on : &currentLanguage->off);
 				break;
+
 			case OPTIONS_MENU_TALKER_ALIAS_TX:
 				leftSide = (char * const *)&currentLanguage->transmitTalkerAlias;
 				rightSideConst = (char * const *)(nonVolatileSettings.transmitTalkerAlias ? &currentLanguage->on : &currentLanguage->off);
 				break;
 			case OPTIONS_MENU_PRIVATE_CALLS:
 				leftSide = (char * const *)&currentLanguage->private_call_handling;
-				rightSideConst = (char * const *)(nonVolatileSettings.privateCalls ? &currentLanguage->on : &currentLanguage->off);
+				const char * const *allowPCOptions[] = { &currentLanguage->off, &currentLanguage->on, &currentLanguage->ptt, &currentLanguage->Auto};
+				rightSideConst = (char * const *)allowPCOptions[nonVolatileSettings.privateCalls];
 				break;
 		}
 
-		snprintf(buf, bufferLen, "%s:%s", *leftSide, (rightSideVar[0]?rightSideVar:*rightSideConst));
+		snprintf(buf, bufferLen, "%s:%s", *leftSide, (rightSideVar[0] ? rightSideVar : *rightSideConst));
 
-		if (i==0 && nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+		if ((i == 0) && (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1))
 		{
 			if (!isFirstRun)
 			{
 				voicePromptsInit();
 			}
 			voicePromptsAppendLanguageString((const char * const *)leftSide);
-			if (rightSideVar[0] !=0)
+			if (rightSideVar[0] != 0)
 			{
 				voicePromptsAppendString(rightSideVar);
 			}
@@ -201,13 +209,13 @@ static void handleEvent(uiEvent_t *ev)
 		menuSystemMenuIncrement(&gMenusCurrentItemIndex, NUM_OPTIONS_MENU_ITEMS);
 		menuOptionsExitCode |= MENU_STATUS_LIST_TYPE;
 	}
-	else if (KEYCHECK_PRESS(ev->keys,KEY_UP))
+	else if (KEYCHECK_PRESS(ev->keys, KEY_UP))
 	{
 		isDirty = true;
 		menuSystemMenuDecrement(&gMenusCurrentItemIndex, NUM_OPTIONS_MENU_ITEMS);
 		menuOptionsExitCode |= MENU_STATUS_LIST_TYPE;
 	}
-	else if (KEYCHECK_PRESS(ev->keys,KEY_RIGHT))
+	else if (KEYCHECK_PRESS(ev->keys, KEY_RIGHT))
 	{
 		isDirty = true;
 		switch(gMenusCurrentItemIndex)
@@ -216,170 +224,183 @@ static void handleEvent(uiEvent_t *ev)
 				doFactoryReset = true;
 				break;
 			case OPTIONS_MENU_USE_CALIBRATION:
-				nonVolatileSettings.useCalibration = true;
+				settingsSet(nonVolatileSettings.useCalibration, true);
 				break;
 			case OPTIONS_MENU_TX_FREQ_LIMITS:
-				nonVolatileSettings.txFreqLimited = true;
+				settingsSet(nonVolatileSettings.txFreqLimited, true);
 				break;
 			case OPTIONS_MENU_KEYPAD_TIMER_LONG:
 				if (nonVolatileSettings.keypadTimerLong < 90)
 				{
-					nonVolatileSettings.keypadTimerLong++;
+					settingsIncrement(nonVolatileSettings.keypadTimerLong, 1);
 				}
 				break;
 			case OPTIONS_MENU_KEYPAD_TIMER_REPEAT:
 				if (nonVolatileSettings.keypadTimerRepeat < 90)
 				{
-					nonVolatileSettings.keypadTimerRepeat++;
+					settingsIncrement(nonVolatileSettings.keypadTimerRepeat, 1);
 				}
 				break;
 			case OPTIONS_MENU_DMR_MONITOR_CAPTURE_TIMEOUT:
 				if (nonVolatileSettings.dmrCaptureTimeout < 90)
 				{
-					nonVolatileSettings.dmrCaptureTimeout++;
+					settingsIncrement(nonVolatileSettings.dmrCaptureTimeout, 1);
 				}
 				break;
 			case OPTIONS_MENU_SCAN_DELAY:
 				if (nonVolatileSettings.scanDelay < 30)
 				{
-					nonVolatileSettings.scanDelay++;
+					settingsIncrement(nonVolatileSettings.scanDelay, 1);
 				}
 				break;
 			case OPTIONS_MENU_SCAN_MODE:
 				if (nonVolatileSettings.scanModePause < SCAN_MODE_STOP)
 				{
-					nonVolatileSettings.scanModePause++;
+					settingsIncrement(nonVolatileSettings.scanModePause, 1);
 				}
 				break;
 			case OPTIONS_MENU_SQUELCH_DEFAULT_VHF:
 				if (nonVolatileSettings.squelchDefaults[RADIO_BAND_VHF] < CODEPLUG_MAX_VARIABLE_SQUELCH)
 				{
-					nonVolatileSettings.squelchDefaults[RADIO_BAND_VHF]++;
+					settingsIncrement(nonVolatileSettings.squelchDefaults[RADIO_BAND_VHF], 1);
 				}
 				break;
 			case OPTIONS_MENU_SQUELCH_DEFAULT_220MHz:
 				if (nonVolatileSettings.squelchDefaults[RADIO_BAND_220MHz] < CODEPLUG_MAX_VARIABLE_SQUELCH)
 				{
-					nonVolatileSettings.squelchDefaults[RADIO_BAND_220MHz]++;
+					settingsIncrement(nonVolatileSettings.squelchDefaults[RADIO_BAND_220MHz], 1);
 				}
 				break;
 			case OPTIONS_MENU_SQUELCH_DEFAULT_UHF:
 				if (nonVolatileSettings.squelchDefaults[RADIO_BAND_UHF] < CODEPLUG_MAX_VARIABLE_SQUELCH)
 				{
-					nonVolatileSettings.squelchDefaults[RADIO_BAND_UHF]++;
+					settingsIncrement(nonVolatileSettings.squelchDefaults[RADIO_BAND_UHF], 1);
 				}
 				break;
 			case OPTIONS_MENU_PTT_TOGGLE:
-				nonVolatileSettings.pttToggle = true;
+				settingsSet(nonVolatileSettings.pttToggle, true);
 				break;
 			case OPTIONS_MENU_HOTSPOT_TYPE:
+#if !defined(PLATFORM_RD5R)
 				if (nonVolatileSettings.hotspotType < HOTSPOT_TYPE_BLUEDV)
 				{
-					nonVolatileSettings.hotspotType++;
+					settingsIncrement(nonVolatileSettings.hotspotType, 1);
 				}
+#endif
 				break;
 			case OPTIONS_MENU_TALKER_ALIAS_TX:
-				nonVolatileSettings.transmitTalkerAlias = true;
+				settingsSet(nonVolatileSettings.transmitTalkerAlias, true);
 				break;
 			case OPTIONS_MENU_PRIVATE_CALLS:
-				nonVolatileSettings.privateCalls = true;
+				// Note. Currently the "AUTO" option is not available
+				if (nonVolatileSettings.privateCalls < ALLOW_PRIVATE_CALLS_PTT)
+				{
+					settingsIncrement(nonVolatileSettings.privateCalls, 1);
+				}
 				break;
 		}
 	}
-	else if (KEYCHECK_PRESS(ev->keys,KEY_LEFT))
+	else if (KEYCHECK_PRESS(ev->keys, KEY_LEFT))
 	{
 		isDirty = true;
 		switch(gMenusCurrentItemIndex)
 		{
 			case OPTIONS_MENU_HOTSPOT_TYPE:
-			if (nonVolatileSettings.hotspotType > HOTSPOT_TYPE_OFF)
-			{
-				nonVolatileSettings.hotspotType--;
-			}
-			break;
+#if !defined(PLATFORM_RD5R)
+				if (nonVolatileSettings.hotspotType > HOTSPOT_TYPE_OFF)
+				{
+					settingsDecrement(nonVolatileSettings.hotspotType, 1);
+				}
+#endif
+				break;
 			case OPTIONS_MENU_FACTORY_RESET:
 				doFactoryReset = false;
 				break;
 			case OPTIONS_MENU_USE_CALIBRATION:
-				nonVolatileSettings.useCalibration = false;
+				settingsSet(nonVolatileSettings.useCalibration, false);
 				break;
 			case OPTIONS_MENU_TX_FREQ_LIMITS:
-				nonVolatileSettings.txFreqLimited = false;
+				settingsSet(nonVolatileSettings.txFreqLimited, false);
 				break;
 			case OPTIONS_MENU_KEYPAD_TIMER_LONG:
 				if (nonVolatileSettings.keypadTimerLong > 1)
 				{
-					nonVolatileSettings.keypadTimerLong--;
+					settingsDecrement(nonVolatileSettings.keypadTimerLong, 1);
 				}
 				break;
 			case OPTIONS_MENU_KEYPAD_TIMER_REPEAT:
 				if (nonVolatileSettings.keypadTimerRepeat > 1) // Don't set it to zero, otherwise watchdog may kicks in.
 				{
-					nonVolatileSettings.keypadTimerRepeat--;
+					settingsDecrement(nonVolatileSettings.keypadTimerRepeat, 1);
 				}
 				break;
 			case OPTIONS_MENU_DMR_MONITOR_CAPTURE_TIMEOUT:
 				if (nonVolatileSettings.dmrCaptureTimeout > 1)
 				{
-					nonVolatileSettings.dmrCaptureTimeout--;
+					settingsDecrement(nonVolatileSettings.dmrCaptureTimeout, 1);
 				}
 				break;
 			case OPTIONS_MENU_SCAN_DELAY:
 				if (nonVolatileSettings.scanDelay > 1)
 				{
-					nonVolatileSettings.scanDelay--;
+					settingsDecrement(nonVolatileSettings.scanDelay, 1);
 				}
 				break;
 			case OPTIONS_MENU_SCAN_MODE:
 				if (nonVolatileSettings.scanModePause > SCAN_MODE_HOLD)
 				{
-					nonVolatileSettings.scanModePause--;
+					settingsDecrement(nonVolatileSettings.scanModePause, 1);
 				}
 				break;
 			case OPTIONS_MENU_SQUELCH_DEFAULT_VHF:
 				if (nonVolatileSettings.squelchDefaults[RADIO_BAND_VHF] > 1)
 				{
-					nonVolatileSettings.squelchDefaults[RADIO_BAND_VHF]--;
+					settingsDecrement(nonVolatileSettings.squelchDefaults[RADIO_BAND_VHF], 1);
 				}
 				break;
 			case OPTIONS_MENU_SQUELCH_DEFAULT_220MHz:
 				if (nonVolatileSettings.squelchDefaults[RADIO_BAND_220MHz] > 1)
 				{
-					nonVolatileSettings.squelchDefaults[RADIO_BAND_220MHz]--;
+					settingsDecrement(nonVolatileSettings.squelchDefaults[RADIO_BAND_220MHz], 1);
 				}
 				break;
 			case OPTIONS_MENU_SQUELCH_DEFAULT_UHF:
 				if (nonVolatileSettings.squelchDefaults[RADIO_BAND_UHF] > 1)
 				{
-					nonVolatileSettings.squelchDefaults[RADIO_BAND_UHF]--;
+					settingsDecrement(nonVolatileSettings.squelchDefaults[RADIO_BAND_UHF], 1);
 				}
 				break;
 			case OPTIONS_MENU_PTT_TOGGLE:
-				nonVolatileSettings.pttToggle = false;
+				settingsSet(nonVolatileSettings.pttToggle, false);
 				break;
 			case OPTIONS_MENU_TALKER_ALIAS_TX:
-				nonVolatileSettings.transmitTalkerAlias = false;
+				settingsSet(nonVolatileSettings.transmitTalkerAlias, false);
 				break;
 			case OPTIONS_MENU_PRIVATE_CALLS:
-				nonVolatileSettings.privateCalls = false;
+				if (nonVolatileSettings.privateCalls > 0)
+				{
+					settingsDecrement(nonVolatileSettings.privateCalls, 1);
+				}
 				break;
 		}
 	}
-	else if (KEYCHECK_SHORTUP(ev->keys,KEY_GREEN))
+	else if (KEYCHECK_SHORTUP(ev->keys, KEY_GREEN))
 	{
-		if (doFactoryReset==true)
+		if (doFactoryReset == true)
 		{
 			settingsRestoreDefaultSettings();
 			watchdogReboot();
 		}
-		SETTINGS_PLATFORM_SPECIFIC_SAVE_SETTINGS(false);// Some platform require the settings to be saved immediately
+
+		settingsSaveIfNeeded(true);
 		menuSystemPopAllAndDisplayRootMenu();
 		return;
 	}
-	else if (KEYCHECK_SHORTUP(ev->keys,KEY_RED))
+	else if (KEYCHECK_SHORTUP(ev->keys, KEY_RED))
 	{
 		// Restore original settings.
 		memcpy(&nonVolatileSettings, &originalNonVolatileSettings, sizeof(settingsStruct_t));
+		settingsSaveIfNeeded(true);
 		menuSystemPopPreviousMenu();
 		return;
 	}

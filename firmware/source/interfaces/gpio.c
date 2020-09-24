@@ -170,7 +170,8 @@ void gpioInitFlash(void)
 void gpioInitKeyboard(void)
 {
 	#if ! defined(PLATFORM_GD77S)
-	port_pin_config_t config = {
+	port_pin_config_t config =
+	{
 			kPORT_PullUp,
 			kPORT_FastSlewRate,
 			kPORT_PassiveFilterDisable,

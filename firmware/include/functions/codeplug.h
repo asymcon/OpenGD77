@@ -26,13 +26,14 @@ extern const int CODEPLUG_MIN_VARIABLE_SQUELCH;
 extern const int CODEPLUG_ZONE_DATA_SIZE;
 extern const int VFO_FREQ_STEP_TABLE[8];
 
-extern const uint16_t CODEPLUG_CSS_NONE;
-extern const uint16_t CODEPLUG_DCS_FLAGS_MASK;
-extern const uint16_t CODEPLUG_DCS_INVERTED_MASK;
+#define CODEPLUG_CSS_NONE            0xFFFF
+#define CODEPLUG_DCS_FLAGS_MASK      0xC000
+#define CODEPLUG_DCS_INVERTED_MASK   0x4000
+
 
 extern int codeplugChannelsPerZone;
 
-enum CONTACT_CALLTYPE_SELECT { CONTACT_CALLTYPE_TG=0, CONTACT_CALLTYPE_PC, CONTACT_CALLTYPE_ALL };
+enum CONTACT_CALLTYPE_SELECT { CONTACT_CALLTYPE_TG = 0, CONTACT_CALLTYPE_PC, CONTACT_CALLTYPE_ALL };
 
 typedef struct struct_codeplugZone
 {
@@ -93,7 +94,7 @@ typedef struct struct_codeplugContact
 	uint8_t		callType;
 	uint8_t		callRxTone;
 	uint8_t		ringStyle;
-	uint8_t		reserve1;
+	uint8_t		reserve1; // TS override: bit0 1 = no TS override, bit1 + 1: timeslot override value
 	int         NOT_IN_CODEPLUGDATA_indexNumber;
 } struct_codeplugContact_t;
 
@@ -109,7 +110,12 @@ typedef struct struct_codeplugDTMFContactList
 	int numContacts;
 } struct_codeplugDTMFContactList_t;
 
-typedef enum { CODEPLUG_CUSTOM_DATA_TYPE_NONE = 0, CODEPLUG_CUSTOM_DATA_TYPE_IMAGE = 1, CODEPLUG_CUSTOM_DATA_TYPE_BEEP = 2 } codeplugCustomDataType_t;
+typedef enum
+{
+	CODEPLUG_CUSTOM_DATA_TYPE_NONE = 0,
+	CODEPLUG_CUSTOM_DATA_TYPE_IMAGE,
+	CODEPLUG_CUSTOM_DATA_TYPE_BEEP
+} codeplugCustomDataType_t;
 
 /*
  * deprecated. Use our own non volatile storage instead

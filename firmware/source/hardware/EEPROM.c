@@ -23,26 +23,26 @@
 const uint8_t EEPROM_ADDRESS 	= 0x50;
 const uint8_t EEPROM_PAGE_SIZE 	= 128;
 
-static bool _EEPROM_Write(int address,uint8_t *buf, int size);
+static bool _EEPROM_Write(int address, uint8_t *buf, int size);
 
-bool EEPROM_Write(int address,uint8_t *buf, int size)
+bool EEPROM_Write(int address, uint8_t *buf, int size)
 {
 	bool retVal;
 
-	if (address/128 == (address+size)/128)
+	if (address / 128 == (address + size) / 128)
 	{
 		// All of the data is in the same page in the EEPROM so can just be written sequentially in one write
-		retVal = _EEPROM_Write(address,buf,size);
+		retVal = _EEPROM_Write(address, buf, size);
 	}
 	else
 	{
 		// Either there is more data than the page size or the data needs to be split across multiple page boundaries
-		int writeSize = 128 - (address%128);
+		int writeSize = 128 - (address % 128);
 		retVal = true;// First time though need to prime the while loop
 
-		while (writeSize > 0 && retVal == true)
+		while ((writeSize > 0) && (retVal == true))
 		{
-			retVal = _EEPROM_Write(address,buf,writeSize);
+			retVal = _EEPROM_Write(address, buf, writeSize);
 			address += writeSize;
 			buf += writeSize;
 			size -= writeSize;
@@ -63,7 +63,7 @@ bool EEPROM_Write(int address,uint8_t *buf, int size)
  * While calls this function as necessary to handle write across 128 byte page boundaries
  * and also for writes larger than 128 bytes.
  */
-static bool _EEPROM_Write(int address,uint8_t *buf, int size)
+static bool _EEPROM_Write(int address, uint8_t *buf, int size)
 {
 	const int COMMAND_SIZE = 2;
 	int transferSize;
@@ -102,18 +102,18 @@ static bool _EEPROM_Write(int address,uint8_t *buf, int size)
 		// So repeat the write command until it responds or timeout after 50
 		// attempts 1mS apart
 
-		int timoutCount=50;
-		status=kStatus_Success;
+		int timeoutCount = 50;
+		status = kStatus_Success;
 		do
 		{
-			if(status!=kStatus_Success)
+			if(status != kStatus_Success)
 			{
 				vTaskDelay(portTICK_PERIOD_MS * 1);
 			}
 
 		status = I2C_MasterTransferBlocking(I2C0, &masterXfer);
 
-		}while((status!=kStatus_Success)& (timoutCount-- >0));
+		} while((status != kStatus_Success) && (timeoutCount-- > 0));
 
 		if (status != kStatus_Success)
 		{
@@ -148,7 +148,7 @@ static bool _EEPROM_Write(int address,uint8_t *buf, int size)
 	return true;
 }
 
-bool EEPROM_Read(int address,uint8_t *buf, int size)
+bool EEPROM_Read(int address, uint8_t *buf, int size)
 {
 	const int COMMAND_SIZE = 2;
 	uint8_t tmpBuf[COMMAND_SIZE];
@@ -180,18 +180,18 @@ bool EEPROM_Read(int address,uint8_t *buf, int size)
     masterXfer.dataSize = COMMAND_SIZE;
     masterXfer.flags = kI2C_TransferNoStopFlag;
 
-	int timoutCount=50;
-	status=kStatus_Success;
+	int timeoutCount = 50;
+	status = kStatus_Success;
 	do
 	{
-		if(status!=kStatus_Success)
+		if(status != kStatus_Success)
 		{
 			vTaskDelay(portTICK_PERIOD_MS * 1);
 		}
 
 	status = I2C_MasterTransferBlocking(I2C0, &masterXfer);
 
-	}while((status!=kStatus_Success)& (timoutCount-- >0));
+	}while((status != kStatus_Success) && (timeoutCount-- > 0));
 
 	if (status != kStatus_Success)
 	{

@@ -20,7 +20,7 @@
  * Translators: EA3IGM, EA5SW	
  *	
  *	
- * Rev: 4	
+ * Rev: 5
  */
 #ifndef USER_INTERFACE_LANGUAGES_SPANISH_H_
 #define USER_INTERFACE_LANGUAGES_SPANISH_H_
@@ -63,7 +63,7 @@ const stringsTable_t spanishLanguage =
 .power_off				= "Apagando...", // MaxLen: 16
 .error					= "ERROR", // MaxLen: 8
 .rx_only				= "Solo Rx", // MaxLen: 14
-.out_of_band				= "FUERA DE BANDA", // MaxLen: 14
+.out_of_band			= "FUERA DE BANDA", // MaxLen: 14
 .timeout				= "TIMEOUT", // MaxLen: 8
 .tg_entry				= "Entrar TG", // MaxLen: 15
 .pc_entry				= "Entrar PC", // MaxLen: 15
@@ -110,19 +110,19 @@ const stringsTable_t spanishLanguage =
 .band_limits			= "Limite Banda", // MaxLen: 16 (with ':' + .on or .off)
 .beep_volume			= "Vol. BEEP", // MaxLen: 16 (with ':' + -24..6 + 'dB')
 .dmr_mic_gain			= "Micro DMR", // MaxLen: 16 (with ':' + -33..12 + 'dB')
-.fm_mic_gain				= "Micro FM", // MaxLen: 16 (with ':' + 0..31)
+.fm_mic_gain			= "Micro FM", // MaxLen: 16 (with ':' + 0..31)
 .key_long				= "Tec.larga", // MaxLen: 11 (with ':' + x.xs fitted)
 .key_repeat				= "Tec.repetir", // MaxLen: 11 (with ':' + x.xs fitted)
 .dmr_filter_timeout		= "Fil. tiempo", // MaxLen: 16 (with ':' + 1..90 + 's')
 .brightness				= "Brillo", // MaxLen: 16 (with ':' + 0..100 + '%')
-.brightness_off				= "Brillo min", // MaxLen: 16 (with ':' + 0..100 + '%')
+.brightness_off			= "Brillo min", // MaxLen: 16 (with ':' + 0..100 + '%')
 .contrast				= "Contraste", // MaxLen: 16 (with ':' + 12..30)
 .colour_invert			= "Color:Invertido", // MaxLen: 16
 .colour_normal			= "Color:Normal", // MaxLen: 16
 .backlight_timeout		= "Tiempo luz", // MaxLen: 16 (with ':' + .no to 30s)
 .scan_delay				= "Tiempo Scan", // MaxLen: 16 (with ':' + 1..30 + 's')
-.yes___in_uppercase					= "SI", // MaxLen: 8 (choice above green/red buttons)
-.no___in_uppercase						= "NO", // MaxLen: 8 (choice above green/red buttons)
+.yes___in_uppercase		= "SI", // MaxLen: 8 (choice above green/red buttons)
+.no___in_uppercase		= "NO", // MaxLen: 8 (choice above green/red buttons)
 .DISMISS				= "DESPEDIR", // MaxLen: 8 (choice above green/red buttons)
 .scan_mode				= "Modo Scan", // MaxLen: 16 (with ':' + .hold or .pause)
 .hold					= "Deten", // MaxLen: 16 (with ':' + .scan_mode)
@@ -142,12 +142,12 @@ const stringsTable_t spanishLanguage =
 .Auto					= "Auto", // MaxLen 16 (with .mode + ':') 
 .manual					= "Manual",  // MaxLen 16 (with .mode + ':') 
 .ptt_toggle				= "PTT Fijo", // MaxLen 16 (with ':' + .on or .off)
-.private_call_handling			= "Filtro PC", // MaxLen 16 (with ':' + .on ot .off)
+.private_call_handling	= "Filtro PC", // MaxLen 16 (with ':' + .on ot .off)
 .stop					= "Parar", // Maxlen 16 (with ':' + .scan_mode)
 .one_line				= "1 linea", // MaxLen 16 (with ':' + .contact)
 .two_lines				= "2 linea", // MaxLen 16 (with ':' + .contact)
 .new_channel			= "Nuevo canal", // MaxLen: 16, leave room for a space and four channel digits after
-.priority_order				= "Orden", // MaxLen 16 (with ':' + 'Cc/DB/TA')
+.priority_order			= "Orden", // MaxLen 16 (with ':' + 'Cc/DB/TA')
 .dmr_beep				= "DMR beep", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
 .start					= "Inicio", // MaxLen 16 (with ':' + .dmr_beep)
 .both					= "Ambos", // MaxLen 16 (with ':' + .dmr_beep)
@@ -155,11 +155,11 @@ const stringsTable_t spanishLanguage =
 .display				= "Display",
 .vox_threshold			= "VOX Gan.", // MaxLen 16 (with ':' + .off or 1..30)
 .vox_tail				= "VOX Ret.", // MaxLen 16 (with ':' + .n_a or '0.0s')
-.audio_prompt				= "Prompt",// Maxlen 16 (with ':' + .silent, .normal, .beep or .voice_prompt_level_1)
-.silent                                 = "Silent", // Maxlen 16 (with : + audio_prompt)
-.normal                                 = "Normal", // Maxlen 16 (with : + audio_prompt)
+.audio_prompt			= "Prompt",// Maxlen 16 (with ':' + .silent, .normal, .beep or .voice_prompt_level_1)
+.silent                 = "Silencio", // Maxlen 16 (with : + audio_prompt)
+.normal                 = "Normal", // Maxlen 16 (with : + audio_prompt)
 .beep					= "Beep", // Maxlen 16 (with : + audio_prompt)
-.voice_prompt_level_1					= "Voice", // Maxlen 16 (with : + audio_prompt)
+.voice_prompt_level_1	= "Voz L1", // Maxlen 16 (with : + audio_prompt)
 .transmitTalkerAlias	= "TA Tx", // Maxlen 16 (with : + .on or .off)
 .squelch_VHF			= "VHF Squelch",// Maxlen 16 (with : + XX%)
 .squelch_220			= "220 Squelch",// Maxlen 16 (with : + XX%)
@@ -170,8 +170,11 @@ const stringsTable_t spanishLanguage =
 .openDM1801 			= "OpenDM1801",// Do not translate
 .openRD5R 				= "OpenRD5R",// Do not translate
 .gitCommit				= "Git commit",
-.voice_prompt_level_2	= "Voice L2", // Maxlen 16 (with : + audio_prompt)
-.voice_prompt_level_3	= "Voice L3" // Maxlen 16 (with : + audio_prompt)
+.voice_prompt_level_2	= "Voz L2", // Maxlen 16 (with : + audio_prompt)
+.voice_prompt_level_3	= "Voz L3", // Maxlen 16 (with : + audio_prompt)
+.dmr_filter				= "Filtro DMR",// MaxLen: 12 (with ':' + settings: "TG" or "Ct" or "RxG")
+.dmr_cc_filter			= "Filtro CC", // MaxLen: 12 (with ':' + settings: .on or .off)
+.dmr_ts_filter			= "Filtro TS" // MaxLen: 12 (with ':' + settings: .on or .off)
 };
 /********************************************************************
  *

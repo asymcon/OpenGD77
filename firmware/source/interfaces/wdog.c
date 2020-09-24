@@ -22,7 +22,7 @@
 TaskHandle_t fwwatchdogTaskHandle;
 
 static WDOG_Type *wdog_base = WDOG;
-int watchdog_refresh_tick=0;
+int watchdog_refresh_tick = 0;
 
 volatile bool alive_maintask;
 volatile bool alive_beeptask;
@@ -32,7 +32,7 @@ float averageBatteryVoltage;
 int battery_voltage = 0;
 int battery_voltage_tick = 0;
 bool batteryVoltageHasChanged = false;
-static bool reboot=false;
+static bool reboot = false;
 static const int BATTERY_VOLTAGE_TICK_RELOAD = 2000;
 static const int AVERAGE_BATTERY_VOLTAGE_SAMPLE_WINDOW = 60.0f;// 120 secs = Sample window * BATTERY_VOLTAGE_TICK_RELOAD in milliseconds
 
@@ -53,7 +53,7 @@ void init_watchdog(batteryHistoryCallback_t cb)
 
     batteryCallbackFunction = cb;
 
-    watchdog_refresh_tick=0;
+    watchdog_refresh_tick = 0;
 
     alive_maintask = false;
     alive_beeptask = false;
@@ -61,10 +61,12 @@ void init_watchdog(batteryHistoryCallback_t cb)
 
     battery_voltage=adcGetBatteryVoltage();
 	averageBatteryVoltage = battery_voltage;
-	battery_voltage_tick=0;
+	battery_voltage_tick = 0;
 
 	if (batteryCallbackFunction)
+	{
 		batteryCallbackFunction(battery_voltage);
+	}
 
 	xTaskCreate(fw_watchdog_task,                        /* pointer to the task */
 				"fw watchdog task",                      /* task name for kernel awareness debugging */
@@ -80,12 +82,12 @@ void fw_watchdog_task(void *data)
     while (1U)
     {
     	taskENTER_CRITICAL();
-    	uint32_t tmp_timer_watchdogtask=timer_watchdogtask;
+    	uint32_t tmp_timer_watchdogtask = timer_watchdogtask;
     	taskEXIT_CRITICAL();
-    	if (tmp_timer_watchdogtask==0)
+    	if (tmp_timer_watchdogtask == 0)
     	{
         	taskENTER_CRITICAL();
-        	timer_watchdogtask=10;
+        	timer_watchdogtask = 10;
         	taskEXIT_CRITICAL();
 
         	tick_watchdog();
@@ -100,7 +102,7 @@ void tick_watchdog(void)
 {
 
 	watchdog_refresh_tick++;
-	if (watchdog_refresh_tick==200)
+	if (watchdog_refresh_tick == 200)
 	{
 		if (alive_maintask && alive_beeptask && alive_hrc6000task && !reboot)
 		{
@@ -109,7 +111,7 @@ void tick_watchdog(void)
 	    alive_maintask = false;
 	    alive_beeptask = false;
 	    alive_hrc6000task = false;
-    	watchdog_refresh_tick=0;
+    	watchdog_refresh_tick = 0;
 	}
 
 	battery_voltage_tick++;
@@ -117,22 +119,23 @@ void tick_watchdog(void)
 	{
 		int tmp_battery_voltage = adcGetBatteryVoltage();
 
-		if (battery_voltage!=tmp_battery_voltage)
+		if (battery_voltage != tmp_battery_voltage)
 		{
-			battery_voltage=tmp_battery_voltage;
-			averageBatteryVoltage = (averageBatteryVoltage * (AVERAGE_BATTERY_VOLTAGE_SAMPLE_WINDOW-1) + battery_voltage) / AVERAGE_BATTERY_VOLTAGE_SAMPLE_WINDOW;
+			battery_voltage = tmp_battery_voltage;
+			averageBatteryVoltage = (averageBatteryVoltage * (AVERAGE_BATTERY_VOLTAGE_SAMPLE_WINDOW - 1) + battery_voltage) / AVERAGE_BATTERY_VOLTAGE_SAMPLE_WINDOW;
 			batteryVoltageHasChanged = true;
 		}
-		battery_voltage_tick=0;
+		battery_voltage_tick = 0;
 
 		if (batteryCallbackFunction)
+		{
 			batteryCallbackFunction(averageBatteryVoltage);
-
+		}
 	}
 	adcTriggerConversion();// need the ADC value next time though, so request conversion now, so that its ready by the time we need it
 }
 
 void watchdogReboot(void)
 {
-	reboot=true;
+	reboot = true;
 }

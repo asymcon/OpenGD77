@@ -41,11 +41,13 @@ menuStatus_t menuLockScreen(uiEvent_t *ev, bool isFirstRun)
 	}
 	else
 	{
-		if (lockDisplayed && ((ev->time - m) > TIMEOUT_MS))
+		if ((lockDisplayed) && (
+				((nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1) && (voicePromptsIsPlaying() == false)) ||
+				((nonVolatileSettings.audioPromptMode <= AUDIO_PROMPT_MODE_BEEP) && ((ev->time - m) > TIMEOUT_MS))))
 		{
 			lockDisplayed = false;
 			menuSystemPopPreviousMenu();
-			return 0;
+			return MENU_STATUS_SUCCESS;
 		}
 
 		if (ev->hasEvent)
@@ -80,12 +82,16 @@ static void redrawScreen(bool update, bool state)
 		memset(buf, 0, bufferLen);
 
 		if (keypadLocked)
+		{
 			strcat(buf, currentLanguage->keypad);
+		}
 
 		if (PTTLocked)
 		{
 			if (keypadLocked)
+			{
 				strcat(buf, " & ");
+			}
 
 			strcat(buf, currentLanguage->ptt);
 		}
@@ -103,10 +109,44 @@ static void redrawScreen(bool update, bool state)
 		ucPrintCentered(40, currentLanguage->press_blue_plus_star, FONT_SIZE_1);
 		ucPrintCentered(48, currentLanguage->to_unlock, FONT_SIZE_1);
 #endif
+
+		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+		{
+			voicePromptsInit();
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+
+			if (lockState & LOCK_KEYPAD)
+			{
+				voicePromptsAppendLanguageString(&currentLanguage->keypad);
+				voicePromptsAppendPrompt(PROMPT_SILENCE);
+			}
+
+			if (lockState & LOCK_PTT)
+			{
+				voicePromptsAppendLanguageString(&currentLanguage->ptt);
+				voicePromptsAppendPrompt(PROMPT_SILENCE);
+			}
+
+			voicePromptsAppendLanguageString(&currentLanguage->locked);
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+			voicePromptsAppendLanguageString(&currentLanguage->press_blue_plus_star);
+			voicePromptsAppendLanguageString(&currentLanguage->to_unlock);
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+			voicePromptsPlay();
+		}
 	}
 	else
 	{
 		ucPrintCentered((DISPLAY_SIZE_Y - 16) / 2, currentLanguage->unlocked, FONT_SIZE_3);
+
+		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+		{
+			voicePromptsInit();
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+			voicePromptsAppendLanguageString(&currentLanguage->unlocked);
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+			voicePromptsPlay();
+		}
 	}
 
 	ucRender();
@@ -181,11 +221,21 @@ static void handleEvent(uiEvent_t *ev)
 
 	if (KEYCHECK_DOWN(ev->keys, KEY_STAR) && BUTTONCHECK_DOWN(ev, BUTTON_SK2))
 	{
+		if ((nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1) && voicePromptsIsPlaying())
+		{
+			voicePromptsTerminate();
+		}
+
 		keypadLocked = false;
 		PTTLocked = false;
 		lockDisplayed = false;
 		menuSystemPopAllAndDisplayRootMenu();
 		menuSystemPushNewMenu(UI_LOCK_SCREEN);
+	}
+	else if ((nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1) && voicePromptsIsPlaying() && (ev->keys.key != 0) && (ev->keys.event & KEY_MOD_UP))
+	{
+		// Cancel the voice on any key event (that hides the lock screen earlier)
+		voicePromptsTerminate();
 	}
 }
 
@@ -194,5 +244,7 @@ void menuLockScreenPop(void)
 	lockDisplayed = false;
 
 	if (menuSystemGetCurrentMenuNumber() == UI_LOCK_SCREEN)
+	{
 		menuSystemPopPreviousMenu();
+	}
 }

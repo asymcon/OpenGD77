@@ -43,7 +43,7 @@ static void updateScreen(void)
 	char buf[17];
 	char * const *radioModel;
 
-	snprintf(buf, 16, "v1.70.EXP", GITVERSION);
+	snprintf(buf, 16, "v1.75.20", GITVERSION);
 	buf[9] = 0; // git hash id 7 char long;
 	strcat(buf, " ]");
 
@@ -101,13 +101,13 @@ static void handleEvent(uiEvent_t *ev)
 	}
 
 
-	if (KEYCHECK_SHORTUP(ev->keys,KEY_RED))
+	if (KEYCHECK_SHORTUP(ev->keys, KEY_RED))
 	{
 		menuSystemPopPreviousMenu();
 		return;
 	}
 
-	if (KEYCHECK_SHORTUP(ev->keys,KEY_GREEN))
+	if (KEYCHECK_SHORTUP(ev->keys, KEY_GREEN))
 	{
 		menuSystemPopAllAndDisplayRootMenu();
 		return;

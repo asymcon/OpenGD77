@@ -20,9 +20,16 @@
 
 static void handleTick(void);
 
-static int mode=0;
+typedef enum
+{
+	LED_NONE,
+	LED_RED,
+	LED_GREEN
+} blinkLed_t;
+
+static blinkLed_t mode = LED_NONE;
 static uint32_t nextPIT;
-static int ledState=0;
+static int ledState = 0;
 static const int PIT_COUNTS_PER_UPDATE = 5000;
 static int radioMode;
 static int radioBandWidth;
@@ -32,8 +39,8 @@ menuStatus_t uiCPS(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
-		radioMode=trxGetMode();
-		radioBandWidth=trxGetBandwidthIs25kHz();
+		radioMode = trxGetMode();
+		radioBandWidth = trxGetBandwidthIs25kHz();
 		trxSetModeAndBandwidth(RADIO_MODE_NONE, radioBandWidth);
 		// Just clear the display and turn on the
 //		UC1701_clearBuf();
@@ -42,7 +49,7 @@ menuStatus_t uiCPS(uiEvent_t *ev, bool isFirstRun)
 	}
 	else
 	{
-		if (PITCounter >= nextPIT )
+		if (PITCounter >= nextPIT)
 		{
 			nextPIT = PITCounter + PIT_COUNTS_PER_UPDATE;
 			handleTick();
@@ -51,32 +58,33 @@ menuStatus_t uiCPS(uiEvent_t *ev, bool isFirstRun)
 	return MENU_STATUS_SUCCESS;
 }
 
-void uiCPSUpdate(int command,int x, int y, ucFont_t fontSize, ucTextAlign_t alignment, bool isInverted,char *szMsg)
+void uiCPSUpdate(uiCPSCommand_t command, int x, int y, ucFont_t fontSize, ucTextAlign_t alignment, bool isInverted, char *szMsg)
 {
 	switch(command)
 	{
-		case 0:
+		case CPS2UI_COMMAND_CLEARBUF:
 			ucClearBuf();
 			break;
-		case 1:
+		case CPS2UI_COMMAND_PRINT:
 			ucPrintCore(x, y, szMsg, fontSize, alignment, isInverted);
 			break;
-		case 2:
+		case CPS2UI_COMMAND_RENDER_DISPLAY:
 			ucRender();
 			displayLightTrigger();
 			break;
-		case 3:
+		case CPS2UI_COMMAND_BACKLIGHT:
 			displayLightTrigger();
 			break;
-		case 4:
-			mode = 1;// flash green LED
+		case CPS2UI_COMMAND_GREEN_LED:
+			mode = LED_GREEN;// flash green LED
 			break;
-		case 5:
-			mode = 2;// flash red LED
+		case CPS2UI_COMMAND_RED_LED:
+			mode = LED_RED;// flash red LED
 			break;
-		case 6:
+		case CPS2UI_COMMAND_END:
 		    GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 0);
 		    GPIO_PinWrite(GPIO_LEDred, Pin_LEDred, 0);
+		    mode = LED_NONE;
 		    trx_setRX();// Rx would be turned off at start of CPS by setting radio mode to none
 		    trxSetModeAndBandwidth(radioMode, radioBandWidth);
 			menuSystemPopAllAndDisplayRootMenu();
@@ -90,33 +98,34 @@ static void handleTick(void)
 {
 	switch(mode)
 	{
-		case 1:
-			// flash green
-			if (ledState==0)
+		case LED_GREEN:
+			if (ledState == 0)
 			{
-				ledState=1;
+				ledState = 1;
 			    GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 1);
 			}
 			else
 			{
-				ledState=0;
+				ledState = 0;
 			    GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 0);
 			}
-
 			break;
-		case 2:
-			// flash yellow
-			if (ledState==0)
+
+		case LED_RED:
+			if (ledState == 0)
 			{
-				ledState=1;
+				ledState = 1;
 			    GPIO_PinWrite(GPIO_LEDred, Pin_LEDred, 1);
 			}
 			else
 			{
-				ledState=0;
+				ledState = 0;
 			    GPIO_PinWrite(GPIO_LEDred, Pin_LEDred, 0);
 			}
+			break;
 
+		case LED_NONE:
+		default:
 			break;
 	}
 }

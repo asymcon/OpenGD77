@@ -18,7 +18,7 @@
 #ifndef _UI_LOCALISATION_H_
 #define _UI_LOCALISATION_H_
 
-#define NUM_LANGUAGES 12
+#define NUM_LANGUAGES 13
 #define LANGUAGE_TEXTS_LENGTH 17
 
 typedef struct stringsTable
@@ -175,6 +175,9 @@ typedef struct stringsTable
    const char *voice_prompt_level_2;
    const char *voice_prompt_level_3;
    const char *tone;
+   const char *dmr_filter;
+   const char *dmr_cc_filter;
+   const char *dmr_ts_filter;
    const char *display;
 } stringsTable_t;
 

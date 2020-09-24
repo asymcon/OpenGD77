@@ -144,7 +144,8 @@ void CRC_encodeFiveBit(const bool* in, unsigned int *tcrc)
 
 void CRC_addCCITT162(unsigned char *in, unsigned int length)
 {
-	union CRCData{
+	union
+	{
 		uint16_t crc16;
 		uint8_t  crc8[2U];
 	} data;
@@ -164,7 +165,8 @@ void CRC_addCCITT162(unsigned char *in, unsigned int length)
 
 bool CRC_checkCCITT162(const unsigned char *in, unsigned int length)
 {
-	union {
+	union
+	{
 		uint16_t crc16;
 		uint8_t  crc8[2U];
 	} data;
@@ -186,7 +188,8 @@ void CRC_addCCITT161(unsigned char *in, unsigned int length)
 	assert(in != NULL);
 	assert(length > 2U);
 
-	union {
+	union
+	{
 		uint16_t crc16;
 		uint8_t  crc8[2U];
 	} data;
@@ -207,7 +210,8 @@ bool CRC_checkCCITT161(const unsigned char *in, unsigned int length)
 	assert(in != NULL);
 	assert(length > 2U);
 
-	union {
+	union
+	{
 		uint16_t crc16;
 		uint8_t  crc8[2U];
 	} data;

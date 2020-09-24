@@ -24,7 +24,7 @@
 #include <user_interface/uiUtilities.h>
 #include <user_interface/uiLocalisation.h>
 
-static void updateScreen(bool isFirstRun);
+static void updateScreen(bool isFirstRun, bool allowedToSpeakUpdate);
 static void updateCursor(bool moved);
 static void handleEvent(uiEvent_t *ev);
 
@@ -80,7 +80,38 @@ static int cssIndex(uint16_t tone, CSSTypes_t type)
 	return 0;
 }
 
-void cssIncrement(uint16_t *tone, int32_t *index, CSSTypes_t *type, bool loop)
+uint16_t cssGetTone(int32_t index, CSSTypes_t type)
+{
+	if (index >= 0)
+	{
+		switch (type)
+		{
+			case CSS_CTCSS:
+				if (index < TRX_NUM_CTCSS)
+				{
+					return TRX_CTCSSTones[index];
+				}
+				break;
+			case CSS_DCS:
+				if (index < TRX_NUM_DCS)
+				{
+					return (TRX_DCSCodes[index] | 0x8000);
+				}
+				break;
+			case CSS_DCS_INVERTED:
+				if (index < TRX_NUM_DCS)
+				{
+					return (TRX_DCSCodes[index] | 0xC000);
+				}
+				break;
+			case CSS_NONE:
+				break;
+		}
+	}
+	return TRX_CTCSSTones[0];
+}
+
+void cssIncrement(uint16_t *tone, int32_t *index, CSSTypes_t *type, bool loop, bool stayInCSSType)
 {
 	(*index)++;
 	switch (*type)
@@ -88,34 +119,55 @@ void cssIncrement(uint16_t *tone, int32_t *index, CSSTypes_t *type, bool loop)
 		case CSS_CTCSS:
 			if (*index >= TRX_NUM_CTCSS)
 			{
-				*type = CSS_DCS;
-				*index = 0;
-				*tone = TRX_DCSCodes[*index] | 0x8000;
-				return;
+				if (stayInCSSType)
+				{
+					*index = 0;
+				}
+				else
+				{
+					*type = CSS_DCS;
+					*index = 0;
+					*tone = TRX_DCSCodes[*index] | 0x8000;
+					return;
+				}
 			}
 			*tone = TRX_CTCSSTones[*index];
 			break;
 		case CSS_DCS:
 			if (*index >= TRX_NUM_DCS)
 			{
-				*type = CSS_DCS_INVERTED;
-				*index = 0;
-				*tone = TRX_DCSCodes[*index] | 0xC000;
-				return;
+				if (stayInCSSType)
+				{
+					*index = 0;
+				}
+				else
+				{
+					*type = CSS_DCS_INVERTED;
+					*index = 0;
+					*tone = TRX_DCSCodes[*index] | 0xC000;
+					return;
+				}
 			}
 			*tone = TRX_DCSCodes[*index] | 0x8000;
 			break;
 		case CSS_DCS_INVERTED:
 			if (*index >= TRX_NUM_DCS)
 			{
-				if (loop)
+				if (stayInCSSType)
 				{
-					*type = CSS_CTCSS;
 					*index = 0;
-					*tone = TRX_CTCSSTones[*index];
-					return;
 				}
-				*index = TRX_NUM_DCS - 1;
+				else
+				{
+					if (loop)
+					{
+						*type = CSS_CTCSS;
+						*index = 0;
+						*tone = TRX_CTCSSTones[*index];
+						return;
+					}
+					*index = TRX_NUM_DCS - 1;
+				}
 			}
 			*tone = TRX_DCSCodes[*index] | 0xC000;
 			break;
@@ -181,7 +233,7 @@ static void cssIncrementFromEvent(uiEvent_t *ev, uint16_t *tone, int32_t *index,
 		{
 			*index += 4;
 		}
-		cssIncrement(tone, index, type, false);
+		cssIncrement(tone, index, type, false, false);
 	}
 }
 
@@ -334,7 +386,7 @@ menuStatus_t menuChannelDetails(uiEvent_t *ev, bool isFirstRun)
 
 		if ((settingsCurrentChannelNumber == -1) && (namePos == 0)) // In VFO, and VFO has no name in the codeplug
 		{
-			snprintf(channelName, 17, "VFO %s", (nonVolatileSettings.currentVFONumber==0?"A":"B"));
+			snprintf(channelName, 17, "VFO %s", (nonVolatileSettings.currentVFONumber == 0 ? "A" : "B"));
 			namePos = 5;
 		}
 
@@ -348,7 +400,7 @@ menuStatus_t menuChannelDetails(uiEvent_t *ev, bool isFirstRun)
 			voicePromptsAppendPrompt(PROMPT_SILENCE);
 		}
 
-		updateScreen(true);
+		updateScreen(true, true);
 		updateCursor(true);
 
 		return (MENU_STATUS_LIST_TYPE | MENU_STATUS_SUCCESS);
@@ -377,7 +429,7 @@ static void updateCursor(bool moved)
 	}
 }
 
-static void updateScreen(bool isFirstRun)
+static void updateScreen(bool isFirstRun, bool allowedToSpeakUpdate)
 {
 	int mNum = 0;
 	static const int bufferLen = 17;
@@ -431,7 +483,7 @@ static void updateScreen(bool isFirstRun)
 					}
 					else
 					{
-						snprintf(rightSideVar, bufferLen, "%d",tmpChannel.rxColor);
+						snprintf(rightSideVar, bufferLen, "%d", tmpChannel.txColor);
 					}
 					break;
 				case CH_DETAILS_DMR_TS:
@@ -442,7 +494,7 @@ static void updateScreen(bool isFirstRun)
 					}
 					else
 					{
-						snprintf(rightSideVar, bufferLen, "%d",((tmpChannel.flag2 & 0x40) >> 6) + 1);
+						snprintf(rightSideVar, bufferLen, "%d", ((tmpChannel.flag2 & 0x40) >> 6) + 1);
 					}
 					break;
 				case CH_DETAILS_RXCTCSS:
@@ -553,20 +605,20 @@ static void updateScreen(bool isFirstRun)
 					break;
 				case CH_DETAILS_VOX:
 					leftSide = NULL;
-					snprintf(rightSideVar, bufferLen, "VOX:%s",((tmpChannel.flag4 & 0x40) == 0x40) ? currentLanguage->on : currentLanguage->off);
+					snprintf(rightSideVar, bufferLen, "VOX:%s", ((tmpChannel.flag4 & 0x40) == 0x40) ? currentLanguage->on : currentLanguage->off);
 					break;
 			}
 
-			if (leftSide!=NULL)
+			if (leftSide != NULL)
 			{
-				snprintf(buf, bufferLen, "%s:%s", *leftSide, (rightSideVar[0]?rightSideVar:*rightSideConst));
+				snprintf(buf, bufferLen, "%s:%s", *leftSide, (rightSideVar[0] ? rightSideVar : *rightSideConst));
 			}
 			else
 			{
-				strcpy(buf,rightSideVar);
+				strcpy(buf, rightSideVar);
 			}
 
-			if (i==0 && nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+			if ((i == 0) && (allowedToSpeakUpdate &&(nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)))
 			{
 				if (!isFirstRun)
 				{
@@ -577,7 +629,7 @@ static void updateScreen(bool isFirstRun)
 					voicePromptsAppendLanguageString((const char * const *)leftSide);
 				}
 
-				if (rightSideVar[0] !=0)
+				if (rightSideVar[0] != 0)
 				{
 					voicePromptsAppendString(rightSideVar);
 				}
@@ -598,7 +650,7 @@ static void updateScreen(bool isFirstRun)
 
 static void updateFrequency(void)
 {
-	int tmp_frequency = read_freq_enter_digits(0,8);
+	int tmp_frequency = read_freq_enter_digits(0, 8);
 
 	if (trxGetBandFromFrequency(tmp_frequency) != -1)
 	{
@@ -615,7 +667,7 @@ static void updateFrequency(void)
 	}
 	else
 	{
-		soundSetMelody(melody_ERROR_beep);
+		soundSetMelody(MELODY_ERROR_BEEP);
 	}
 }
 
@@ -624,31 +676,43 @@ static void handleEvent(uiEvent_t *ev)
 	int tmpVal;
 	struct_codeplugRxGroup_t rxGroupBuf;
 
-	if (ev->function > 0 && ev->function < NUM_CH_DETAILS_ITEMS)
+	if ((ev->function > 0) && (ev->function < NUM_CH_DETAILS_ITEMS))
 	{
 		gMenusCurrentItemIndex = ev->function;
 	}
 
-	if (gMenusCurrentItemIndex == CH_DETAILS_RXFREQ || gMenusCurrentItemIndex == CH_DETAILS_TXFREQ)
+	if (BUTTONCHECK_SHORTUP(ev, BUTTON_SK1))
+	{
+		if (!voicePromptIsActive)
+		{
+			voicePromptsPlay();
+		}
+		else
+		{
+			voicePromptsTerminate();
+		}
+	}
+
+	if ((gMenusCurrentItemIndex == CH_DETAILS_RXFREQ) || (gMenusCurrentItemIndex == CH_DETAILS_TXFREQ))
 	{
 		if (freq_enter_idx != 0)
 		{
-			if (KEYCHECK_SHORTUP(ev->keys,KEY_GREEN))
+			if (KEYCHECK_SHORTUP(ev->keys, KEY_GREEN))
 			{
 				updateFrequency();
-				updateScreen(false);
+				updateScreen(false, true);
 				return;
 			}
-			if (KEYCHECK_SHORTUP(ev->keys,KEY_RED))
+			if (KEYCHECK_SHORTUP(ev->keys, KEY_RED))
 			{
-				updateScreen(false);
+				updateScreen(false, true);
 				return;
 			}
-			if (KEYCHECK_SHORTUP(ev->keys,KEY_LEFT))
+			if (KEYCHECK_SHORTUP(ev->keys, KEY_LEFT))
 			{
 				freq_enter_idx--;
 				freq_enter_digits[freq_enter_idx] = '-';
-				updateScreen(false);
+				updateScreen(false, true);
 				return;
 			}
 		}
@@ -658,34 +722,35 @@ static void handleEvent(uiEvent_t *ev)
 			int keyval = menuGetKeypadKeyValue(ev, true);
 			if (keyval != 99)
 			{
-				freq_enter_digits[freq_enter_idx] = (char) keyval+'0';
+				freq_enter_digits[freq_enter_idx] = (char) keyval + '0';
 				freq_enter_idx++;
+
 				if (freq_enter_idx == 8)
 				{
 					updateFrequency();
 					freq_enter_idx = 0;
 				}
-				updateScreen(false);
+				updateScreen(false, true);
 				return;
 			}
 		}
 	}
 
 	// Not entering a frequency numeric digit
-
-	if (KEYCHECK_PRESS(ev->keys,KEY_DOWN))
+	bool allowedToSpeakUpdate = true;
+	if (KEYCHECK_PRESS(ev->keys, KEY_DOWN))
 	{
 		menuSystemMenuIncrement(&gMenusCurrentItemIndex, NUM_CH_DETAILS_ITEMS);
-		updateScreen(false);
+		updateScreen(false, true);
 		menuChannelDetailsExitCode |= MENU_STATUS_LIST_TYPE;
 	}
-	else if (KEYCHECK_PRESS(ev->keys,KEY_UP))
+	else if (KEYCHECK_PRESS(ev->keys, KEY_UP))
 	{
 		menuSystemMenuDecrement(&gMenusCurrentItemIndex, NUM_CH_DETAILS_ITEMS);
-		updateScreen(false);
+		updateScreen(false, true);
 		menuChannelDetailsExitCode |= MENU_STATUS_LIST_TYPE;
 	}
-	else if (KEYCHECK_PRESS(ev->keys,KEY_RIGHT))
+	else if (KEYCHECK_PRESS(ev->keys, KEY_RIGHT))
 	{
 		switch(gMenusCurrentItemIndex)
 		{
@@ -694,6 +759,7 @@ static void handleEvent(uiEvent_t *ev)
 				{
 					moveCursorRightInString(channelName, &namePos, 16, BUTTONCHECK_DOWN(ev, BUTTON_SK2));
 					updateCursor(true);
+					allowedToSpeakUpdate = false;
 				}
 				break;
 			case CH_DETAILS_MODE:
@@ -705,10 +771,10 @@ static void handleEvent(uiEvent_t *ev)
 			case CH_DETAILS_DMR_CC:
 				if (tmpChannel.chMode == RADIO_MODE_DIGITAL)
 				{
-					if (tmpChannel.rxColor < 15)
+					if (tmpChannel.txColor < 15)
 					{
-						tmpChannel.rxColor++;
-						trxSetDMRColourCode(tmpChannel.rxColor);
+						tmpChannel.txColor++;
+						trxSetDMRColourCode(tmpChannel.txColor);
 					}
 				}
 				break;
@@ -723,12 +789,16 @@ static void handleEvent(uiEvent_t *ev)
 				{
 					cssIncrementFromEvent(ev, &tmpChannel.rxTone, &RxCSSIndex, &RxCSSType);
 					trxSetRxCSS(tmpChannel.rxTone);
+					SpeakCSSCode(tmpChannel.rxTone, RxCSSType, (tmpChannel.rxTone & CODEPLUG_DCS_INVERTED_MASK));
+					allowedToSpeakUpdate = false;
 				}
 				break;
 			case CH_DETAILS_TXCTCSS:
 				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 				{
 					cssIncrementFromEvent(ev, &tmpChannel.txTone, &TxCSSIndex, &TxCSSType);
+					SpeakCSSCode(tmpChannel.txTone, TxCSSType, (tmpChannel.txTone & CODEPLUG_DCS_INVERTED_MASK));
+					allowedToSpeakUpdate = false;
 				}
 				break;
 			case CH_DETAILS_BANDWIDTH:
@@ -738,13 +808,13 @@ static void handleEvent(uiEvent_t *ev)
 				}
 				break;
 			case CH_DETAILS_FREQ_STEP:
-				tmpVal = (tmpChannel.VFOflag5>>4) + 1;
+				tmpVal = (tmpChannel.VFOflag5 >> 4) + 1;
 				if (tmpVal > 7)
 				{
 					tmpVal = 7;
 				}
 				tmpChannel.VFOflag5 &= 0x0F;
-				tmpChannel.VFOflag5 |= tmpVal<<4;
+				tmpChannel.VFOflag5 |= tmpVal << 4;
 				break;
 			case CH_DETAILS_TOT:
 				if (tmpChannel.tot < 255)
@@ -757,7 +827,7 @@ static void handleEvent(uiEvent_t *ev)
 				break;
 			case CH_DETAILS_ALL_SKIP:
 				tmpChannel.flag4 |= 0x10;// set Channel All Skip bit (was Lone Worker)
-				break;				
+				break;
 			case CH_DETAILS_RXGROUP:
 				if (tmpChannel.chMode == RADIO_MODE_DIGITAL)
 				{
@@ -778,9 +848,9 @@ static void handleEvent(uiEvent_t *ev)
 				tmpChannel.flag4 |= 0x40;
 				break;
 		}
-		updateScreen(false);
+		updateScreen(false, allowedToSpeakUpdate);
 	}
-	else if (KEYCHECK_PRESS(ev->keys,KEY_LEFT))
+	else if (KEYCHECK_PRESS(ev->keys, KEY_LEFT))
 	{
 		switch(gMenusCurrentItemIndex)
 		{
@@ -789,6 +859,7 @@ static void handleEvent(uiEvent_t *ev)
 				{
 					moveCursorLeftInString(channelName, &namePos, BUTTONCHECK_DOWN(ev, BUTTON_SK2));
 					updateCursor(true);
+					allowedToSpeakUpdate = false;
 				}
 				break;
 			case CH_DETAILS_MODE:
@@ -801,10 +872,10 @@ static void handleEvent(uiEvent_t *ev)
 			case CH_DETAILS_DMR_CC:
 				if (tmpChannel.chMode == RADIO_MODE_DIGITAL)
 				{
-					if (tmpChannel.rxColor > 0)
+					if (tmpChannel.txColor > 0)
 					{
-						tmpChannel.rxColor--;
-						trxSetDMRColourCode(tmpChannel.rxColor);
+						tmpChannel.txColor--;
+						trxSetDMRColourCode(tmpChannel.txColor);
 					}
 				}
 				break;
@@ -819,12 +890,16 @@ static void handleEvent(uiEvent_t *ev)
 				{
 					cssDecrementFromEvent(ev, &tmpChannel.rxTone, &RxCSSIndex, &RxCSSType);
 					trxSetRxCSS(tmpChannel.rxTone);
+					SpeakCSSCode(tmpChannel.rxTone, RxCSSType, (tmpChannel.rxTone & CODEPLUG_DCS_INVERTED_MASK));
+					allowedToSpeakUpdate = false;
 				}
 				break;
 			case CH_DETAILS_TXCTCSS:
 				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 				{
 					cssDecrementFromEvent(ev, &tmpChannel.txTone, &TxCSSIndex, &TxCSSType);
+					SpeakCSSCode(tmpChannel.txTone, TxCSSType, (tmpChannel.txTone & CODEPLUG_DCS_INVERTED_MASK));
+					allowedToSpeakUpdate = false;
 				}
 				break;
 			case CH_DETAILS_BANDWIDTH:
@@ -834,13 +909,13 @@ static void handleEvent(uiEvent_t *ev)
 				}
 				break;
 			case CH_DETAILS_FREQ_STEP:
-				tmpVal = (tmpChannel.VFOflag5>>4) - 1;
+				tmpVal = (tmpChannel.VFOflag5 >> 4) - 1;
 				if (tmpVal < 0)
 				{
 					tmpVal = 0;
 				}
 				tmpChannel.VFOflag5 &= 0x0F;
-				tmpChannel.VFOflag5 |= tmpVal<<4;
+				tmpChannel.VFOflag5 |= tmpVal << 4;
 				break;
 			case CH_DETAILS_TOT:
 				if (tmpChannel.tot > 0)
@@ -853,7 +928,7 @@ static void handleEvent(uiEvent_t *ev)
 				break;
 			case CH_DETAILS_ALL_SKIP:
 				tmpChannel.flag4 &= ~0x10;// clear Channel All Skip Bit (was Lone Worker bit)
-				break;				
+				break;
 			case CH_DETAILS_RXGROUP:
 				if (tmpChannel.chMode == RADIO_MODE_DIGITAL)
 				{
@@ -875,9 +950,9 @@ static void handleEvent(uiEvent_t *ev)
 				break;
 
 		}
-		updateScreen(false);
+		updateScreen(false, allowedToSpeakUpdate);
 	}
-	else if (KEYCHECK_SHORTUP(ev->keys,KEY_GREEN))
+	else if (KEYCHECK_SHORTUP(ev->keys, KEY_GREEN))
 	{
 		if (settingsCurrentChannelNumber != -1)
 		{
@@ -888,36 +963,41 @@ static void handleEvent(uiEvent_t *ev)
 		// settingsCurrentChannelNumber is -1 when in VFO mode
 		// But the VFO is stored in the nonVolatile settings, and not saved back to the codeplug
 		// Also don't store this back to the codeplug unless the Function key (Blue / SK2 ) is pressed at the same time.
-		if (settingsCurrentChannelNumber != -1 && BUTTONCHECK_DOWN(ev, BUTTON_SK2))
+		if ((settingsCurrentChannelNumber != -1) && BUTTONCHECK_DOWN(ev, BUTTON_SK2))
 		{
 			codeplugChannelSaveDataForIndex(settingsCurrentChannelNumber, currentChannelData);
 		}
-		SETTINGS_PLATFORM_SPECIFIC_SAVE_SETTINGS(true);// For Baofeng RD-5R
+
+		settingsSetVFODirty();
+		settingsSaveIfNeeded(true);
+
 		menuSystemPopAllAndDisplayRootMenu();
 		return;
 	}
-	else if (KEYCHECK_SHORTUP(ev->keys,KEY_RED))
+	else if (KEYCHECK_SHORTUP(ev->keys, KEY_RED))
 	{
 		menuSystemPopPreviousMenu();
 		return;
 	}
-	else if (gMenusCurrentItemIndex == CH_DETAILS_NAME && settingsCurrentChannelNumber != -1)
+	else if ((gMenusCurrentItemIndex == CH_DETAILS_NAME) && (settingsCurrentChannelNumber != -1))
 	{
-		if (ev->keys.event == KEY_MOD_PREVIEW && namePos < 16)
+		if ((ev->keys.event == KEY_MOD_PREVIEW) && (namePos < 16))
 		{
 			channelName[namePos] = ev->keys.key;
 			updateCursor(true);
-			updateScreen(false);
+			SpeakChar(ev->keys.key);
+			updateScreen(false, false);
 		}
-		if (ev->keys.event == KEY_MOD_PRESS && namePos < 16)
+		if ((ev->keys.event == KEY_MOD_PRESS) && (namePos < 16))
 		{
 			channelName[namePos] = ev->keys.key;
-			if (namePos < strlen(channelName) && namePos < 15)
+			if ((namePos < strlen(channelName)) && (namePos < 15))
 			{
 				namePos++;
 			}
 			updateCursor(true);
-			updateScreen(false);
+			SpeakChar(ev->keys.key);
+			updateScreen(false, false);
 		}
 	}
 }

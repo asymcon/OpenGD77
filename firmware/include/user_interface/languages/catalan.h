@@ -20,7 +20,7 @@
  * Translators: EA3IGM, EA5SW, EB3AM, EA3BIL
  *
  *
- * Rev: 5
+ * Rev: 6
  */
 #ifndef USER_INTERFACE_LANGUAGES_CATALAN_H_
 #define USER_INTERFACE_LANGUAGES_CATALAN_H_
@@ -56,7 +56,7 @@ const stringsTable_t catalanLanguage=
 .zones					= "Zones",
 .keypad					= "Teclat",
 .ptt					= "PTT",
-.locked					= "blocat",
+.locked					= "Blocat",
 .press_blue_plus_star	= "Prem Blau + (*)",
 .to_unlock				= "per desblocar",
 .unlocked				= "Desblocat",
@@ -102,15 +102,15 @@ const stringsTable_t catalanLanguage=
 .all_skip				= "Saltar tot",
 .yes					= "Sí",
 .no						= "No",
-.rx_group				= "Llista TG/ID",
+.rx_group				= "RX Grup",
 .on						= "Sí",
 .timeout_beep			= "Avís T.O.T.",
 .factory_reset			= "Reinici fabr.",
 .calibration			= "Calibració",
 .band_limits			= "Límit bandes",
 .beep_volume			= "Volum tons",
-.dmr_mic_gain			= "Mic DMR",
-.fm_mic_gain				= "FM mic", // MaxLen: 16 (with ':' + 0..31)
+.dmr_mic_gain			= "DMR mic",
+.fm_mic_gain			= "FM mic", // MaxLen: 16 (with ':' + 0..31)
 .key_long				= "Prem llarg",
 .key_repeat				= "Prem rpt",
 .dmr_filter_timeout		= "Filtre temps",
@@ -121,8 +121,8 @@ const stringsTable_t catalanLanguage=
 .colour_normal			= "Normal",
 .backlight_timeout		= "Temps llum",
 .scan_delay				= "Temps Scan",
-.yes___in_uppercase					= "Sí",
-.no___in_uppercase						= "No",
+.yes___in_uppercase		= "Sí",
+.no___in_uppercase		= "No",
 .DISMISS				= "PASSAR",
 .scan_mode				= "Mode Scan",
 .hold					= "Parar",
@@ -153,13 +153,13 @@ const stringsTable_t catalanLanguage=
 .both					= "Tots", // MaxLen 16 (with ':' + .dmr_beep)
 .tone					= "RX CSS",
 .display				= "Display",
-.vox_threshold                          = "VOX Thres.", // MaxLen 16 (with ':' + .off or 1..30)
-.vox_tail                               = "VOX Tail", // MaxLen 16 (with ':' + .n_a or '0.0s')
-.audio_prompt				= "Prompt",// Maxlen 16 (with ':' + .silent, .normal, .beep or .voice_prompt_level_1)
-.silent                                 = "Silent", // Maxlen 16 (with : + audio_prompt)
-.normal                                 = "Normal", // Maxlen 16 (with : + audio_prompt)
+.vox_threshold			= "VOX Nivell", // MaxLen 16 (with ':' + .off or 1..30)
+.vox_tail				= "VOX Cua", // MaxLen 16 (with ':' + .n_a or '0.0s')
+.audio_prompt			= "Prompt",// Maxlen 16 (with ':' + .silent, .normal, .beep or .voice_prompt_level_1)
+.silent					= "Silenci", // Maxlen 16 (with : + audio_prompt)
+.normal					= "Normal", // Maxlen 16 (with : + audio_prompt)
 .beep					= "Beep", // Maxlen 16 (with : + audio_prompt)
-.voice_prompt_level_1	= "Voice L1", // Maxlen 16 (with : + audio_prompt)
+.voice_prompt_level_1	= "Veu L1", // Maxlen 16 (with : + audio_prompt)
 .transmitTalkerAlias	= "TA Tx", // Maxlen 16 (with : + .on or .off)
 .squelch_VHF			= "VHF Squelch",// Maxlen 16 (with : + XX%)
 .squelch_220			= "220 Squelch",// Maxlen 16 (with : + XX%)
@@ -170,8 +170,11 @@ const stringsTable_t catalanLanguage=
 .openDM1801 			= "OpenDM1801",// Do not translate
 .openRD5R 				= "OpenRD5R",// Do not translate
 .gitCommit				= "Git commit",
-.voice_prompt_level_2	= "Voice L2", // Maxlen 16 (with : + audio_prompt)
-.voice_prompt_level_3	= "Voice L3" // Maxlen 16 (with : + audio_prompt)
+.voice_prompt_level_2	= "Veu L2", // Maxlen 16 (with : + audio_prompt)
+.voice_prompt_level_3	= "Veu L3", // Maxlen 16 (with : + audio_prompt)
+.dmr_filter				= "DMR Filter",// MaxLen: 12 (with ':' + settings: "TG" or "Ct" or "RxG")
+.dmr_cc_filter			= "CC Filter", // MaxLen: 12 (with ':' + settings: .on or .off)
+.dmr_ts_filter			= "TS Filter" // MaxLen: 12 (with ':' + settings: .on or .off)
 };
 /********************************************************************
  *

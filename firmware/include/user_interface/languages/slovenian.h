@@ -22,8 +22,8 @@
  *
  * Rev: 1.1
  */
-#ifndef USER_INTERFACE_LANGUAGES_TURKISH_H_
-#define USER_INTERFACE_LANGUAGES_TURKISH_H_
+#ifndef USER_INTERFACE_LANGUAGES_SLOVENIAN_H_
+#define USER_INTERFACE_LANGUAGES_SLOVENIAN_H_
 /********************************************************************
  *
  * VERY IMPORTANT.
@@ -32,9 +32,9 @@
  * or emacs on Linux with windows-1252-unix encoding
  *
  ********************************************************************/
-const stringsTable_t turkishLanguage =
+const stringsTable_t slovenianLanguage =
 {
-.LANGUAGE_NAME 			= "Turkish", // MaxLen: 16
+.LANGUAGE_NAME 			= "Slovenian", // MaxLen: 16
 .menu					= "Menü", // MaxLen: 16
 .credits				= "Yap“mc“lar", // MaxLen: 16
 .zone					= "Bölge", // MaxLen: 16
@@ -184,4 +184,4 @@ const stringsTable_t turkishLanguage =
  * or emacs on Linux with windows-1252-unix encoding
  *
  ********************************************************************/
-#endif /* USER_INTERFACE_LANGUAGES_TURKISH_H_ */
+#endif /* USER_INTERFACE_LANGUAGES_SLOVENIAN_H_ */

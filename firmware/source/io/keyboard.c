@@ -116,6 +116,22 @@ void keyboardReset(void)
 	keyState = KEY_WAIT_RELEASED;
 }
 
+bool keyboardKeyIsDTMFKey(char key)
+{
+	switch (key)
+	{
+		case KEY_0 ... KEY_9:
+		case KEY_STAR:
+		case KEY_HASH:
+		case KEY_LEFT:  // A
+		case KEY_UP:    // B
+		case KEY_DOWN:  // C
+		case KEY_RIGHT: // D
+			return true;
+	}
+	return false;
+}
+
 static inline uint8_t keyboardReadCol(void)
 {
 #if defined(PLATFORM_GD77S)
@@ -130,14 +146,14 @@ uint32_t keyboardRead(void)
 	uint32_t result = 0;
 
 #if ! defined(PLATFORM_GD77S)
-	for (int col=3; col>=0; col--)
+	for (int col = 3; col >= 0; col--)
 	{
 		GPIO_PinInit(GPIOC, col, &pin_config_output);
 		GPIO_PinWrite(GPIOC, col, 0);
 		for (volatile int i = 0; i < 100; i++)
 			; // small delay to allow voltages to settle. The delay value of 100 is arbitrary.
 
-		result=(result<<5) | keyboardReadCol();
+		result = (result << 5) | keyboardReadCol();
 
 		GPIO_PinWrite(GPIOC, col, 1);
 		GPIO_PinInit(GPIOC, col, &pin_config_input);
@@ -256,12 +272,15 @@ void keyboardCheckKeyEvent(keyboardCode_t *keys, int *event)
 		if (keypadAlphaEnable == true)
 		{
 			newAlphaKey = 0;
-			if (keycode >= '0' && keycode <= '9')
+			if ((keycode >= '0') && (keycode <= '9'))
 			{
-				newAlphaKey = keycode - '0'+1;
-			} else if (keycode == KEY_STAR) {
+				newAlphaKey = (keycode - '0') + 1;
+			}
+			else if (keycode == KEY_STAR)
+			{
 				newAlphaKey = 11;
 			}
+
 			if (keypadAlphaKey == 0)
 			{
 				if (newAlphaKey != 0)
@@ -281,6 +300,7 @@ void keyboardCheckKeyEvent(keyboardCode_t *keys, int *event)
 					}
 				}
 			}
+
 			if (keypadAlphaKey != 0)
 			{
 				if (newAlphaKey == keypadAlphaKey)
@@ -311,13 +331,13 @@ void keyboardCheckKeyEvent(keyboardCode_t *keys, int *event)
 		else
 		{
 			taskENTER_CRITICAL();
-			tmp_timer_keypad=timer_keypad;
+			tmp_timer_keypad = timer_keypad;
 			taskEXIT_CRITICAL();
 
 			if (tmp_timer_keypad == 0)
 			{
 				taskENTER_CRITICAL();
-				timer_keypad=keypadTimerRepeat;
+				timer_keypad = keypadTimerRepeat;
 				taskEXIT_CRITICAL();
 
 				keys->key = keycode;
@@ -339,7 +359,7 @@ void keyboardCheckKeyEvent(keyboardCode_t *keys, int *event)
 		else
 		{
 			taskENTER_CRITICAL();
-			tmp_timer_keypad=timer_keypad;
+			tmp_timer_keypad = timer_keypad;
 			taskEXIT_CRITICAL();
 
 			keys->key = keycode;
@@ -349,13 +369,13 @@ void keyboardCheckKeyEvent(keyboardCode_t *keys, int *event)
 			if (tmp_timer_keypad == 0)
 			{
 				taskENTER_CRITICAL();
-				timer_keypad=keypadTimerRepeat;
+				timer_keypad = keypadTimerRepeat;
 				taskEXIT_CRITICAL();
 
-				if (keys->key == KEY_LEFT || keys->key == KEY_RIGHT
-						|| keys->key == KEY_UP || keys->key == KEY_DOWN)
+				if ((keys->key == KEY_LEFT) || (keys->key == KEY_RIGHT)
+						|| (keys->key == KEY_UP) || (keys->key == KEY_DOWN))
 				{
-					keys->event = KEY_MOD_LONG | KEY_MOD_PRESS;
+					keys->event = (KEY_MOD_LONG | KEY_MOD_PRESS);
 				}
 			}
 		}

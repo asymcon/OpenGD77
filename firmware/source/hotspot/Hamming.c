@@ -21,7 +21,7 @@
 #include <hotspot/Hamming.h>
 
  // Hamming (15,11,3) check a boolean data array
-bool Hamming_decode15113_1(bool* d)
+bool Hamming_decode15113_1(bool *d)
 {
 	// Calculate the parity it should have
 	bool c0 = d[0] ^ d[1] ^ d[2] ^ d[3] ^ d[4] ^ d[5] ^ d[6];
@@ -61,7 +61,7 @@ bool Hamming_decode15113_1(bool* d)
 	}
 }
 
-void Hamming_encode15113_1(bool* d)
+void Hamming_encode15113_1(bool *d)
 {
 	// Calculate the checksum this row should have
 	d[11] = d[0] ^ d[1] ^ d[2] ^ d[3] ^ d[4] ^ d[5] ^ d[6];
@@ -71,7 +71,7 @@ void Hamming_encode15113_1(bool* d)
 }
 
 // Hamming (15,11,3) check a boolean data array
-bool Hamming_decode15113_2(bool* d)
+bool Hamming_decode15113_2(bool *d)
 {
 	// Calculate the checksum this row should have
 	bool c0 = d[0] ^ d[1] ^ d[2] ^ d[3] ^ d[5] ^ d[7] ^ d[8];
@@ -85,7 +85,8 @@ bool Hamming_decode15113_2(bool* d)
 	n |= (c2 != d[13]) ? 0x04U : 0x00U;
 	n |= (c3 != d[14]) ? 0x08U : 0x00U;
 
-	switch (n) {
+	switch (n)
+	{
 		// Parity bit errors
 		case 0x01U: d[11] = !d[11]; return true;
 		case 0x02U: d[12] = !d[12]; return true;
@@ -110,7 +111,7 @@ bool Hamming_decode15113_2(bool* d)
 	}
 }
 
-void Hamming_encode15113_2(bool* d)
+void Hamming_encode15113_2(bool *d)
 {
 	// Calculate the checksum this row should have
 	d[11] = d[0] ^ d[1] ^ d[2] ^ d[3] ^ d[5] ^ d[7] ^ d[8];
@@ -120,7 +121,7 @@ void Hamming_encode15113_2(bool* d)
 }
 
 // Hamming (13,9,3) check a boolean data array
-bool Hamming_decode1393(bool* d)
+bool Hamming_decode1393(bool *d)
 {
 	// Calculate the checksum this column should have
 	bool c0 = d[0] ^ d[1] ^ d[3] ^ d[5] ^ d[6];
@@ -134,7 +135,8 @@ bool Hamming_decode1393(bool* d)
 	n |= (c2 != d[11]) ? 0x04U : 0x00U;
 	n |= (c3 != d[12]) ? 0x08U : 0x00U;
 
-	switch (n) {
+	switch (n)
+	{
 		// Parity bit errors
 		case 0x01U: d[9]  = !d[9];  return true;
 		case 0x02U: d[10] = !d[10]; return true;
@@ -157,7 +159,7 @@ bool Hamming_decode1393(bool* d)
 	}
 }
 
-void Hamming_encode1393(bool* d)
+void Hamming_encode1393(bool *d)
 {
 	// Calculate the checksum this column should have
 	d[9]  = d[0] ^ d[1] ^ d[3] ^ d[5] ^ d[6];
@@ -167,7 +169,7 @@ void Hamming_encode1393(bool* d)
 }
 
 // Hamming (10,6,3) check a boolean data array
-bool Hamming_decode1063(bool* d)
+bool Hamming_decode1063(bool *d)
 {
 	// Calculate the checksum this column should have
 	bool c0 = d[0] ^ d[1] ^ d[2] ^ d[5];
@@ -181,7 +183,8 @@ bool Hamming_decode1063(bool* d)
 	n |= (c2 != d[8]) ? 0x04U : 0x00U;
 	n |= (c3 != d[9]) ? 0x08U : 0x00U;
 
-	switch (n) {
+	switch (n)
+	{
 		// Parity bit errors
 		case 0x01U: d[6] = !d[6]; return true;
 		case 0x02U: d[7] = !d[7]; return true;
@@ -201,7 +204,7 @@ bool Hamming_decode1063(bool* d)
 	}
 }
 
-void Hamming_encode1063(bool* d)
+void Hamming_encode1063(bool *d)
 {
 	// Calculate the checksum this column should have
 	d[6] = d[0] ^ d[1] ^ d[2] ^ d[5];
@@ -211,7 +214,7 @@ void Hamming_encode1063(bool* d)
 }
 
 // A Hamming (16,11,4) Check
-bool Hamming_decode16114(bool* d)
+bool Hamming_decode16114(bool *d)
 {
 	// Calculate the checksum this column should have
 	bool c0 = d[0] ^ d[1] ^ d[2] ^ d[3] ^ d[5] ^ d[7] ^ d[8];
@@ -228,7 +231,8 @@ bool Hamming_decode16114(bool* d)
 	n |= (c3 != d[14]) ? 0x08U : 0x00U;
 	n |= (c4 != d[15]) ? 0x10U : 0x00U;
 
-	switch (n) {
+	switch (n)
+	{
 		// Parity bit errors
 		case 0x01U: d[11] = !d[11]; return true;
 		case 0x02U: d[12] = !d[12]; return true;
@@ -257,7 +261,7 @@ bool Hamming_decode16114(bool* d)
 	}
 }
 
-void Hamming_encode16114(bool* d)
+void Hamming_encode16114(bool *d)
 {
 	d[11] = d[0] ^ d[1] ^ d[2] ^ d[3] ^ d[5] ^ d[7] ^ d[8];
 	d[12] = d[1] ^ d[2] ^ d[3] ^ d[4] ^ d[6] ^ d[8] ^ d[9];
@@ -267,7 +271,7 @@ void Hamming_encode16114(bool* d)
 }
 
 // A Hamming (17,12,3) Check
-bool Hamming_decode17123(bool* d)
+bool Hamming_decode17123(bool *d)
 {
 	// Calculate the checksum this column should have
 	bool c0 = d[0] ^ d[1] ^ d[2] ^ d[3] ^ d[6] ^ d[7] ^ d[9];
@@ -284,7 +288,8 @@ bool Hamming_decode17123(bool* d)
 	n |= (c3 != d[15]) ? 0x08U : 0x00U;
 	n |= (c4 != d[16]) ? 0x10U : 0x00U;
 
-	switch (n) {
+	switch (n)
+	{
 		// Parity bit errors
 		case 0x01U: d[12] = !d[12]; return true;
 		case 0x02U: d[13] = !d[13]; return true;
@@ -314,7 +319,7 @@ bool Hamming_decode17123(bool* d)
 	}
 }
 
-void Hamming_encode17123(bool* d)
+void Hamming_encode17123(bool *d)
 {
 	d[12] = d[0] ^ d[1] ^ d[2] ^ d[3] ^ d[6] ^ d[7] ^ d[9];
 	d[13] = d[0] ^ d[1] ^ d[2] ^ d[3] ^ d[4] ^ d[7] ^ d[8] ^ d[10];

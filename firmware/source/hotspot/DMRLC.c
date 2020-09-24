@@ -22,24 +22,24 @@
 #include <hotspot/dmrUtils.h>
 #include <hotspot/DMRLC.h>
 
-void DMRLC3(int flco, unsigned int srcId, unsigned int dstId,DMRLC_T *lc)
+void DMRLC3(int flco, unsigned int srcId, unsigned int dstId, DMRLC_T *lc)
 {
 	lc->PF = false;
 	lc->R = false;
 	lc->FLCO = flco;
 	lc->FID = 0U;
-	lc->options =0U;
+	lc->options = 0U;
 	lc->srcId = srcId;
 	lc->dstId = dstId;
 }
 
-void DMRLCfromBytes(const unsigned char* bytes,DMRLC_T *lc)
+void DMRLCfromBytes(const unsigned char *bytes, DMRLC_T *lc)
 {
 	lc->PF = false;
 	lc->R = false;
 	lc->FLCO = FLCO_GROUP;
 	lc->FID = 0U;
-	lc->options =0U;
+	lc->options = 0U;
 	lc->srcId = 0;
 	lc->dstId = 0;
 
@@ -56,15 +56,15 @@ void DMRLCfromBytes(const unsigned char* bytes,DMRLC_T *lc)
 	lc->srcId = (((uint32_t)bytes[6U]) << 16) + (((uint32_t)bytes[7U]) << 8) + ((uint32_t)bytes[8U]);
 }
 
-void DMRLCfromBits(const bool* bits,DMRLC_T *lc)
+void DMRLCfromBits(const bool *bits, DMRLC_T *lc)
 {
-	lc->PF= false;
+	lc->PF = false;
 	lc->R = false;
 	lc->FLCO = FLCO_GROUP;
 	lc->FID = 0U;
 	lc->options = 0U;
-	lc->srcId =0U;
-	lc->dstId =0U;
+	lc->srcId = 0U;
+	lc->dstId = 0U;
 
 	lc->PF = bits[0U];
 	lc->R  = bits[1U];
@@ -73,7 +73,7 @@ void DMRLCfromBits(const bool* bits,DMRLC_T *lc)
 	dmrUtils_bitsToByteBE(bits + 0U, &temp1);
 	lc->FLCO = temp1 & 0x3FU;
 
-	dmrUtils_bitsToByteBE(bits + 8U,& temp2);
+	dmrUtils_bitsToByteBE(bits + 8U, &temp2);
 	lc->FID = temp2;
 
 	dmrUtils_bitsToByteBE(bits + 16U, &temp3);
@@ -95,18 +95,17 @@ void DMRLCfromBits(const bool* bits,DMRLC_T *lc)
 
 void DMRLC0(DMRLC_T *lc)
 {
-	lc->PF =false;
+	lc->PF = false;
 	lc->R = false;
-	lc->FLCO =FLCO_GROUP;
-	lc->FID =0U;
-	lc->options =0U;
+	lc->FLCO = FLCO_GROUP;
+	lc->FID = 0U;
+	lc->options = 0U;
 	lc->srcId = 0U;
 	lc->dstId = 0U;
 }
 
 
-
-void DMRLC_getDataFromBytes(unsigned char* bytes,const DMRLC_T *lc)
+void DMRLC_getDataFromBytes(unsigned char *bytes, const DMRLC_T *lc)
 {
 	bytes[0U] = (unsigned char)lc->FLCO;
 
@@ -132,7 +131,7 @@ void DMRLC_getDataFromBytes(unsigned char* bytes,const DMRLC_T *lc)
 	bytes[8U] = (lc->srcId  & 0xFF);
 }
 
-void DMRLC_getDataFromBits(bool* bits,const DMRLC_T *lc)
+void DMRLC_getDataFromBits(bool *bits, const DMRLC_T *lc)
 {
 	unsigned char bytes[9U];
 	DMRLC_getDataFromBytes(bytes,lc);
@@ -147,5 +146,3 @@ void DMRLC_getDataFromBits(bool* bits,const DMRLC_T *lc)
 	dmrUtils_byteToBitsBE(bytes[7U], bits + 56U);
 	dmrUtils_byteToBitsBE(bytes[8U], bits + 64U);
 }
-
-

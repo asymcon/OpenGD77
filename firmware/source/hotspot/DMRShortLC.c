@@ -27,20 +27,20 @@
 
 
 
-static void DMRShortLC_decodeExtractBinary(const unsigned char* in);
+static void DMRShortLC_decodeExtractBinary(const unsigned char *in);
 static bool DMRShortLC_decodeErrorCheck(void);
 static void DMRShortLC_decodeDeInterleave(void);
-static void DMRShortLC_decodeExtractData(unsigned char* data);
-static void DMRShortLC_encodeExtractData(const unsigned char* in);
+static void DMRShortLC_decodeExtractData(unsigned char *data);
+static void DMRShortLC_encodeExtractData(const unsigned char *in);
 static void DMRShortLC_encodeInterleave(void);
 static void DMRShortLC_encodeErrorCheck(void);
-static void DMRShortLC_encodeExtractBinary(unsigned char* data);
+static void DMRShortLC_encodeExtractBinary(unsigned char *data);
 
 static bool DMRShortLC_rawData[196];
 static bool DMRShortLC_deInterData[196];
 
 // The main decode function
-bool DMRShortLC_decode(const unsigned char* in, unsigned char* out)
+bool DMRShortLC_decode(const unsigned char *in, unsigned char *out)
 {
 	//  Get the raw binary
 	DMRShortLC_decodeExtractBinary(in);
@@ -60,7 +60,7 @@ bool DMRShortLC_decode(const unsigned char* in, unsigned char* out)
 }
 
 // The main encode function
-void DMRShortLC_encode(const unsigned char* in, unsigned char* out)
+void DMRShortLC_encode(const unsigned char *in, unsigned char *out)
 {
 	// Extract Data
 	DMRShortLC_encodeExtractData(in);
@@ -75,10 +75,8 @@ void DMRShortLC_encode(const unsigned char* in, unsigned char* out)
 	DMRShortLC_encodeExtractBinary(out);
 }
 
-static void DMRShortLC_decodeExtractBinary(const unsigned char* in)
+static void DMRShortLC_decodeExtractBinary(const unsigned char *in)
 {
-
-
 	dmrUtils_byteToBitsBE(in[0U], DMRShortLC_rawData + 0U);
 	dmrUtils_byteToBitsBE(in[1U], DMRShortLC_rawData + 8U);
 	dmrUtils_byteToBitsBE(in[2U], DMRShortLC_rawData + 16U);
@@ -96,7 +94,8 @@ static void DMRShortLC_decodeDeInterleave(void)
 	for (unsigned int i = 0U; i < 68U; i++)
 		DMRShortLC_deInterData[i] = false;
 
-	for (unsigned int a = 0U; a < 67U; a++)	{
+	for (unsigned int a = 0U; a < 67U; a++)
+	{
 		// Calculate the interleave sequence
 		unsigned int interleaveSequence = (a * 4U) % 67U;
 		// Shuffle the data
@@ -115,7 +114,8 @@ static bool DMRShortLC_decodeErrorCheck(void)
 	Hamming_decode17123(DMRShortLC_deInterData + 34U);
 
 	// Run through each of the 17 columns
-	for (unsigned int c = 0U; c < 17U; c++) {
+	for (unsigned int c = 0U; c < 17U; c++)
+	{
 		bool bit = DMRShortLC_deInterData[c + 0U] ^ DMRShortLC_deInterData[c + 17U] ^ DMRShortLC_deInterData[c + 34U];
 		if (bit != DMRShortLC_deInterData[c + 51U])
 			return false;
@@ -125,10 +125,8 @@ static bool DMRShortLC_decodeErrorCheck(void)
 }
 
 // Extract the 36 bits of payload
-static void DMRShortLC_decodeExtractData(unsigned char* data)
+static void DMRShortLC_decodeExtractData(unsigned char *data)
 {
-
-
 	bool bData[40U];
 
 	for (unsigned int i = 0U; i < 40U; i++)
@@ -152,9 +150,8 @@ static void DMRShortLC_decodeExtractData(unsigned char* data)
 }
 
 // Extract the 36 bits of payload
-static void DMRShortLC_encodeExtractData(const unsigned char* in)
+static void DMRShortLC_encodeExtractData(const unsigned char *in)
 {
-
 	bool bData[40U];
 	dmrUtils_byteToBitsBE(in[0U], bData + 0U);
 	dmrUtils_byteToBitsBE(in[1U], bData + 8U);
@@ -195,7 +192,8 @@ static void DMRShortLC_encodeInterleave(void)
 	for (unsigned int i = 0U; i < 72U; i++)
 		DMRShortLC_rawData[i] = false;
 
-	for (unsigned int a = 0U; a < 67U; a++)	{
+	for (unsigned int a = 0U; a < 67U; a++)
+	{
 		// Calculate the interleave sequence
 		unsigned int interleaveSequence = (a * 4U) % 67U;
 		// Unshuffle the data

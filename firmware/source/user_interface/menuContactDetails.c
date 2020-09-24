@@ -37,19 +37,19 @@ static char contactName[20];
 static int namePos;
 
 enum CONTACT_DETAILS_DISPLAY_LIST { CONTACT_DETAILS_NAME=0, CONTACT_DETAILS_TG, CONTACT_DETAILS_CALLTYPE, CONTACT_DETAILS_TS,
-	NUM_CONTACT_DETAILS_ITEMS};// The last item in the list is used so that we automatically get a total number of items in the list
+	NUM_CONTACT_DETAILS_ITEMS };// The last item in the list is used so that we automatically get a total number of items in the list
 
 static int menuContactDetailsState;
 static int menuContactDetailsTimeout;
-enum MENU_CONTACT_DETAILS_STATE {MENU_CONTACT_DETAILS_DISPLAY=0, MENU_CONTACT_DETAILS_SAVED, MENU_CONTACT_DETAILS_EXISTS};
+enum MENU_CONTACT_DETAILS_STATE { MENU_CONTACT_DETAILS_DISPLAY = 0, MENU_CONTACT_DETAILS_SAVED, MENU_CONTACT_DETAILS_EXISTS };
 
 menuStatus_t menuContactDetails(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
-		callTypeString[0]= currentLanguage->group;
-		callTypeString[1]= currentLanguage->private;
-		callTypeString[2]= currentLanguage->all;
+		callTypeString[0] = currentLanguage->group;
+		callTypeString[1] = currentLanguage->private;
+		callTypeString[2] = currentLanguage->all;
 
 		if (contactListContactIndex == 0)
 		{
@@ -93,13 +93,14 @@ menuStatus_t menuContactDetails(uiEvent_t *ev, bool isFirstRun)
 
 static void updateCursor(bool moved)
 {
-	switch (gMenusCurrentItemIndex) {
-	case CONTACT_DETAILS_NAME:
-		menuUpdateCursor(namePos, moved, true);
-		break;
-	case CONTACT_DETAILS_TG:
-		menuUpdateCursor(strlen(digits)+3, moved, true);
-		break;
+	switch (gMenusCurrentItemIndex)
+	{
+		case CONTACT_DETAILS_NAME:
+			menuUpdateCursor(namePos, moved, true);
+			break;
+		case CONTACT_DETAILS_TG:
+			menuUpdateCursor(strlen(digits)+3, moved, true);
+			break;
 	}
 }
 
@@ -130,66 +131,67 @@ static void updateScreen(void)
 		keypadAlphaEnable = false;
 	}
 
-	switch (menuContactDetailsState) {
-	case MENU_CONTACT_DETAILS_DISPLAY:
-		// Can only display 3 of the options at a time menu at -1, 0 and +1
-		for(int i = -1; i <= 1; i++)
-		{
-			mNum = menuGetMenuOffset(NUM_CONTACT_DETAILS_ITEMS, i);
-			buf[0] = 0;
-
-			switch (mNum)
+	switch (menuContactDetailsState)
+	{
+		case MENU_CONTACT_DETAILS_DISPLAY:
+			// Can only display 3 of the options at a time menu at -1, 0 and +1
+			for(int i = -1; i <= 1; i++)
 			{
-			case CONTACT_DETAILS_NAME:
-				strncpy(buf,contactName,16);
-				break;
-			case CONTACT_DETAILS_TG:
-				switch (tmpContact.callType)
-				{
-				case CONTACT_CALLTYPE_TG:
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->tg, digits);
-					break;
-				case CONTACT_CALLTYPE_PC: // Private
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->pc, digits);
-					break;
-				case CONTACT_CALLTYPE_ALL: // All Call
-					snprintf(buf, bufferLen, "%s:16777215", currentLanguage->all);
-					break;
-				}
-				break;
-			case CONTACT_DETAILS_CALLTYPE:
-				snprintf(buf, bufferLen, "%s:%s", currentLanguage->type, callTypeString[tmpContact.callType]);
-				break;
-			case CONTACT_DETAILS_TS:
-				switch (tmpContact.reserve1 & 0x3)
-				{
-				case 1:
-				case 3:
-					snprintf(buf, bufferLen, "%s:%s", currentLanguage->timeSlot, currentLanguage->none);
-					break;
-				case 0:
-					snprintf(buf, bufferLen, "%s:1", currentLanguage->timeSlot);
-					break;
-				case 2:
-					snprintf(buf, bufferLen, "%s:2", currentLanguage->timeSlot);
-					break;
-				}
-				break;
-			}
+				mNum = menuGetMenuOffset(NUM_CONTACT_DETAILS_ITEMS, i);
+				buf[0] = 0;
 
-			buf[bufferLen - 1] = 0;
-			menuDisplayEntry(i, mNum, buf);
-		}
-		break;
-	case MENU_CONTACT_DETAILS_SAVED:
-		ucPrintCentered(16,currentLanguage->contact_saved, FONT_SIZE_3);
-		ucDrawChoice(CHOICE_OK, false);
-		break;
-	case MENU_CONTACT_DETAILS_EXISTS:
-		ucPrintCentered(16, currentLanguage->duplicate, FONT_SIZE_3);
-		ucPrintCentered(32, currentLanguage->contact, FONT_SIZE_3);
-		ucDrawChoice(CHOICE_OK, false);
-		break;
+				switch (mNum)
+				{
+					case CONTACT_DETAILS_NAME:
+						strncpy(buf,contactName, 16);
+						break;
+					case CONTACT_DETAILS_TG:
+						switch (tmpContact.callType)
+						{
+						case CONTACT_CALLTYPE_TG:
+							snprintf(buf, bufferLen, "%s:%s", currentLanguage->tg, digits);
+							break;
+						case CONTACT_CALLTYPE_PC: // Private
+							snprintf(buf, bufferLen, "%s:%s", currentLanguage->pc, digits);
+							break;
+						case CONTACT_CALLTYPE_ALL: // All Call
+							snprintf(buf, bufferLen, "%s:16777215", currentLanguage->all);
+							break;
+						}
+						break;
+					case CONTACT_DETAILS_CALLTYPE:
+						snprintf(buf, bufferLen, "%s:%s", currentLanguage->type, callTypeString[tmpContact.callType]);
+						break;
+					case CONTACT_DETAILS_TS:
+						switch (tmpContact.reserve1 & 0x3)
+						{
+						case 1:
+						case 3:
+							snprintf(buf, bufferLen, "%s:%s", currentLanguage->timeSlot, currentLanguage->none);
+							break;
+						case 0:
+							snprintf(buf, bufferLen, "%s:1", currentLanguage->timeSlot);
+							break;
+						case 2:
+							snprintf(buf, bufferLen, "%s:2", currentLanguage->timeSlot);
+							break;
+						}
+						break;
+				}
+
+				buf[bufferLen - 1] = 0;
+				menuDisplayEntry(i, mNum, buf);
+			}
+			break;
+		case MENU_CONTACT_DETAILS_SAVED:
+			ucPrintCentered(16, currentLanguage->contact_saved, FONT_SIZE_3);
+			ucDrawChoice(CHOICE_OK, false);
+			break;
+		case MENU_CONTACT_DETAILS_EXISTS:
+			ucPrintCentered(16, currentLanguage->duplicate, FONT_SIZE_3);
+			ucPrintCentered(32, currentLanguage->contact, FONT_SIZE_3);
+			ucDrawChoice(CHOICE_OK, false);
+			break;
 	}
 	ucRender();
 	displayLightTrigger();
@@ -207,51 +209,51 @@ static void handleEvent(uiEvent_t *ev)
 		case MENU_CONTACT_DETAILS_DISPLAY:
 		if (ev->events & KEY_EVENT)
 		{
-			if (KEYCHECK_PRESS(ev->keys,KEY_DOWN))
+			if (KEYCHECK_PRESS(ev->keys, KEY_DOWN))
 			{
 				menuSystemMenuIncrement(&gMenusCurrentItemIndex, NUM_CONTACT_DETAILS_ITEMS);
 			}
 			else
 			{
-				if (KEYCHECK_PRESS(ev->keys,KEY_UP))
+				if (KEYCHECK_PRESS(ev->keys, KEY_UP))
 				{
 					menuSystemMenuDecrement(&gMenusCurrentItemIndex, NUM_CONTACT_DETAILS_ITEMS);
 				}
 				else
 				{
-					if (KEYCHECK_PRESS(ev->keys,KEY_RIGHT))
+					if (KEYCHECK_PRESS(ev->keys, KEY_RIGHT))
 					{
 						switch(gMenusCurrentItemIndex)
 						{
-						case CONTACT_DETAILS_NAME:
-							moveCursorRightInString(contactName, &namePos, 16, BUTTONCHECK_DOWN(ev, BUTTON_SK2));
-							updateCursor(true);
-							break;
-						case CONTACT_DETAILS_TG:
-							break;
-						case CONTACT_DETAILS_CALLTYPE:
-							menuSystemMenuIncrement((int32_t *)&tmpContact.callType,3);
-							break;
-						case CONTACT_DETAILS_TS:
-							switch (tmpContact.reserve1 & 0x3)
-							{
-							case 1:
-							case 3:
-								tmpContact.reserve1 &= 0xfc;
+							case CONTACT_DETAILS_NAME:
+								moveCursorRightInString(contactName, &namePos, 16, BUTTONCHECK_DOWN(ev, BUTTON_SK2));
+								updateCursor(true);
 								break;
-							case 0:
-								tmpContact.reserve1 |= 0x02;
+							case CONTACT_DETAILS_TG:
 								break;
-							case 2:
-								tmpContact.reserve1 |= 0x03;
+							case CONTACT_DETAILS_CALLTYPE:
+								menuSystemMenuIncrement((int32_t *)&tmpContact.callType, 3);
 								break;
-							}
-							break;
+							case CONTACT_DETAILS_TS:
+								switch (tmpContact.reserve1 & 0x3)
+								{
+								case 1:
+								case 3:
+									tmpContact.reserve1 &= 0xfc;
+									break;
+								case 0:
+									tmpContact.reserve1 |= 0x02;
+									break;
+								case 2:
+									tmpContact.reserve1 |= 0x03;
+									break;
+								}
+								break;
 						}
 					}
 					else
 					{
-						if (KEYCHECK_PRESS(ev->keys,KEY_LEFT))
+						if (KEYCHECK_PRESS(ev->keys, KEY_LEFT))
 						{
 							switch(gMenusCurrentItemIndex)
 							{
@@ -260,13 +262,14 @@ static void handleEvent(uiEvent_t *ev)
 									updateCursor(true);
 									break;
 								case CONTACT_DETAILS_TG:
-									if (sLen>0) {
-										digits[sLen-1] = 0x00;
+									if (sLen > 0)
+									{
+										digits[sLen - 1] = 0x00;
 									}
 									updateCursor(true);
 									break;
 								case CONTACT_DETAILS_CALLTYPE:
-									menuSystemMenuDecrement((int32_t *)&tmpContact.callType,3);
+									menuSystemMenuDecrement((int32_t *)&tmpContact.callType, 3);
 									break;
 								case CONTACT_DETAILS_TS:
 									switch (tmpContact.reserve1 & 0x3)
@@ -288,7 +291,7 @@ static void handleEvent(uiEvent_t *ev)
 						}
 						else
 						{
-							if (KEYCHECK_SHORTUP(ev->keys,KEY_GREEN))
+							if (KEYCHECK_SHORTUP(ev->keys, KEY_GREEN))
 							{
 								if (tmpContact.callType == CONTACT_CALLTYPE_ALL)
 								{
@@ -299,7 +302,7 @@ static void handleEvent(uiEvent_t *ev)
 									tmpContact.tgNumber = atoi(digits);
 								}
 
-								if (tmpContact.tgNumber > 0 && tmpContact.tgNumber <= MAX_TG_OR_PC_VALUE)// 9999999)
+								if ((tmpContact.tgNumber > 0) && (tmpContact.tgNumber <= MAX_TG_OR_PC_VALUE))// 9999999)
 								{
 									codeplugUtilConvertStringToBuf(contactName, tmpContact.name, 16);
 									if (contactDetailsIndex > 0 && contactDetailsIndex <= 1024)
@@ -308,7 +311,7 @@ static void handleEvent(uiEvent_t *ev)
 										{
 											if (tmpContact.callType == CONTACT_CALLTYPE_PC)
 											{
-												if (dmrIDLookup(tmpContact.tgNumber,&foundRecord))
+												if (dmrIDLookup(tmpContact.tgNumber, &foundRecord))
 												{
 													codeplugUtilConvertStringToBuf(foundRecord.text, tmpContact.name, 16);
 												}
@@ -334,7 +337,7 @@ static void handleEvent(uiEvent_t *ev)
 							}
 							else
 							{
-								if (KEYCHECK_SHORTUP(ev->keys,KEY_RED))
+								if (KEYCHECK_SHORTUP(ev->keys, KEY_RED))
 								{
 									menuSystemPopPreviousMenu();
 									return;
@@ -352,7 +355,7 @@ static void handleEvent(uiEvent_t *ev)
 
 											if (keyval != 99)
 											{
-												c[0] = keyval+'0';
+												c[0] = keyval + '0';
 												strcat(digits, c);
 											}
 										}

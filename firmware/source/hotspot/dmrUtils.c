@@ -65,13 +65,15 @@ void dmrUtils_bitsToByteLE(const bool* bits, uint8_t *out)
 	*out |= bits[7U] ? 0x80U : 0x00U;
 }
 
-unsigned int dmrUtils_compare(const unsigned char* bytes1, const unsigned char* bytes2, unsigned int length)
+unsigned int dmrUtils_compare(const unsigned char *bytes1, const unsigned char *bytes2, unsigned int length)
 {
 	unsigned int diffs = 0U;
 
-	for (unsigned int i = 0U; i < length; i++) {
+	for (unsigned int i = 0U; i < length; i++)
+	{
 		unsigned char v = bytes1[i] ^ bytes2[i];
-		while (v != 0U) {
+		while (v != 0U)
+		{
 			v &= v - 1U;
 			diffs++;
 		}
@@ -79,4 +81,3 @@ unsigned int dmrUtils_compare(const unsigned char* bytes1, const unsigned char* 
 
 	return diffs;
 }
-

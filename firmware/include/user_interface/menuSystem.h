@@ -22,7 +22,14 @@
 #include "settings.h"
 #include <functions/voicePrompts.h>
 
-typedef enum { NO_EVENT = 0, KEY_EVENT = 0x01, BUTTON_EVENT = 0x02, FUNCTION_EVENT = 0x04, ROTARY_EVENT = 0x08 } uiEventInput_t;
+typedef enum
+{
+	NO_EVENT = 0,
+	KEY_EVENT = 0x01,
+	BUTTON_EVENT = 0x02,
+	FUNCTION_EVENT = 0x04,
+	ROTARY_EVENT = 0x08
+} uiEventInput_t;
 
 typedef struct
 {
@@ -100,7 +107,19 @@ void uiVFOModeStopScanning(void);
 bool uiVFOModeIsScanning(void);
 void uiChannelModeStopScanning(void);
 bool uiChannelModeIsScanning(void);
-void uiCPSUpdate(int command,int x, int y, ucFont_t fontSize, ucTextAlign_t alignment, bool isInverted,char *szMsg);
+
+typedef enum
+{
+	CPS2UI_COMMAND_CLEARBUF = 0,
+	CPS2UI_COMMAND_PRINT,
+	CPS2UI_COMMAND_RENDER_DISPLAY,
+	CPS2UI_COMMAND_BACKLIGHT,
+	CPS2UI_COMMAND_GREEN_LED,
+	CPS2UI_COMMAND_RED_LED,
+	CPS2UI_COMMAND_END
+} uiCPSCommand_t;
+
+void uiCPSUpdate(uiCPSCommand_t command, int x, int y, ucFont_t fontSize, ucTextAlign_t alignment, bool isInverted, char *szMsg);
 
 void menuInitMenuSystem(void);
 void menuSystemLanguageHasChanged(void);
@@ -113,6 +132,8 @@ void menuSystemPushNewMenuWithQuickFunction(int menuNumber, int quickFunction);
 
 void menuSystemSetCurrentMenu(int menuNumber);
 int menuSystemGetCurrentMenuNumber(void);
+int menuSystemGetPreviousMenuNumber(void);
+int menuSystemGetRootMenuNumber(void);
 
 void menuSystemPopPreviousMenu(void);
 void menuSystemPopAllAndDisplayRootMenu(void);
@@ -139,7 +160,8 @@ void menuHotspotRestoreSettings(void);
 void menuSystemMenuIncrement(int32_t *O, int32_t M);
 void menuSystemMenuDecrement(int32_t *O, int32_t M);
 
-void cssIncrement(uint16_t *tone, int32_t *index, CSSTypes_t *type, bool loop);
+uint16_t cssGetTone(int32_t index, CSSTypes_t type);
+void cssIncrement(uint16_t *tone, int32_t *index, CSSTypes_t *type, bool loop, bool stayInCSSType);
 
 
 #if defined(PLATFORM_GD77S)

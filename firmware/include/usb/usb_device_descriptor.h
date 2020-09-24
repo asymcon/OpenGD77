@@ -186,8 +186,7 @@ extern usb_status_t USB_DeviceGetDeviceDescriptor(usb_device_handle handle,
  *
  * @return A USB error code or kStatus_USB_Success.
  */
-usb_status_t USB_DeviceGetStringDescriptor(usb_device_handle handle,
-                                           usb_device_get_string_descriptor_struct_t *stringDescriptor);
+usb_status_t USB_DeviceGetStringDescriptor(usb_device_handle handle, usb_device_get_string_descriptor_struct_t *stringDescriptor);
 /*!
  * @brief USB device get configuration descriptor function.
  *
@@ -198,6 +197,6 @@ usb_status_t USB_DeviceGetStringDescriptor(usb_device_handle handle,
  *
  * @return A USB error code or kStatus_USB_Success.
  */
-extern usb_status_t USB_DeviceGetConfigurationDescriptor(
-    usb_device_handle handle, usb_device_get_configuration_descriptor_struct_t *configurationDescriptor);
+extern usb_status_t USB_DeviceGetConfigurationDescriptor(usb_device_handle handle, usb_device_get_configuration_descriptor_struct_t *configurationDescriptor);
+
 #endif /* _USB_DEVICE_DESCRIPTOR_H_ */

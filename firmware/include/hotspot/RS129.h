@@ -23,7 +23,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-bool RS129_check(const unsigned char* in);
-void RS129_encode(const unsigned char* msg, unsigned int nbytes, unsigned char* parity);
+bool RS129_check(const unsigned char *in);
+void RS129_encode(const unsigned char *msg, unsigned int nbytes, unsigned char *parity);
 
 #endif

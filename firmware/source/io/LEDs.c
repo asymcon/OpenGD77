@@ -32,9 +32,10 @@ void LEDsInit(void)
 #if defined(PLATFORM_RD5R)
 // Baofeng DM-5R torch LED
 static bool torch_state = false;
+
 void toggle_torch(void)
 {
-	torch_state=!torch_state;
+	torch_state = !torch_state;
 	GPIO_PinWrite(GPIO_Torch, Pin_Torch, torch_state);
 }
 #endif

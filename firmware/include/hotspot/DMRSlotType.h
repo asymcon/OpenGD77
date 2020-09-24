@@ -29,6 +29,6 @@
 #include <stdint.h>
 
 void DMRSlotType_decode(const uint8_t *frame, uint32_t  *colorCode, uint32_t *dataType);
-void DMRSlotType_encode(uint32_t colorCode, uint32_t dataType, uint8_t* frame);
+void DMRSlotType_encode(uint32_t colorCode, uint32_t dataType, uint8_t *frame);
 
 #endif

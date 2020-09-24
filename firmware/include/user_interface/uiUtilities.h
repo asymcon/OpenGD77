@@ -21,22 +21,52 @@
 #include <functions/settings.h>
 
 
-#define MAX_ZONE_SCAN_NUISANCE_CHANNELS 16
-#define NUM_LASTHEARD_STORED 32
-extern const int QSO_TIMER_TIMEOUT;
-extern const int TX_TIMER_Y_OFFSET;
-extern const int CONTACT_Y_POS;
-extern const int FREQUENCY_X_POS;
-extern const int NUM_PC_OR_TG_DIGITS;
-extern const int MAX_TG_OR_PC_VALUE;
+#define MAX_ZONE_SCAN_NUISANCE_CHANNELS       16
+#define NUM_LASTHEARD_STORED                  32
+
+#define QSO_TIMER_TIMEOUT                   2400
+
+#if defined(PLATFORM_RD5R)
+#define TX_TIMER_Y_OFFSET                     12
+#define CONTACT_Y_POS                         12
+#define CONTACT_FIRST_LINE_Y_POS              24
+#define CONTACT_SECOND_LINE_Y_POS             33
+#define SQUELCH_BAR_Y_POS                     14
+#define SQUELCH_BAR_H                          4
+#else
+#define TX_TIMER_Y_OFFSET                      8
+#define CONTACT_Y_POS                         16
+#define CONTACT_FIRST_LINE_Y_POS              32
+#define CONTACT_SECOND_LINE_Y_POS             48
+#define SQUELCH_BAR_Y_POS                     16
+#define SQUELCH_BAR_H                          9
+#endif
+
+#define FREQUENCY_X_POS  /* '>Ta'*/ ((3 * 8) + 4)
+#define MAX_POWER_SETTING_NUM                  18
+#define NUM_PC_OR_TG_DIGITS                    8
+#define MAX_TG_OR_PC_VALUE              16777215
+
 
 extern struct_codeplugRxGroup_t currentRxGroupData;
 extern struct_codeplugContact_t currentContactData;
 extern struct_codeplugZone_t currentZone;
 
 enum UI_CALL_STATE { NOT_IN_CALL=0, PRIVATE_CALL_ACCEPT, PRIVATE_CALL, PRIVATE_CALL_DECLINED };
-typedef enum { PROMPT_SEQUENCE_CHANNEL_NAME_OR_VFO_FREQ,  PROMPT_SEQUENCE_ZONE, PROMPT_SEQUENCE_MODE, PROMPT_SEQUENCE_CONTACT_TG_OR_PC, PROMPT_SEQUENCE_TS, PROMPT_SEQUENCE_CC, PROMPT_SEQUENCE_POWER,
-				PROMPT_SEQUENCE_BATTERY  , NUM_PROMPT_SEQUENCES} voicePromptItem_t;
+
+typedef enum
+{
+	PROMPT_SEQUENCE_CHANNEL_NAME_OR_VFO_FREQ,
+	PROMPT_SEQUENCE_ZONE,
+	PROMPT_SEQUENCE_MODE,
+	PROMPT_SEQUENCE_CONTACT_TG_OR_PC,
+	PROMPT_SEQUENCE_TS,
+	PROMPT_SEQUENCE_CC,
+	PROMPT_SEQUENCE_POWER,
+	PROMPT_SEQUENCE_BATTERY,
+	NUM_PROMPT_SEQUENCES
+} voicePromptItem_t;
+
 extern voicePromptItem_t voicePromptSequenceState;
 
 typedef struct dmrIdDataStruct
@@ -70,13 +100,7 @@ typedef struct LinkItem
     struct LinkItem *next;
 } LinkItem_t;
 
-enum QSO_DISPLAY_STATE
-{
-	QSO_DISPLAY_IDLE,
-	QSO_DISPLAY_DEFAULT_SCREEN,
-	QSO_DISPLAY_CALLER_DATA,
-	QSO_DISPLAY_CALLER_DATA_UPDATE
-};
+enum QSO_DISPLAY_STATE { QSO_DISPLAY_IDLE, QSO_DISPLAY_DEFAULT_SCREEN, QSO_DISPLAY_CALLER_DATA, QSO_DISPLAY_CALLER_DATA_UPDATE };
 
 typedef enum
 {
@@ -85,10 +109,10 @@ typedef enum
 	SCAN_PAUSED
 } ScanState_t;
 
-extern const int MAX_POWER_SETTING_NUM;
 extern const char *POWER_LEVELS[];
 extern const char *POWER_LEVEL_UNITS[];
-extern const char *DMR_FILTER_LEVELS[];
+extern const char *DMR_DESTINATION_FILTER_LEVELS[];
+extern const char *DMR_CCTS_FILTER_LEVELS[];
 extern const char *ANALOG_FILTER_LEVELS[];
 extern const int SCAN_SHORT_PAUSE_TIME;			//time to wait after carrier detected to allow time for full signal detection. (CTCSS or DMR)
 extern const int SCAN_TOTAL_INTERVAL;			    //time between each scan step
@@ -116,6 +140,16 @@ extern char freq_enter_digits[12];
 extern int freq_enter_idx;
 extern int numLastHeard;
 extern bool inhibitInitialVoicePrompt;
+extern int tmpQuickMenuDmrDestinationFilterLevel;
+extern int tmpQuickMenuDmrCcTsFilterLevel;
+extern int tmpQuickMenuAnalogFilterLevel;
+
+#define TS_NO_OVERRIDE  0
+bool tsIsOverridden(Channel_t chan);
+int8_t tsGetOverride(Channel_t chan);
+void tsSetOverride(Channel_t chan, int8_t ts);
+void tsSetContactOverride(Channel_t chan, struct_codeplugContact_t *contact);
+
 
 bool isQSODataAvailableForCurrentTalker(void);
 char *chomp(char *str);
@@ -133,7 +167,7 @@ void drawRSSIBarGraph(void);
 void drawFMMicLevelBarGraph(void);
 void drawDMRMicLevelBarGraph(void);
 void setOverrideTGorPC(int tgOrPc, bool privateCall);
-void printFrequency(bool isTX, bool hasFocus, uint8_t y, uint32_t frequency, bool displayVFOChannel,bool isScanMode);
+void printFrequency(bool isTX, bool hasFocus, uint8_t y, uint32_t frequency, bool displayVFOChannel, bool isScanMode);
 void printToneAndSquelch(void);
 size_t snprintDCS(char *s, size_t n, uint16_t code, bool inverted);
 void reset_freq_enter_digits(void);
@@ -164,7 +198,9 @@ void announceVFOAndFrequency(void);
 
 void announceItem(voicePromptItem_t item, audioPromptThreshold_t immediateAnnouceThreshold);
 void playNextSettingSequence(void);
+void SpeakChar(char ch);
+void SpeakCSSCode(uint16_t num, CSSTypes_t cssType, bool inverted);
 
 void buildTgOrPCDisplayName(char *nameBuf, int bufferLen);
-
+void acceptPrivateCall(int id );
 #endif

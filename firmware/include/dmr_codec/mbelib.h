@@ -23,11 +23,11 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-void mbe_checkGolayBlock (long int *block);
-int mbe_golay2312 (char *in, char *out);
-int mbe_eccAmbe3600x2450C0 (char ambe_fr[4][24]);
-int mbe_eccAmbe3600x2450Data (char ambe_fr[4][24], char *ambe_d);
-void mbe_demodulateAmbe3600x2450Data (char ambe_fr[4][24]);
+void mbe_checkGolayBlock(long int *block);
+int mbe_golay2312(char *in, char *out);
+int mbe_eccAmbe3600x2450C0(char ambe_fr[4][24]);
+int mbe_eccAmbe3600x2450Data(char ambe_fr[4][24], char *ambe_d);
+void mbe_demodulateAmbe3600x2450Data(char ambe_fr[4][24]);
 void prepare_framedata(uint8_t *indata, char *ambe_d, int *errs, int *errs2);
 
 #endif /* _FW_MBELIB_H_ */

@@ -31,7 +31,7 @@ menuStatus_t menuPrivateCall(uiEvent_t *ev, bool isFirstRun)
 {
 	if (isFirstRun)
 	{
-		soundSetMelody(melody_private_call);
+		soundSetMelody(MELODY_PRIVATE_CALL);
 		uiPrivateCallState = PRIVATE_CALL_ACCEPT;
 		menuUtilityReceivedPcId = LinkHead->id;
 
@@ -63,6 +63,7 @@ static void updateScreen(void)
 	}
 	ucPrintCentered(32, buffer, FONT_SIZE_3);
 
+	ucPrintCentered(0, currentLanguage->private_call, FONT_SIZE_3);
 	ucPrintCentered(16, currentLanguage->accept_call, FONT_SIZE_3);
 	ucDrawChoice(CHOICE_YESNO, false);
 	ucRender();
@@ -84,7 +85,7 @@ static void handleEvent(uiEvent_t *ev)
 		}
 		else if (KEYCHECK_SHORTUP(ev->keys, KEY_GREEN))
 		{
-			menuAcceptPrivateCall(menuUtilityReceivedPcId);
+			acceptPrivateCall(menuUtilityReceivedPcId);
 			menuSystemPopPreviousMenu();
 			return;
 		}
@@ -99,15 +100,4 @@ void menuClearPrivateCall(void )
 	menuUtilityReceivedPcId = 0;
 }
 
-void menuAcceptPrivateCall(int id )
-{
-	uiPrivateCallState = PRIVATE_CALL;
-	uiPrivateCallLastID = (id & 0xffffff);
-	settingsPrivateCallMuteMode=false;
-	menuUtilityReceivedPcId = 0;
-
-	setOverrideTGorPC(uiPrivateCallLastID, true);
-	announceItem(PROMPT_SEQUENCE_CONTACT_TG_OR_PC,PROMPT_THRESHOLD_3);
-
-}
 

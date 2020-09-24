@@ -287,14 +287,14 @@ static void updateScreen(bool forceRedraw)
 			}
 
 			// Upwards blinking arrow
-			ucFillTriangle(63,(DISPLAY_SIZE_Y - 5), 59,(DISPLAY_SIZE_Y - 1), 67,(DISPLAY_SIZE_Y - 1), blink);
+			ucFillTriangle(63, (DISPLAY_SIZE_Y - 5), 59, (DISPLAY_SIZE_Y - 1), 67, (DISPLAY_SIZE_Y - 1), blink);
 		}
 		break;
 	}
 
 	blink = !blink;
 
-	ucRenderRows((renderArrowOnly ? 7 : 1), 8);
+	ucRenderRows((renderArrowOnly ? (DISPLAY_NUMBER_OF_ROWS - 1) : 1), DISPLAY_NUMBER_OF_ROWS);
 }
 
 static void handleEvent(uiEvent_t *ev)

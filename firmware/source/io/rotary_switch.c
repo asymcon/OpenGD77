@@ -26,9 +26,7 @@ static uint8_t prevPosition;
 
 void rotarySwitchInit(void)
 {
-
 #if defined(PLATFORM_GD77S)
-
 	gpioInitRotarySwitch();
 
 	prevPosition = -1;

@@ -97,7 +97,7 @@ static unsigned char gmult(unsigned char a, unsigned char b)
  *
  * The parity bytes are deposited into parity.
  */
-void RS129_encode(const unsigned char* msg, unsigned int nbytes, unsigned char* parity)
+void RS129_encode(const unsigned char *msg, unsigned int nbytes, unsigned char *parity)
 {
   for (unsigned int i = 0U; i < NPAR + 1U; i++)
   {
@@ -118,7 +118,7 @@ void RS129_encode(const unsigned char* msg, unsigned int nbytes, unsigned char* 
 }
 
 // Reed-Solomon (12,9) check
-bool RS129_check(const unsigned char* in)
+bool RS129_check(const unsigned char *in)
 {
 	unsigned char parity[4U];
 	RS129_encode(in, 9U, parity);

@@ -117,7 +117,7 @@ const stringsTable_t polishLanguage =
 .brightness				= "JasnoçÇ", // MaxLen: 16 (with ':' + 0..100 + '%')
 .brightness_off				= "Mini jasnoçÇ", // MaxLen: 16 (with ':' + 0..100 + '%')
 .contrast				= "Kontrast", // MaxLen: 16 (with ':' + 12..30)
-.colour_invert				= "nwersja", // MaxLen: 16
+.colour_invert				= "Inwersja", // MaxLen: 16
 .colour_normal				= "Normalny", // MaxLen: 16
 .backlight_timeout			= "åwiecenie", // MaxLen: 16 (with ':' + .no to 30)
 .scan_delay				= "Czas skan.", // MaxLen: 16 (with ':' + 1..30 + 's')
@@ -155,10 +155,10 @@ const stringsTable_t polishLanguage =
 .display				= "Display",
 .vox_threshold                          = "VOX Thres.", // MaxLen 16 (with ':' + .off or 1..30)
 .vox_tail                               = "VOX Tail", // MaxLen 16 (with ':' + .n_a or '0.0s')
-.audio_prompt				= "Prompt",// Maxlen 16 (with ':' + .silent, .normal, .beep or .voice_prompt_level_1)
-.silent                                 = "Silent", // Maxlen 16 (with : + audio_prompt)
+.audio_prompt				= "Papuga",// Maxlen 16 (with ':' + .silent, .normal, .beep or .voice_prompt_level_1)
+.silent                                 = "Cisza", // Maxlen 16 (with : + audio_prompt)
 .normal                                 = "Normal", // Maxlen 16 (with : + audio_prompt)
-.beep					= "Beep", // Maxlen 16 (with : + audio_prompt)
+.beep					= "Bip", // Maxlen 16 (with : + audio_prompt)
 .voice_prompt_level_1					= "Voice", // Maxlen 16 (with : + audio_prompt)
 .transmitTalkerAlias	= "TA Tx", // Maxlen 16 (with : + .on or .off)
 .squelch_VHF			= "VHF Squelch",// Maxlen 16 (with : + XX%)
@@ -170,8 +170,11 @@ const stringsTable_t polishLanguage =
 .openDM1801 			= "OpenDM1801",// Do not translate
 .openRD5R 				= "OpenRD5R",// Do not translate
 .gitCommit				= "Git commit",
-.voice_prompt_level_2	= "Voice L2", // Maxlen 16 (with : + audio_prompt)
-.voice_prompt_level_3	= "Voice L3" // Maxlen 16 (with : + audio_prompt)
+.voice_prompt_level_2	= "Gàos L2", // Maxlen 16 (with : + audio_prompt)
+.voice_prompt_level_3	= "Gàos L3", // Maxlen 16 (with : + audio_prompt)
+.dmr_filter				= "DMR Filtr",// MaxLen: 12 (with ':' + settings: "TG" or "Ct" or "RxG")
+.dmr_cc_filter			= "CC Filtr", // MaxLen: 12 (with ':' + settings: .on or .off)
+.dmr_ts_filter			= "TS Filtr" // MaxLen: 12 (with ':' + settings: .on or .off)
 };
 /********************************************************************
  *

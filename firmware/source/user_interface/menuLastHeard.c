@@ -26,7 +26,7 @@ static menuStatus_t menuLastHeardExitCode = MENU_STATUS_SUCCESS;
 uint32_t selectedID;
 
 static void handleEvent(uiEvent_t *ev);
-static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_t now, uint32_t TGorPC, size_t maxLen, bool displayDetails,bool itemIsSelected, bool isFirstRun);
+static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_t now, uint32_t TGorPC, size_t maxLen, bool displayDetails, bool itemIsSelected, bool isFirstRun);
 
 menuStatus_t menuLastHeard(uiEvent_t *ev, bool isFirstRun)
 {
@@ -101,12 +101,16 @@ void menuLastHeardUpdateScreen(bool showTitleOrHeader, bool displayDetails, bool
 		item = item->next;
 	}
 
-	while((item != NULL) && (item->id != 0) && numDisplayed<4)
+	while((item != NULL) && (item->id != 0) && (numDisplayed < 4))
 	{
-		if (numDisplayed==0)
+		if (numDisplayed == 0)
 		{
 			invertColour = true;
+#if defined(PLATFORM_RD5R)
+			ucFillRect(0, 15, 128, 10, false);
+#else
 			ucFillRect(0, 16, 128, 16, false);
+#endif
 			selectedID = item->id;
 		}
 		else
@@ -150,7 +154,7 @@ static void handleEvent(uiEvent_t *ev)
 
 	if (KEYCHECK_PRESS(ev->keys, KEY_DOWN))
 	{
-		if (gMenusCurrentItemIndex < (numLastHeard-1))
+		if (gMenusCurrentItemIndex < (numLastHeard - 1))
 		{
 			isDirty = true;
 			gMenusCurrentItemIndex++;
@@ -185,7 +189,7 @@ static void handleEvent(uiEvent_t *ev)
 		isDirty = true;
 		displayLHDetails = true;
 	}
-	if (displayLHDetails && (ev->events == BUTTON_EVENT) &&  !(ev->buttons&BUTTON_SK2))
+	if (displayLHDetails && (ev->events == BUTTON_EVENT) &&  !(ev->buttons & BUTTON_SK2))
 	{
 		isDirty = true;
 		displayLHDetails = false;
@@ -194,16 +198,16 @@ static void handleEvent(uiEvent_t *ev)
 	if (isDirty)
 	{
 		bool voicePromptsWerePlaying = voicePromptIsActive;
-		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1 && voicePromptIsActive)
+		if ((nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1) && voicePromptIsActive)
 		{
 			voicePromptsTerminate();
 		}
 
-		menuLastHeardUpdateScreen(true, displayLHDetails,false);// This will also setup the voice prompt
+		menuLastHeardUpdateScreen(true, displayLHDetails, false);// This will also setup the voice prompt
 
-		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1 && voicePromptsWerePlaying)
+		if ((nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1) && voicePromptsWerePlaying)
 		{
-				voicePromptsPlay();
+			voicePromptsPlay();
 		}
 	}
 	else
@@ -223,13 +227,13 @@ static void handleEvent(uiEvent_t *ev)
 	}
 }
 
-static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_t now, uint32_t TGorPC, size_t maxLen, bool displayDetails,bool itemIsSelected, bool isFirstRun)
+static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_t now, uint32_t TGorPC, size_t maxLen, bool displayDetails, bool itemIsSelected, bool isFirstRun)
 {
 	char buffer[37]; // Max: TA 27 (in 7bit format) + ' [' + 6 (Maidenhead)  + ']' + NULL
 	char tg_Buffer[17];
 	char timeBuffer[17];
 	uint32_t tg = (TGorPC & 0xFFFFFF);
-	bool isPC  = ((TGorPC >> 24) == PC_CALL_FLAG);
+	bool isPC = ((TGorPC >> 24) == PC_CALL_FLAG);
 
 	// Do TG and Time stuff first as its always needed for the Voice prompts
 
@@ -238,9 +242,8 @@ static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_
 	snprintf(timeBuffer, 5, "%d", (((now - time) / 1000U) / 60U));// Time
 	timeBuffer[5] = 0;
 
-	if (itemIsSelected && nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+	if (itemIsSelected && (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1))
 	{
-
 		if (voicePromptIsActive)
 		{
 			voicePromptsTerminate();
@@ -271,12 +274,14 @@ static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_
 				if (strncmp((text + cpos + 1), "DMR ID:", 7) == 0)
 				{
 					if (cpos > 15)
+					{
 						cpos = 16;
+					}
 
 					memcpy(buffer, text, cpos);
 					buffer[cpos] = 0;
 
-					ucPrintCore(0,y, chomp(buffer), FONT_SIZE_3,TEXT_ALIGN_CENTER, itemIsSelected);
+					ucPrintCore(0,y , chomp(buffer), FONT_SIZE_3,TEXT_ALIGN_CENTER, itemIsSelected);
 				}
 				else // Nope, look for first name
 				{
@@ -324,7 +329,7 @@ static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_
 				memcpy(buffer, text, 16);
 				buffer[16] = 0;
 
-				ucPrintCore(0,y, chomp(buffer), FONT_SIZE_3,TEXT_ALIGN_CENTER, itemIsSelected);
+				ucPrintCore(0, y, chomp(buffer), FONT_SIZE_3,TEXT_ALIGN_CENTER, itemIsSelected);
 			}
 		}
 		else // short callsign
@@ -332,10 +337,10 @@ static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_
 			memcpy(buffer, text, strlen(text));
 			buffer[strlen(text)] = 0;
 
-			ucPrintCore(0,y, chomp(buffer), FONT_SIZE_3,TEXT_ALIGN_CENTER, itemIsSelected);
+			ucPrintCore(0, y, chomp(buffer), FONT_SIZE_3,TEXT_ALIGN_CENTER, itemIsSelected);
 		}
 
-		if (itemIsSelected && nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+		if (itemIsSelected && (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1))
 		{
 			voicePromptsAppendString(chomp(buffer));
 			voicePromptsAppendString("  ");
@@ -377,4 +382,3 @@ static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_
 		voicePromptsPlay();
 	}
 }
-

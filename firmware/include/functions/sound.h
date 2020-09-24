@@ -25,20 +25,19 @@
 
 
 extern int melody_generic[512];
-extern const int melody_poweron[];
-extern const int melody_key_beep[];
-extern const int melody_key_long_beep[];
-extern const int melody_sk1_beep[];
-extern const int melody_sk2_beep[];
-extern const int melody_orange_beep[];
-extern const int melody_ACK_beep[];
-extern const int melody_NACK_beep[];
-extern const int melody_ERROR_beep[];
-extern const int melody_tx_timeout_beep[];
-extern const int melody_private_call[];
-extern const int melody_dmr_tx_start_beep[];
-extern const int melody_dmr_tx_stop_beep[];
-extern const int melody_key_beep_first_item[];
+extern const int MELODY_POWER_ON[];
+extern const int MELODY_PRIVATE_CALL[];
+extern const int MELODY_KEY_BEEP[];
+extern const int MELODY_KEY_LONG_BEEP[];
+extern const int MELODY_ACK_BEEP[];
+extern const int MELODY_NACK_BEEP[];
+extern const int MELODY_ERROR_BEEP[];
+extern const int MELODY_TX_TIMEOUT_BEEP[];
+extern const int MELODY_DMR_TX_START_BEEP[];
+extern const int MELODY_DMR_TX_STOP_BEEP[];
+extern const int MELODY_KEY_BEEP_FIRST_ITEM[];
+extern const int MELODY_LOW_BATTERY[];
+
 extern volatile int *melody_play;
 extern volatile int melody_idx;
 extern volatile int micAudioSamplesTotal;

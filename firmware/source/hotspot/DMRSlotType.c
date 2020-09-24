@@ -227,8 +227,10 @@ static uint32_t DMRSlotType_getSyndrome1987(uint32_t pattern)
 {
   unsigned int aux = X18;
 
-  if (pattern >= X11) {
-    while (pattern & MASK8) {
+  if (pattern >= X11)
+  {
+    while (pattern & MASK8)
+    {
       while (!(aux & pattern))
         aux = aux >> 1;
 
@@ -239,7 +241,7 @@ static uint32_t DMRSlotType_getSyndrome1987(uint32_t pattern)
   return pattern;
 }
 
-static uint8_t DMRSlotType_decode2087(const uint8_t* data)
+static uint8_t DMRSlotType_decode2087(const uint8_t *data)
 {
   uint32_t code = (data[0U] << 11) + (data[1U] << 3) + (data[2U] >> 5);
   uint32_t syndrome = DMRSlotType_getSyndrome1987(code);
@@ -269,7 +271,7 @@ void DMRSlotType_decode(const uint8_t *frame, uint32_t  *colorCode, uint32_t *da
   *dataType  = (code >> 0) & 0x0FU;
 }
 
-void DMRSlotType_encode(uint32_t colorCode, uint32_t dataType, uint8_t* frame)
+void DMRSlotType_encode(uint32_t colorCode, uint32_t dataType, uint8_t *frame)
 {
   uint8_t slotType[3U];
   slotType[0U]  = (colorCode << 4) & 0xF0U;

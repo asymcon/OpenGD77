@@ -25,14 +25,15 @@
 #include <hotspot/RS129.h>
 
 
-bool DMRFullLC_decode(const unsigned char* data, unsigned char type,DMRLC_T *lc)
+bool DMRFullLC_decode(const unsigned char *data, unsigned char type, DMRLC_T *lc)
 {
 	//unsigned char lcData[12U];
 
 	BPTC19696_init();
 	BPTC19696_decode(data, lc->rawData);
 
-	switch (type) {
+	switch (type)
+	{
 		case DT_VOICE_LC_HEADER:
 			lc->rawData[9U]  ^= VOICE_LC_HEADER_CRC_MASK[0U];
 			lc->rawData[10U] ^= VOICE_LC_HEADER_CRC_MASK[1U];
@@ -54,21 +55,22 @@ bool DMRFullLC_decode(const unsigned char* data, unsigned char type,DMRLC_T *lc)
 		return false;
 	}
 
-	DMRLCfromBytes(lc->rawData,lc);//
+	DMRLCfromBytes(lc->rawData, lc);//
 
 	return true;
 }
 
-bool DMRFullLC_encode(DMRLC_T *lc, unsigned char* data, unsigned char type)
+bool DMRFullLC_encode(DMRLC_T *lc, unsigned char *data, unsigned char type)
 {
 	unsigned char lcData[12U];
 
-	DMRLC_getDataFromBytes(lcData,lc);
+	DMRLC_getDataFromBytes(lcData, lc);
 
 	unsigned char parity[4U];
 	RS129_encode(lcData, 9U, parity);
 
-	switch (type) {
+	switch (type)
+	{
 		case DT_VOICE_LC_HEADER:
 			lcData[9U]  = parity[2U] ^ VOICE_LC_HEADER_CRC_MASK[0U];
 			lcData[10U] = parity[1U] ^ VOICE_LC_HEADER_CRC_MASK[1U];
@@ -90,4 +92,3 @@ bool DMRFullLC_encode(DMRLC_T *lc, unsigned char* data, unsigned char type)
 
 	return true;
 }
-

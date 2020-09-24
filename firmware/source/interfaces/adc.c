@@ -82,7 +82,7 @@ void ADC0_IRQHandler(void)
 // result of conversion is rounded voltage*10 as integer
 int adcGetBatteryVoltage(void)
 {
-	int tmp_voltage = adc0_dp1/41.6f+0.5f;
+	int tmp_voltage = adc0_dp1 / 41.6f + 0.5f;
 	return tmp_voltage;
 }
 
