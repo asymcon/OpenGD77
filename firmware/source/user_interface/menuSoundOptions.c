@@ -37,16 +37,13 @@ menuStatus_t menuSoundOptions(uiEvent_t *ev, bool isFirstRun)
 		// Store original settings, used on cancel event.
 		memcpy(&originalNonVolatileSettings, &nonVolatileSettings, sizeof(settingsStruct_t));
 
-		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
-		{
-			voicePromptsInit();
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendLanguageString(&currentLanguage->sound_options);
-			voicePromptsAppendLanguageString(&currentLanguage->menu);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-		}
+		voicePromptsInit();
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendLanguageString(&currentLanguage->sound_options);
+		voicePromptsAppendLanguageString(&currentLanguage->menu);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
 
 		updateScreen(isFirstRun);
 		return (MENU_STATUS_LIST_TYPE | MENU_STATUS_SUCCESS);
@@ -159,7 +156,7 @@ static void updateScreen(bool isFirstRun)
 			case OPTIONS_AUDIO_PROMPT_MODE:
 				{
 					leftSide = (char * const *)&currentLanguage->audio_prompt;
-					const char * const *audioPromptOption[] = { &currentLanguage->silent, &currentLanguage->normal, &currentLanguage->beep,
+					const char * const *audioPromptOption[] = { &currentLanguage->silent, &currentLanguage->beep,
 							&currentLanguage->voice_prompt_level_1, &currentLanguage->voice_prompt_level_2, &currentLanguage->voice_prompt_level_3 };
 					rightSideConst = (char * const *)audioPromptOption[nonVolatileSettings.audioPromptMode];
 				}
@@ -168,7 +165,7 @@ static void updateScreen(bool isFirstRun)
 
 		snprintf(buf, bufferLen, "%s:%s", *leftSide, (rightSideVar[0] ? rightSideVar : *rightSideConst));
 
-		if ((i == 0) && (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1))
+		if (i == 0)
 		{
 			if (!isFirstRun)
 			{
@@ -198,7 +195,16 @@ static void updateScreen(bool isFirstRun)
 static void handleEvent(uiEvent_t *ev)
 {
 	bool isDirty = false;
+
 	displayLightTrigger();
+
+	if (ev->events & BUTTON_EVENT)
+	{
+		if (repeatVoicePromptOnSK1(ev))
+		{
+			return;
+		}
+	}
 
 	if (ev->events & KEY_EVENT)
 	{

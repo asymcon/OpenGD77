@@ -208,6 +208,7 @@ static volatile bool txPAEnabled = false;
 
 static int trxCurrentDMRTimeSlot;
 
+// DTMF Order: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, *, #
 const int trxDTMFfreq1[] = { 1336, 1209, 1336, 1477, 1209, 1336, 1477, 1209, 1336, 1477, 1633, 1633, 1633, 1633, 1209, 1477 };
 const int trxDTMFfreq2[] = {  941,  697,  697,  697,  770,  770,  770,  852,  852,  852,  697,  770,  852,  941,  941,  941 };
 
@@ -453,7 +454,7 @@ void trxCheckAnalogSquelch(void)
 
 		if ((trxRxNoise < squelch) && (((rxCSSactive) && (trxCheckCSSFlag(currentChannelData->rxTone))) || (!rxCSSactive)))
 		{
-			if (!voicePromptIsActive)
+			if (!voicePromptsIsPlaying())
 			{
 				GPIO_PinWrite(GPIO_RX_audio_mux, Pin_RX_audio_mux, 1);// Set the audio path to AT1846 -> audio amp.
 				enableAudioAmp(AUDIO_AMP_MODE_RF);
@@ -711,21 +712,29 @@ void trxActivateTx(void)
 void trxSetPowerFromLevel(int powerLevel)
 {
 // Note. Fraction values for 200Mhz are currently the same as the VHF band, because there isn't any way to set the 1W value on 220Mhz as there are only 2 calibration tables
-//#if//defined(PLATFORM_GD77) || defined(PLATFORM_GD77S) // Support ONLY GD-77 in this build
+#if defined(PLATFORM_GD77) || defined(PLATFORM_GD77S)
 
 //fractal powers must match last 2 counts of power level
 static const float fractionalPowers[12][14] = {	{0.10,0.20,0.25,0.30,0.35,0.39,0.42,0.46,0.50,0.53,0.56,0.72,0.85,0.93},// VHF
 												{0.10,0.20,0.25,0.30,0.38,0.42,0.45,0.48,0.52,0.55,0.58,0.73,0.86,0.93},// 220Mhz
 												{0.10,0.20,0.26,0.32,0.41,0.45,0.48,0.51,0.55,0.58,0.64,0.77,0.86,0.93}};// UHF
 
-//#elif defined(PLATFORM_DM1801) //Add extra levels at different time
+#elif defined(PLATFORM_DM1801)
 
 
-//static const float fractionalPowers[3][4] = {	{0.28,0.37,0.62,0.82},// VHF
-//												{0.28,0.37,0.62,0.82},// 220Mhz
-//												{0.05,0.25,0.51,0.75}};// UHF
+static const float fractionalPowers[3][7] = {	{0.28,0.37,0.62,0.82,0.60,0.72,0.77},// VHF - THESE VALUE HAVE NOT BEEN CALIBRATED
+												{0.28,0.37,0.62,0.82,0.49,0.64,0.73},// 220Mhz - THESE VALUE HAVE NOT BEEN CALIBRATED
+												{0.05,0.25,0.51,0.75,0.49,0.64,0.71}};// UHF - THESE VALUE HAVE NOT BEEN CALIBRATED
 
-//#endif
+#elif defined(PLATFORM_RD5R)
+
+static const float fractionalPowers[3][7] = {	{0.37,0.54,0.73,0.87,0.49,0.64,0.73},// VHF
+												{0.28,0.37,0.62,0.82,0.49,0.64,0.71},// 220Mhz - THESE VALUE HAVE NOT BEEN CALIBRATED
+												{0.05,0.25,0.45,0.85,0.49,0.64,0.71}};// UHF
+
+#endif
+
+#if defined(PLATFORM_GD77) || defined(PLATFORM_GD77S)
 
 // must add in new power levels in uiutilities.c
 	switch(powerLevel)
@@ -762,6 +771,35 @@ static const float fractionalPowers[12][14] = {	{0.10,0.20,0.25,0.30,0.35,0.39,0
 		case 18:// 5W+
 			txPower = 4095;
 			break;
+			
+#else
+	switch(powerLevel)
+	{
+		case 0:// 50mW
+		case 1:// 250mW
+		case 2:// 500mW
+		case 3:// 750mW
+			txPower = trxPowerSettings.lowPower * fractionalPowers[trxCurrentBand[TRX_TX_FREQ_BAND]][powerLevel];
+			break;
+		case 4:// 1W
+			txPower = trxPowerSettings.lowPower;
+			break;
+		case 5:// 2W
+		case 6:// 3W
+		case 7:// 4W
+			{
+				int stepPerWatt = (trxPowerSettings.highPower - trxPowerSettings.lowPower)/( 5 - 1);
+				txPower = (((powerLevel - 3) * stepPerWatt) * fractionalPowers[trxCurrentBand[TRX_TX_FREQ_BAND]][powerLevel-1]) + trxPowerSettings.lowPower;
+			}
+			break;
+		case 8:// 5W
+			txPower = trxPowerSettings.highPower;
+			break;
+		case 9:// 5W+
+			txPower = 4095;
+			break;
+#endif
+
 		default:
 			txPower = trxPowerSettings.lowPower;
 			break;
@@ -1243,5 +1281,24 @@ void setMicGainFM(uint8_t gain)
 
 	I2C_AT1846_set_register_with_mask(0x0A, 0xF83F, gain, 6);
 	I2C_AT1846_set_register_with_mask(0x41, 0xFF80, voice_gain_tx, 0);
+}
+
+void enableTransmission(void)
+{
+	GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 0);
+	GPIO_PinWrite(GPIO_LEDred, Pin_LEDred, 1);
+
+	txstopdelay = 0;
+	trx_setTX();
+}
+
+void disableTransmission(void)
+{
+	GPIO_PinWrite(GPIO_LEDred, Pin_LEDred, 0);
+	// Need to wrap this in Task Critical to avoid bus contention on the I2C bus.
+	taskENTER_CRITICAL();
+	trxActivateRx();
+	taskEXIT_CRITICAL();
+	//trxSetFrequency(freq_rx,freq_tx);
 }
 

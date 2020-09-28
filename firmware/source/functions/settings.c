@@ -27,8 +27,7 @@
 #include <ticks.h>
 
 static const int STORAGE_BASE_ADDRESS 		= 0x6000;
-
-static const int STORAGE_MAGIC_NUMBER 		= 0x6022;
+static const int STORAGE_MAGIC_NUMBER 		= 0x6025;
 
 // Bit patterns for DMR Beep
 const uint8_t BEEP_TX_NONE  = 0x00;
@@ -45,6 +44,7 @@ settingsStruct_t nonVolatileSettings;
 struct_codeplugChannel_t *currentChannelData;
 struct_codeplugChannel_t channelScreenChannelData = { .rxFreq = 0 };
 struct_codeplugContact_t contactListContactData;
+struct_codeplugDTMFContact_t contactListDTMFContactData;
 struct_codeplugChannel_t settingsVFOChannel[2];// VFO A and VFO B from the codeplug.
 int contactListContactIndex;
 int settingsUsbMode = USB_MODE_CPS;
@@ -78,10 +78,12 @@ bool settingsSaveSettings(bool includeVFOs)
 
 bool settingsLoadSettings(void)
 {
+	bool hasRestoredDefaultsettings=false;
 	bool readOK = EEPROM_Read(STORAGE_BASE_ADDRESS, (uint8_t*)&nonVolatileSettings, sizeof(settingsStruct_t));
 	if ((nonVolatileSettings.magicNumber != STORAGE_MAGIC_NUMBER) || (readOK != true))
 	{
 		settingsRestoreDefaultSettings();
+		hasRestoredDefaultsettings = true;
 	}
 
 // Force Hotspot mode to off for existing RD-5R users.
@@ -105,7 +107,7 @@ bool settingsLoadSettings(void)
 	settingsDirty = false;
 	settingsVFODirty = false;
 
-	return readOK;
+	return hasRestoredDefaultsettings;
 }
 
 void settingsInitVFOChannel(int vfoNumber)
@@ -157,12 +159,20 @@ void settingsRestoreDefaultSettings(void)
 	nonVolatileSettings.displayBacklightPercentageOff = 0U;// 0% brightness
 	nonVolatileSettings.displayInverseVideo = false;// Not inverse video
 	nonVolatileSettings.useCalibration = true;// enable the new calibration system
-	nonVolatileSettings.txFreqLimited = true;// Limit Tx frequency to US Amateur bands
-//	#if(PLATFORM_GD-77  || PLATFORM_GD77S)
-	nonVolatileSettings.txPowerLevel = 11;// 1W Power level in trx.c must match 1W level case
-//	#elif (PLATFORM_DM1801)
-//	nonVolatileSettings.txPowerLevel=4;// 1 W
-//	#endif
+	nonVolatileSettings.txFreqLimited =
+#if defined(PLATFORM_GD77S)
+			false;//GD-77S is channelised, and there is no way to disable band limits from the UI, so disable limits by default.
+#else
+			true;// Limit Tx frequency to US Amateur bands
+#endif
+	nonVolatileSettings.txPowerLevel =
+#if defined(PLATFORM_GD77S)
+			10; // 750mW
+#elif defined(PLATFORM_DM1801) || defined(PLATFORM_RD5R)
+			4; // 1 W   3:750  2:500  1:250
+#elif defined(PLATFORM_GD77)
+			11;// 1W Power level in trx.c must match 1W level case
+#endif
 	nonVolatileSettings.overrideTG = 0;// 0 = No override
 	nonVolatileSettings.txTimeoutBeepX5Secs = 0;
 	nonVolatileSettings.beepVolumeDivider =
@@ -225,11 +235,18 @@ void settingsRestoreDefaultSettings(void)
 	// VOX related
 	nonVolatileSettings.voxThreshold = 20;
 	nonVolatileSettings.voxTailUnits = 4; // 2 seconds tail
-	nonVolatileSettings.audioPromptMode =
+
 #if defined(PLATFORM_GD77S)
-			AUDIO_PROMPT_MODE_VOICE_LEVEL_3;
+	nonVolatileSettings.audioPromptMode = AUDIO_PROMPT_MODE_VOICE_LEVEL_3;
 #else
-			AUDIO_PROMPT_MODE_NORMAL;
+	if (voicePromptDataIsLoaded)
+	{
+		nonVolatileSettings.audioPromptMode =	AUDIO_PROMPT_MODE_VOICE_LEVEL_1;
+	}
+	else
+	{
+		nonVolatileSettings.audioPromptMode = AUDIO_PROMPT_MODE_BEEP;
+	}
 #endif
 
 	currentChannelData = &settingsVFOChannel[nonVolatileSettings.currentVFONumber];// Set the current channel data to point to the VFO data since the default screen will be the VFO
@@ -237,6 +254,16 @@ void settingsRestoreDefaultSettings(void)
 	settingsDirty = true;
 
 	settingsSaveSettings(false);
+}
+
+void enableVoicePromptsIfLoaded(void)
+{
+	if (voicePromptDataIsLoaded)
+	{
+		nonVolatileSettings.audioPromptMode =	AUDIO_PROMPT_MODE_VOICE_LEVEL_1;
+		settingsDirty = true;
+		settingsSaveSettings(false);
+	}
 }
 
 void settingsEraseCustomContent(void)

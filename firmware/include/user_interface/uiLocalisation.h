@@ -174,10 +174,11 @@ typedef struct stringsTable
    const char *gitCommit;
    const char *voice_prompt_level_2;
    const char *voice_prompt_level_3;
-   const char *tone;
    const char *dmr_filter;
    const char *dmr_cc_filter;
    const char *dmr_ts_filter;
+   const char *dtmf_contact_list;// Menu number 18
+   const char *tone;
    const char *display;
 } stringsTable_t;
 

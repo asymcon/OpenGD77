@@ -47,8 +47,6 @@ static void handleUpKey(uiEvent_t *ev);
 
 static bool isDisplayingQSOData = false;
 
-static int16_t newChannelIndex = 0;
-
 bool scanToneActive = false;//tone scan active flag  (CTCSS/DCS)
 static const int SCAN_TONE_INTERVAL = 200;//time between each tone for lowest tone. (higher tones take less time.)
 static int scanToneIndex = 0;
@@ -700,17 +698,6 @@ static void handleEvent(uiEvent_t *ev)
 
 	if (ev->events & BUTTON_EVENT)
 	{
-		if (BUTTONCHECK_SHORTUP(ev, BUTTON_SK1))
-		{
-			if (!voicePromptIsActive)
-			{
-				voicePromptsPlay();
-			}
-			else
-			{
-				voicePromptsTerminate();
-			}
-		}
 
 #if ! defined(PLATFORM_RD5R)
 		// Stop the scan if any button is pressed.
@@ -720,6 +707,11 @@ static void handleEvent(uiEvent_t *ev)
 			return;
 		}
 #endif
+
+		if (repeatVoicePromptOnSK1(ev))
+		{
+			return;
+		}
 
 		uint32_t tg = (LinkHead->talkGroupOrPcId & 0xFFFFFF);
 
@@ -857,13 +849,13 @@ static void handleEvent(uiEvent_t *ev)
 		{
 			if (KEYCHECK_SHORTUP(ev->keys, KEY_HASH))
 			{
-				if (trxGetMode() == RADIO_MODE_DIGITAL)
+				if (BUTTONCHECK_DOWN(ev, BUTTON_SK2))
 				{
-					if (BUTTONCHECK_DOWN(ev, BUTTON_SK2))
-					{
-						menuSystemPushNewMenu(MENU_CONTACT_QUICKLIST);
-					}
-					else
+					menuSystemPushNewMenu(MENU_CONTACT_QUICKLIST);
+				}
+				else
+				{
+					if (trxGetMode() == RADIO_MODE_DIGITAL)
 					{
 						menuSystemPushNewMenu(MENU_NUMERICAL_ENTRY);
 					}
@@ -890,8 +882,11 @@ static void handleEvent(uiEvent_t *ev)
 					else
 					{
 						currentChannelData->chMode = RADIO_MODE_ANALOG;
+
 						trxSetModeAndBandwidth(currentChannelData->chMode, ((currentChannelData->flag4 & 0x02) == 0x02));
+						announceItem(PROMPT_SEQUENCE_MODE,PROMPT_THRESHOLD_3);
 					}
+
 					menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
 				}
 				else
@@ -912,6 +907,7 @@ static void handleEvent(uiEvent_t *ev)
 						{
 							menuVFOExitStatus |= MENU_STATUS_FORCE_FIRST;
 						}
+						announceItem(PROMPT_SEQUENCE_TS,PROMPT_THRESHOLD_3);
 					}
 					else
 					{
@@ -1111,11 +1107,11 @@ static void handleEvent(uiEvent_t *ev)
 						else
 						{
 							if (currentChannelData->sql < CODEPLUG_MAX_VARIABLE_SQUELCH)
-
 							{
 								currentChannelData->sql++;
 							}
 						}
+						announceItem(PROMPT_SQUENCE_SQUELCH,PROMPT_THRESHOLD_3);
 
 						menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
 						displaySquelch = true;
@@ -1197,6 +1193,8 @@ static void handleEvent(uiEvent_t *ev)
 								currentChannelData->sql--;
 							}
 						}
+
+						announceItem(PROMPT_SQUENCE_SQUELCH,PROMPT_THRESHOLD_3);
 						menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
 						displaySquelch = true;
 						uiVFOModeUpdateScreen(0);
@@ -1253,16 +1251,13 @@ static void handleEvent(uiEvent_t *ev)
 
 			if (keyval != 99)
 			{
-				if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+				voicePromptsInit();
+				voicePromptsAppendPrompt(PROMPT_0 +  keyval);
+				if ((freq_enter_idx == 2) || (freq_enter_idx == 8))
 				{
-					voicePromptsInit();
-					voicePromptsAppendPrompt(PROMPT_0 +  keyval);
-					if ((freq_enter_idx == 2) || (freq_enter_idx == 8))
-					{
-						voicePromptsAppendPrompt(PROMPT_POINT);
-					}
-					voicePromptsPlay();
+					voicePromptsAppendPrompt(PROMPT_POINT);
 				}
+				voicePromptsPlay();
 
 				freq_enter_digits[freq_enter_idx] = (char) keyval + '0';
 				freq_enter_idx++;
@@ -1422,15 +1417,12 @@ menuStatus_t uiVFOModeQuickMenu(uiEvent_t *ev, bool isFirstRun)
 		tmpQuickMenuDmrCcTsFilterLevel = nonVolatileSettings.dmrCcTsFilter;
 		tmpQuickMenuAnalogFilterLevel = nonVolatileSettings.analogFilterLevel;
 
-		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
-		{
-			voicePromptsInit();
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendLanguageString(&currentLanguage->quick_menu);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-		}
+		voicePromptsInit();
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendLanguageString(&currentLanguage->quick_menu);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
 
 		updateQuickMenuScreen(true);
 		return (MENU_STATUS_LIST_TYPE | MENU_STATUS_SUCCESS);
@@ -1569,7 +1561,7 @@ static void updateQuickMenuScreen(bool isFirstRun)
 			snprintf(buf, bufferLen, "%s", (rightSideVar[0] ? rightSideVar : *rightSideConst));
 		}
 
-		if ((i == 0) && (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1))
+		if (i == 0)
 		{
 			if (!isFirstRun)
 			{
@@ -1611,6 +1603,14 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 	bool isDirty = false;
 
 	displayLightTrigger();
+
+	if (ev->events & BUTTON_EVENT)
+	{
+		if (repeatVoicePromptOnSK1(ev))
+		{
+			return;
+		}
+	}
 
 	if (KEYCHECK_SHORTUP(ev->keys, KEY_RED))
 	{
@@ -1672,52 +1672,56 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 				return;
 				break;
 			case VFO_SCREEN_QUICK_MENU_VFO_TO_NEW:
-				//look for empty channel
-				for (newChannelIndex = 1; newChannelIndex < 1024; newChannelIndex++)
 				{
-					if (!codeplugChannelIndexIsValid(newChannelIndex))
+					int16_t newChannelIndex;
+
+					//look for empty channel
+					for (newChannelIndex = CODEPLUG_CONTACTS_MIN; newChannelIndex <= CODEPLUG_CONTACTS_MAX; newChannelIndex++)
 					{
-						break;
+						if (!codeplugChannelIndexIsValid(newChannelIndex))
+						{
+							break;
+						}
 					}
-				}
 
-				if (newChannelIndex < 1024)
-				{
-					//set zone to all channels and channel index to free channel found
-					settingsSet(nonVolatileSettings.currentZone, (codeplugZonesGetCount() - 1));
+					if (newChannelIndex <= CODEPLUG_CONTACTS_MAX)
+					{
+						//set zone to all channels and channel index to free channel found
+						settingsSet(nonVolatileSettings.currentZone, (codeplugZonesGetCount() - 1));
 
-					settingsSet(nonVolatileSettings.currentChannelIndexInAllZone, newChannelIndex);
+						settingsSet(nonVolatileSettings.currentChannelIndexInAllZone, newChannelIndex);
 
-					settingsCurrentChannelNumber = newChannelIndex;
+						settingsCurrentChannelNumber = newChannelIndex;
 
-					memcpy(&channelScreenChannelData.rxFreq, &settingsVFOChannel[nonVolatileSettings.currentVFONumber].rxFreq, sizeof(struct_codeplugChannel_t) - 16);// Don't copy the name of the vfo, which are in the first 16 bytes
+						memcpy(&channelScreenChannelData.rxFreq, &settingsVFOChannel[nonVolatileSettings.currentVFONumber].rxFreq, sizeof(struct_codeplugChannel_t) - 16);// Don't copy the name of the vfo, which are in the first 16 bytes
 
-					snprintf((char *) &channelScreenChannelData.name, 16, "%s %d", currentLanguage->new_channel, newChannelIndex);
+						snprintf((char *) &channelScreenChannelData.name, 16, "%s %d", currentLanguage->new_channel, newChannelIndex);
 
-					codeplugChannelSaveDataForIndex(newChannelIndex, &channelScreenChannelData);
+						codeplugChannelSaveDataForIndex(newChannelIndex, &channelScreenChannelData);
 
-					//Set channel index as valid
-					codeplugChannelIndexSetValid(newChannelIndex);
-					//settingsSet(nonVolatileSettings.overrideTG, 0); // remove any TG override
-					settingsSet(nonVolatileSettings.currentChannelIndexInZone, 0);// Since we are switching zones the channel index should be reset
-					channelScreenChannelData.rxFreq = 0x00; // Flag to the Channel screen that the channel data is now invalid and needs to be reloaded
+						//Set channel index as valid
+						codeplugChannelIndexSetValid(newChannelIndex);
+						//settingsSet(nonVolatileSettings.overrideTG, 0); // remove any TG override
+						settingsSet(nonVolatileSettings.currentChannelIndexInZone, 0);// Since we are switching zones the channel index should be reset
+						channelScreenChannelData.rxFreq = 0x00; // Flag to the Channel screen that the channel data is now invalid and needs to be reloaded
 
-					//copy current channel from vfo to channel
-					settingsSet(nonVolatileSettings.currentIndexInTRxGroupList[0], nonVolatileSettings.currentIndexInTRxGroupList[SETTINGS_VFO_A_MODE + nonVolatileSettings.currentVFONumber]);
+						//copy current channel from vfo to channel
+						settingsSet(nonVolatileSettings.currentIndexInTRxGroupList[0], nonVolatileSettings.currentIndexInTRxGroupList[SETTINGS_VFO_A_MODE + nonVolatileSettings.currentVFONumber]);
 
-					//copy current TS
-					tsSetOverride(((Channel_t)nonVolatileSettings.currentVFONumber), (trxGetDMRTimeSlot() + 1));
+						//copy current TS
+						tsSetOverride(((Channel_t)nonVolatileSettings.currentVFONumber), (trxGetDMRTimeSlot() + 1));
 
-					inhibitInitialVoicePrompt = true;
-					menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE, true);
+						inhibitInitialVoicePrompt = true;
+						menuSystemPopAllAndDisplaySpecificRootMenu(UI_CHANNEL_MODE, true);
 
-					soundSetMelody(MELODY_ACK_BEEP);
+						soundSetMelody(MELODY_ACK_BEEP);
 
-					return;
-				}
-				else
-				{
-					soundSetMelody(MELODY_ERROR_BEEP);
+						return;
+					}
+					else
+					{
+						soundSetMelody(MELODY_ERROR_BEEP);
+					}
 				}
 				break;
 			case VFO_SCREEN_TONE_SCAN:
@@ -1884,6 +1888,9 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 		menuSystemMenuIncrement(&gMenusCurrentItemIndex, NUM_VFO_SCREEN_QUICK_MENU_ITEMS);
 		menuQuickVFOExitStatus |= MENU_STATUS_LIST_TYPE;
 	}
+
+#if defined(PLATFORM_GD77) || defined(PLATFORM_GD77S) || defined(PLATFORM_DM1801)
+
 	else if (((ev->events & BUTTON_EVENT) && (ev->buttons & BUTTON_ORANGE)) && (gMenusCurrentItemIndex==VFO_SCREEN_QUICK_MENU_SCAN))
 	{
 		initScan();
@@ -1892,6 +1899,9 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 		menuSystemPopPreviousMenu();
 		return;
 	}
+
+#endif
+
 	else if (KEYCHECK_PRESS(ev->keys, KEY_UP))
 	{
 		isDirty = true;

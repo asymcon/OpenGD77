@@ -28,14 +28,14 @@ enum voicePrompts { PROMPT_SILENCE = 0, PROMPT_POINT, PROMPT_0, PROMPT_1, PROMPT
 	PROMPT_PLUS, PROMPT_MINUS,
 	PROMPT_VFO_EXCHANGE_TX_RX, PROMPT_VFO_COPY_RX_TO_TX, PROMPT_VFO_COPY_TX_TO_RX,
 	PROMPT_POWER, PROMPT_CHANNEL_MODE, PROMPT_SCAN_MODE, PROMPT_TIMESLOT_MODE, PROMPT_FILTER_MODE, PROMPT_ZONE_MODE, PROMPT_POWER_MODE, PROMPT_COLORCODE_MODE,
-	PROMPT_TBD1, PROMPT_TBD2, PROMPT_TBD3, PROMPT_TBD4, PROMPT_TBD5, PROMPT_TBD6, PROMPT_TBD7, PROMPT_TBD8, PROMPT_TBD9, PROMPT_TBD10,
+	PROMPT_HERTZ, PROMPT_TBD2, PROMPT_TBD3, PROMPT_TBD4, PROMPT_TBD5, PROMPT_TBD6, PROMPT_TBD7, PROMPT_TBD8, PROMPT_TBD9, PROMPT_TBD10,
 	PROMPT_TBD11, PROMPT_TBD12, PROMPT_TBD13, PROMPT_TBD14, PROMPT_TBD15, PROMPT_TBD16, PROMPT_TBD17, PROMPT_TBD18, PROMPT_TBD19, PROMPT_TBD20,
 	NUM_VOICE_PROMPTS
 };
 
 
-extern bool voicePromptIsActive;
 extern bool voicePromptDataIsLoaded;
+extern const uint32_t VOICE_PROMPTS_FLASH_HEADER_ADDRESS;
 
 void voicePromptsCacheInit(void);
 void voicePromptsTick(void);// Called from HR-C6000.c
@@ -46,7 +46,7 @@ void voicePromptsAppendString(char *);// Append a text string e.g. "VK3KYY"
 void voicePromptsAppendInteger(int32_t value); // Append a signed integer
 void voicePromptsAppendLanguageString(const char * const *);//Append a text from the current language e.g. &currentLanguage->battery
 void voicePromptsPlay(void);// Starts prompt playback
-bool voicePromptsIsPlaying(void);
+extern bool voicePromptsIsPlaying(void);
 bool voicePromptsHasDataToPlay(void);
 void voicePromptsTerminate(void);
 

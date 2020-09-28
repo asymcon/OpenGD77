@@ -157,6 +157,9 @@ void menuAcceptPrivateCall(int id);
 
 void menuHotspotRestoreSettings(void);
 
+void menuContactListDTMFSequenceReset(void);
+bool menuContactListIsDTMFSequenceKeying(void);
+
 void menuSystemMenuIncrement(int32_t *O, int32_t M);
 void menuSystemMenuDecrement(int32_t *O, int32_t M);
 
@@ -200,6 +203,7 @@ enum MENU_SCREENS { UI_SPLASH_SCREEN=0,
 					UI_VFO_QUICK_MENU,
 					UI_LOCK_SCREEN,
 					MENU_CONTACT_LIST,
+					MENU_DTMF_CONTACT_LIST,
 					MENU_CONTACT_QUICKLIST,
 					MENU_CONTACT_LIST_SUBMENU,
 					MENU_CONTACT_DETAILS,

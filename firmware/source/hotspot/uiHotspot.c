@@ -323,7 +323,6 @@ static void hotspotExit(void);
 static void hotspotStateMachine(void);
 static void processUSBDataQueue(void);
 static void handleHotspotRequest(void);
-static void disableTransmission(void);
 static void cwReset(void);
 static void cwProcess(void);
 
@@ -825,26 +824,6 @@ static void processUSBDataQueue(void)
 			}
 		}
 	}
-}
-
-static void enableTransmission(void)
-{
-	GPIO_PinWrite(GPIO_LEDgreen, Pin_LEDgreen, 0);
-	GPIO_PinWrite(GPIO_LEDred, Pin_LEDred, 1);
-
-	txstopdelay = 0;
-	trx_setTX();
-}
-
-static void disableTransmission(void)
-{
-	GPIO_PinWrite(GPIO_LEDred, Pin_LEDred, 0);
-	// Need to wrap this in Task Critical to avoid bus contention on the I2C bus.
-	taskENTER_CRITICAL();
-	trxActivateRx();
-	taskEXIT_CRITICAL();
-	//trxSetFrequency(freq_rx,freq_tx);
-
 }
 
 static void swapWithFakeTA(uint8_t *lc)

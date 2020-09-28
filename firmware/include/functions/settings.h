@@ -138,7 +138,6 @@ typedef enum TONE_SCAN_CSS
 typedef enum AUDIO_PROMPT_MODE
 {
 	AUDIO_PROMPT_MODE_SILENT = 0,
-	AUDIO_PROMPT_MODE_NORMAL,
 	AUDIO_PROMPT_MODE_BEEP,
 	AUDIO_PROMPT_MODE_VOICE_LEVEL_1,
 	AUDIO_PROMPT_MODE_VOICE_LEVEL_2,
@@ -158,6 +157,7 @@ extern settingsStruct_t nonVolatileSettings;
 extern struct_codeplugChannel_t *currentChannelData;
 extern struct_codeplugChannel_t channelScreenChannelData;
 extern struct_codeplugContact_t contactListContactData;
+extern struct_codeplugDTMFContact_t contactListDTMFContactData;
 extern int contactListContactIndex;
 extern int settingsUsbMode;
 
@@ -235,5 +235,6 @@ void settingsRestoreDefaultSettings(void);
 void settingsEraseCustomContent(void);
 void settingsInitVFOChannel(int vfoNumber);
 bool settingsPlatformSpecificSaveSettings(bool includeVFOs);
+void enableVoicePromptsIfLoaded(void);
 
 #endif

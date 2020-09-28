@@ -1573,7 +1573,7 @@ void tick_HR_C6000(void)
 		else
 		{
 			// voice prompts take priority over incoming DMR audio
-			if (!voicePromptIsActive && hasEncodedAudio)
+			if (!voicePromptsIsPlaying() && hasEncodedAudio)
 			{
 				hasEncodedAudio = false;
 				codecDecode((uint8_t *)DMR_frame_buffer + 0x0C, 3);

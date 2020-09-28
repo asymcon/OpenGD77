@@ -43,10 +43,33 @@
 #endif
 
 #define FREQUENCY_X_POS  /* '>Ta'*/ ((3 * 8) + 4)
+#if defined(PLATFORM_GD77) || defined(PLATFORM_GD77S)
 #define MAX_POWER_SETTING_NUM                  18
+#else
+#define MAX_POWER_SETTING_NUM                  9
+#endif
 #define NUM_PC_OR_TG_DIGITS                    8
 #define MAX_TG_OR_PC_VALUE              16777215
 
+#if defined(PLATFORM_GD77S)
+#define ANNOUNCE_STATIC
+#else
+#define ANNOUNCE_STATIC static
+#endif
+
+#if defined(PLATFORM_GD77S)
+// Displaying ANNOUNCE_STATIC here is a bit overkill but it makes things clearer.
+ANNOUNCE_STATIC void announceRadioMode(bool voicePromptWasPlaying);
+ANNOUNCE_STATIC void announceZoneName(bool voicePromptWasPlaying);
+ANNOUNCE_STATIC void announceContactNameTgOrPc(void);
+ANNOUNCE_STATIC void announcePowerLevel(void);
+ANNOUNCE_STATIC void announceBatteryPercentage(void);
+ANNOUNCE_STATIC void announceTS(void);
+ANNOUNCE_STATIC void announceCC(void);
+ANNOUNCE_STATIC void announceChannelName(bool voicePromptWasPlaying);
+ANNOUNCE_STATIC void announceFrequency(void);
+ANNOUNCE_STATIC void announceVFOAndFrequency(void);
+#endif
 
 extern struct_codeplugRxGroup_t currentRxGroupData;
 extern struct_codeplugContact_t currentContactData;
@@ -64,6 +87,7 @@ typedef enum
 	PROMPT_SEQUENCE_CC,
 	PROMPT_SEQUENCE_POWER,
 	PROMPT_SEQUENCE_BATTERY,
+	PROMPT_SQUENCE_SQUELCH,
 	NUM_PROMPT_SEQUENCES
 } voicePromptItem_t;
 
@@ -82,7 +106,7 @@ typedef struct
 {
 	uint32_t entries;
 	uint8_t  contactLength;
-	int32_t  slices[ID_SLICES]; // [0] is min availabel ID, [REGION - 1] is max available ID
+	int32_t  slices[ID_SLICES]; // [0] is min availabel ID, [ID_SLICES - 1] is max available ID
 	uint32_t IDsPerSlice;
 
 } dmrIDsCache_t;
@@ -175,32 +199,15 @@ int read_freq_enter_digits(int startDigit, int endDigit);
 int getBatteryPercentage(void);
 void decreasePowerLevel(void);
 void increasePowerLevel(void);
-/*
-void announceTG(void);
-void announcePowerLevel(void);
-void announceBatteryPercentage(void);
 
-void announceVFOAndFrequency(bool announceImmediatly);
-void removeUnnecessaryZerosFromVoicePrompts(char *str);
-void announceChannelName(void);
-*/
-
-void announceRadioMode(void);
-void announceZoneName(void);
-void announceContactNameTgOrPc(void);
-void announcePowerLevel(void);
-void announceBatteryPercentage(void);
-void announceTS(void);
-void announceCC(void);
-void announceChannelName(void);
-void announceFrequency(void);
-void announceVFOAndFrequency(void);
+void announceChar(char ch);
+void announceCSSCode(uint16_t code, CSSTypes_t cssType, bool inverted);
 
 void announceItem(voicePromptItem_t item, audioPromptThreshold_t immediateAnnouceThreshold);
 void playNextSettingSequence(void);
-void SpeakChar(char ch);
-void SpeakCSSCode(uint16_t num, CSSTypes_t cssType, bool inverted);
-
 void buildTgOrPCDisplayName(char *nameBuf, int bufferLen);
 void acceptPrivateCall(int id );
+bool repeatVoicePromptOnSK1(uiEvent_t *ev);
+
+
 #endif

@@ -277,18 +277,18 @@ static void searchNextChannel(void)
 			nextChannelIndex += scanDirection;
 			if (scanDirection == 1)
 			{
-				if (nextChannelIndex > 1024)
+				if (nextChannelIndex > CODEPLUG_CONTACTS_MAX)
 				{
-					nextChannelIndex = 1;
+					nextChannelIndex = CODEPLUG_CONTACTS_MIN;
 				}
 			}
 			else
 			{
 				// Note this is inefficient check all the index down from 1024 until it gets to the first valid index from the end.
 				// To improve this. Highest valid channel number would need to be found and cached when the radio boots up
-				if (nextChannelIndex < 1)
+				if (nextChannelIndex < CODEPLUG_CONTACTS_MIN)
 				{
-					nextChannelIndex = 1024;
+					nextChannelIndex = CODEPLUG_CONTACTS_MAX;
 				}
 			}
 		} while(!codeplugChannelIndexIsValid(nextChannelIndex));
@@ -700,16 +700,9 @@ static void handleEvent(uiEvent_t *ev)
 
 	if (ev->events & BUTTON_EVENT)
 	{
-		if (BUTTONCHECK_SHORTUP(ev, BUTTON_SK1))
+		if (repeatVoicePromptOnSK1(ev))
 		{
-			if (!voicePromptIsActive)
-			{
-				voicePromptsPlay();
-			}
-			else
-			{
-				voicePromptsTerminate();
-			}
+			return;
 		}
 
 		uint32_t tg = (LinkHead->talkGroupOrPcId & 0xFFFFFF);
@@ -873,18 +866,18 @@ static void handleEvent(uiEvent_t *ev)
 		}
 		else if (KEYCHECK_SHORTUP(ev->keys, KEY_HASH))
 		{
-			if (trxGetMode() == RADIO_MODE_DIGITAL)
+			if (BUTTONCHECK_DOWN(ev, BUTTON_SK2) != 0)
 			{
-				if (BUTTONCHECK_DOWN(ev, BUTTON_SK2) != 0)
-				{
-					menuSystemPushNewMenu(MENU_CONTACT_QUICKLIST);
-				}
-				else
+				menuSystemPushNewMenu(MENU_CONTACT_QUICKLIST);
+			}
+			else
+			{
+				if (trxGetMode() == RADIO_MODE_DIGITAL)
 				{
 					menuSystemPushNewMenu(MENU_NUMERICAL_ENTRY);
 				}
-				return;
 			}
+			return;
 		}
 		else if (KEYCHECK_SHORTUP(ev->keys, KEY_RED))
 		{
@@ -1004,6 +997,8 @@ static void handleEvent(uiEvent_t *ev)
 						}
 					}
 
+					announceItem(PROMPT_SQUENCE_SQUELCH,PROMPT_THRESHOLD_3);
+
 					menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
 					displaySquelch = true;
 					uiChannelModeUpdateScreen(0);
@@ -1084,6 +1079,8 @@ static void handleEvent(uiEvent_t *ev)
 						}
 					}
 
+					announceItem(PROMPT_SQUENCE_SQUELCH,PROMPT_THRESHOLD_3);
+
 					menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
 					displaySquelch = true;
 					uiChannelModeUpdateScreen(0);
@@ -1106,7 +1103,9 @@ static void handleEvent(uiEvent_t *ev)
 					channelScreenChannelData.chMode = RADIO_MODE_ANALOG;
 					trxSetModeAndBandwidth(channelScreenChannelData.chMode, ((channelScreenChannelData.flag4 & 0x02) == 0x02));
 					trxSetRxCSS(currentChannelData->rxTone);
+					announceItem(PROMPT_SEQUENCE_MODE,PROMPT_THRESHOLD_3);
 				}
+
 				menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
 				uiChannelModeUpdateScreen(0);
 			}
@@ -1129,6 +1128,7 @@ static void handleEvent(uiEvent_t *ev)
 					{
 						menuChannelExitStatus |= MENU_STATUS_FORCE_FIRST;
 					}
+					announceItem(PROMPT_SEQUENCE_TS,PROMPT_THRESHOLD_3);
 				}
 				else
 				{
@@ -1195,9 +1195,9 @@ static void handleEvent(uiEvent_t *ev)
 					do
 					{
 						settingsDecrement(nonVolatileSettings.currentChannelIndexInAllZone, 1);
-						if (nonVolatileSettings.currentChannelIndexInAllZone < 1)
+						if (nonVolatileSettings.currentChannelIndexInAllZone < CODEPLUG_CONTACTS_MIN)
 						{
-							settingsSet(nonVolatileSettings.currentChannelIndexInAllZone, 1024);
+							settingsSet(nonVolatileSettings.currentChannelIndexInAllZone, CODEPLUG_CONTACTS_MAX);
 						}
 					} while(!codeplugChannelIndexIsValid(nonVolatileSettings.currentChannelIndexInAllZone));
 
@@ -1243,7 +1243,7 @@ static void handleEvent(uiEvent_t *ev)
 				directChannelNumber = (directChannelNumber * 10) + keyval;
 				if (currentZone.NOT_IN_MEMORY_isAllChannelsZone)
 				{
-					if(directChannelNumber > 1024)
+					if(directChannelNumber > CODEPLUG_CONTACTS_MAX)
 					{
 						directChannelNumber = 0;
 						soundSetMelody(MELODY_ERROR_BEEP);
@@ -1252,31 +1252,26 @@ static void handleEvent(uiEvent_t *ev)
 				else
 				{
 					if(directChannelNumber > currentZone.NOT_IN_MEMORY_numChannelsInZone)
-						{
-							directChannelNumber = 0;
-							soundSetMelody(MELODY_ERROR_BEEP);
-						}
-
+					{
+						directChannelNumber = 0;
+						soundSetMelody(MELODY_ERROR_BEEP);
+					}
 				}
 
-				if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+				if (directChannelNumber > 0)
 				{
-					if (directChannelNumber > 0)
+					voicePromptsInit();
+					if (directChannelNumber < 10)
 					{
-						voicePromptsInit();
-						if (directChannelNumber < 10)
-						{
-							voicePromptsAppendLanguageString(&currentLanguage->gotoChannel);
-						}
-						voicePromptsAppendPrompt(PROMPT_0 + keyval);
-						voicePromptsPlay();
+						voicePromptsAppendLanguageString(&currentLanguage->gotoChannel);
 					}
-					else
-					{
-						announceItem(PROMPT_SEQUENCE_CHANNEL_NAME_OR_VFO_FREQ, PROMPT_THRESHOLD_3);
-					}
+					voicePromptsAppendPrompt(PROMPT_0 + keyval);
+					voicePromptsPlay();
 				}
-
+				else
+				{
+					announceItem(PROMPT_SEQUENCE_CHANNEL_NAME_OR_VFO_FREQ, PROMPT_THRESHOLD_3);
+				}
 
 				menuDisplayQSODataState = QSO_DISPLAY_DEFAULT_SCREEN;
 				uiChannelModeUpdateScreen(0);
@@ -1343,7 +1338,7 @@ static void handleUpKey(uiEvent_t *ev)
 			{
 				settingsIncrement(nonVolatileSettings.currentChannelIndexInAllZone, 1);
 
-				if (nonVolatileSettings.currentChannelIndexInAllZone > 1024)
+				if (nonVolatileSettings.currentChannelIndexInAllZone > CODEPLUG_CONTACTS_MAX)
 				{
 					settingsSet(nonVolatileSettings.currentChannelIndexInAllZone, 1);
 					menuChannelExitStatus |= (MENU_STATUS_LIST_TYPE | MENU_STATUS_FORCE_FIRST);
@@ -1475,7 +1470,7 @@ static void updateQuickMenuScreen(bool isFirstRun)
 			snprintf(buf, bufferLen, "%s", (rightSideVar[0] ? rightSideVar : *rightSideConst));
 		}
 
-		if ((i == 0) && (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1))
+		if (i == 0)
 		{
 			if (!isFirstRun)
 			{
@@ -1508,6 +1503,14 @@ static void updateQuickMenuScreen(bool isFirstRun)
 static void handleQuickMenuEvent(uiEvent_t *ev)
 {
 	bool isDirty = false;
+
+	if (ev->events & BUTTON_EVENT)
+	{
+		if (repeatVoicePromptOnSK1(ev))
+		{
+			return;
+		}
+	}
 
 	if (KEYCHECK_SHORTUP(ev->keys, KEY_RED))
 	{
@@ -1659,6 +1662,7 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 					menuSystemMenuDecrement(&gMenusCurrentItemIndex, NUM_CH_SCREEN_QUICK_MENU_ITEMS);
 					menuQuickChannelExitStatus |= MENU_STATUS_LIST_TYPE;
 				}
+#if defined(PLATFORM_GD77) || defined(PLATFORM_GD77S) || defined(PLATFORM_DM1801)
 				else
 				{
 					if (((ev->events & BUTTON_EVENT) && (ev->buttons & BUTTON_ORANGE)) && (gMenusCurrentItemIndex==CH_SCREEN_QUICK_MENU_SCAN))
@@ -1666,8 +1670,9 @@ static void handleQuickMenuEvent(uiEvent_t *ev)
 						startScan(true);
 						menuSystemPopPreviousMenu();
 						return;
-					}	
-				}		
+					}
+				}
+#endif
 			}
 		}
 	}
@@ -1687,15 +1692,12 @@ menuStatus_t uiChannelModeQuickMenu(uiEvent_t *ev, bool isFirstRun)
 		tmpQuickMenuDmrCcTsFilterLevel = nonVolatileSettings.dmrCcTsFilter;
 		tmpQuickMenuAnalogFilterLevel = nonVolatileSettings.analogFilterLevel;
 
-		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
-		{
-			voicePromptsInit();
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendLanguageString(&currentLanguage->quick_menu);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-		}
+		voicePromptsInit();
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendLanguageString(&currentLanguage->quick_menu);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
 
 		updateQuickMenuScreen(true);
 		return (MENU_STATUS_LIST_TYPE | MENU_STATUS_SUCCESS);
@@ -2162,7 +2164,7 @@ static void buildSpeechUiModeForGD77S(GD77S_UIMODES_t uiMode)
 			break;
 
 		case GD77S_UIMODE_ZONE: // Zone
-			announceZoneName();
+			announceZoneName(voicePromptsIsPlaying());
 			break;
 
 

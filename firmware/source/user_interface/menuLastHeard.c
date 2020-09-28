@@ -149,8 +149,16 @@ void menuLastHeardUpdateScreen(bool showTitleOrHeader, bool displayDetails, bool
 static void handleEvent(uiEvent_t *ev)
 {
 	bool isDirty = false;
+
 	displayLightTrigger();
 
+	if (ev->events & BUTTON_EVENT)
+	{
+		if (repeatVoicePromptOnSK1(ev))
+		{
+			return;
+		}
+	}
 
 	if (KEYCHECK_PRESS(ev->keys, KEY_DOWN))
 	{
@@ -197,15 +205,16 @@ static void handleEvent(uiEvent_t *ev)
 
 	if (isDirty)
 	{
-		bool voicePromptsWerePlaying = voicePromptIsActive;
-		if ((nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1) && voicePromptIsActive)
+		bool voicePromptsWerePlaying = voicePromptsIsPlaying();
+
+		if ((nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1) && voicePromptsWerePlaying)
 		{
 			voicePromptsTerminate();
 		}
 
 		menuLastHeardUpdateScreen(true, displayLHDetails, false);// This will also setup the voice prompt
 
-		if ((nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1) && voicePromptsWerePlaying)
+		if (voicePromptsWerePlaying)
 		{
 			voicePromptsPlay();
 		}
@@ -214,7 +223,7 @@ static void handleEvent(uiEvent_t *ev)
 	{
 		if (BUTTONCHECK_SHORTUP(ev, BUTTON_SK1))
 		{
-			if (!voicePromptIsActive)
+			if (!voicePromptsIsPlaying())
 			{
 				voicePromptsPlay();
 			}
@@ -242,9 +251,9 @@ static void menuLastHeardDisplayTA(uint8_t y, char *text, uint32_t time, uint32_
 	snprintf(timeBuffer, 5, "%d", (((now - time) / 1000U) / 60U));// Time
 	timeBuffer[5] = 0;
 
-	if (itemIsSelected && (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1))
+	if (itemIsSelected)
 	{
-		if (voicePromptIsActive)
+		if (voicePromptsIsPlaying())
 		{
 			voicePromptsTerminate();
 		}

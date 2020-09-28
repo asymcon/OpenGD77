@@ -18,7 +18,7 @@
 #include <settings.h>
 #include <user_interface/menuSystem.h>
 #include <user_interface/uiLocalisation.h>
-
+#include <user_interface/uiUtilities.h>
 
 static void updateScreen(void);
 static void handleEvent(uiEvent_t *ev);
@@ -56,7 +56,8 @@ static void updateScreen(void)
 	{
 		mNum = menuGetMenuOffset(NUM_LANGUAGES, i);
 		menuDisplayEntry(i, mNum, (char *)languages[mNum].LANGUAGE_NAME);
-		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1 && i==0)
+
+		if (i == 0)
 		{
 			voicePromptsInit();
 			voicePromptsAppendString((char *)languages[mNum].LANGUAGE_NAME);
@@ -71,6 +72,14 @@ static void updateScreen(void)
 static void handleEvent(uiEvent_t *ev)
 {
 	displayLightTrigger();
+
+	if (ev->events & BUTTON_EVENT)
+	{
+		if (repeatVoicePromptOnSK1(ev))
+		{
+			return;
+		}
+	}
 
 	if (KEYCHECK_PRESS(ev->keys, KEY_DOWN) && (gMenusEndIndex != 0))
 	{

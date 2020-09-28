@@ -35,13 +35,13 @@
 const stringsTable_t slovenianLanguage =
 {
 .LANGUAGE_NAME 			= "Slovenian", // MaxLen: 16
-.menu					= "Menü", // MaxLen: 16
-.credits				= "Yap“mc“lar", // MaxLen: 16
-.zone					= "Bölge", // MaxLen: 16
+.menu					= "Meni", // MaxLen: 16
+.credits				= "Kreditov", // MaxLen: 16
+.zone					= "Obmocju", // MaxLen: 16
 .rssi					= "RSSI", // MaxLen: 16
-.battery				= "Batarya", // MaxLen: 16
-.contacts				= "Ki–iler", // MaxLen: 16
-.last_heard				= "Son Duyulanlar", // MaxLen: 16
+.battery				= "Baterija", // MaxLen: 16
+.contacts				= "Stiki", // MaxLen: 16
+.last_heard				= "stiki", // MaxLen: 16
 .firmware_info				= "YAZILIM Bilgisi", // MaxLen: 16
 .options				= "Opsiyonlar", // MaxLen: 16
 .display_options			= "Ekran Opsiyon", // MaxLen: 16

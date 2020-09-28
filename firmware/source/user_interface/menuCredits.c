@@ -17,6 +17,7 @@
  */
 #include <user_interface/menuSystem.h>
 #include <user_interface/uiLocalisation.h>
+#include <user_interface/uiUtilities.h>
 
 static void updateScreen(void);
 static void handleEvent(uiEvent_t *ev);
@@ -28,8 +29,8 @@ static const int NUM_LINES_PER_SCREEN = 4;
 #else
 static const int NUM_LINES_PER_SCREEN = 6;
 #endif
-const int NUM_CREDITS = 7;
-static const char *creditTexts[] = {"Roger VK3KYY","Daniel F1RMB","Dzmitry EW1ADG","Colin G4EML","Alex DL4LEX","Kai DG4KLU","Jason VK7ZJA"};
+const int NUM_CREDITS = 8;
+static const char *creditTexts[] = {"Roger VK3KYY","Daniel F1RMB","Dzmitry EW1ADG","Colin G4EML","Alex DL4LEX","Kai DG4KLU","Jason VK7ZJA","Mike NA7Q"};
 static int currentDisplayIndex = 0;
 
 menuStatus_t menuCredits(uiEvent_t *ev, bool isFirstRun)
@@ -85,6 +86,14 @@ static void scrollDownOneLine(void)
 
 static void handleEvent(uiEvent_t *ev)
 {
+	if (ev->events & BUTTON_EVENT)
+	{
+		if (repeatVoicePromptOnSK1(ev))
+		{
+			return;
+		}
+	}
+
 	if (KEYCHECK_SHORTUP(ev->keys, KEY_RED))
 	{
 		menuSystemPopPreviousMenu();

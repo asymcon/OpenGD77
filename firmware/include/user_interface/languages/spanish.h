@@ -174,7 +174,8 @@ const stringsTable_t spanishLanguage =
 .voice_prompt_level_3	= "Voz L3", // Maxlen 16 (with : + audio_prompt)
 .dmr_filter				= "Filtro DMR",// MaxLen: 12 (with ':' + settings: "TG" or "Ct" or "RxG")
 .dmr_cc_filter			= "Filtro CC", // MaxLen: 12 (with ':' + settings: .on or .off)
-.dmr_ts_filter			= "Filtro TS" // MaxLen: 12 (with ':' + settings: .on or .off)
+.dmr_ts_filter			= "Filtro TS", // MaxLen: 12 (with ':' + settings: .on or .off)
+.dtmf_contact_list			= "Lista DTMF", // Maxlen: 16
 };
 /********************************************************************
  *

@@ -33,12 +33,11 @@ menuStatus_t menuZoneList(uiEvent_t *ev, bool isFirstRun)
 	{
 		gMenusEndIndex = codeplugZonesGetCount();
 		gMenusCurrentItemIndex = nonVolatileSettings.currentZone;
-		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
-		{
-			voicePromptsInit();
-			voicePromptsAppendLanguageString(&currentLanguage->zone);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-		}
+
+		voicePromptsInit();
+		voicePromptsAppendLanguageString(&currentLanguage->zone);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+
 		updateScreen(true);
 		return (MENU_STATUS_LIST_TYPE | MENU_STATUS_SUCCESS);
 	}
@@ -77,7 +76,7 @@ static void updateScreen(bool isFirstRun)
 
 		menuDisplayEntry(i, mNum, (char *)nameBuf);
 
-		if ((nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1) && (i == 0))
+		if (i == 0)
 		{
 			if (!isFirstRun)
 			{
@@ -105,9 +104,12 @@ static void handleEvent(uiEvent_t *ev)
 {
 	displayLightTrigger();
 
-	if (BUTTONCHECK_SHORTUP(ev, BUTTON_SK1))
+	if (ev->events & BUTTON_EVENT)
 	{
-		voicePromptsPlay();
+		if (repeatVoicePromptOnSK1(ev))
+		{
+			return;
+		}
 	}
 
 	if (KEYCHECK_PRESS(ev->keys, KEY_DOWN))

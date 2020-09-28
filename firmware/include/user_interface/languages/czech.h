@@ -174,7 +174,8 @@ const stringsTable_t czechLanguage =
 .voice_prompt_level_3	= "Hlas-3", // Maxlen 16 (with : + audio_prompt)
 .dmr_filter				= "DMR Filtr",// MaxLen: 12 (with ':' + settings: "TG" or "Ct" or "RxG")
 .dmr_cc_filter			= "CC Filtr", // MaxLen: 12 (with ':' + settings: .on or .off)
-.dmr_ts_filter			= "TS Filtr" // MaxLen: 12 (with ':' + settings: .on or .off)
+.dmr_ts_filter			= "TS Filtr", // MaxLen: 12 (with ':' + settings: .on or .off)
+.dtmf_contact_list			= "DTMF list", // Maxlen: 16
 };
 /********************************************************************
  *

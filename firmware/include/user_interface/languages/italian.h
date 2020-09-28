@@ -151,6 +151,8 @@ const stringsTable_t italianLanguage =
 .dmr_beep				   = "DMR bip", // MaxLen 16 (with ':' + .star/.stop/.both/.none)
 .start					   = "Inizio", // MaxLen 16 (with ':' + .dmr_beep)
 .both					   = "Ambedue", // MaxLen 16 (with ':' + .dmr_beep)
+.tone					= "RX CSS",
+.display				= "Display",
 .vox_threshold             = "Soglia VOX", // MaxLen 16 (with ':' + .off or 1..30)
 .vox_tail                  = "Coda VOX", // MaxLen 16 (with ':' + .n_a or '0.0s')
 .audio_prompt			   = "Guida",// Maxlen 16 (with ':' + .silent, .normal, .beep or .voice_prompt_level_1)
@@ -172,7 +174,8 @@ const stringsTable_t italianLanguage =
 .voice_prompt_level_3	   = "Voce L3", // Maxlen 16 (with : + audio_prompt)
 .dmr_filter				   = "Filtro DMR",// MaxLen: 12 (with ':' + settings: "TG" or "Ct" or "RxG")
 .dmr_cc_filter			   = "Filtro CC", // MaxLen: 12 (with ':' + settings: .on or .off)
-.dmr_ts_filter			   = "Filtro TS" // MaxLen: 12 (with ':' + settings: .on or .off)
+.dmr_ts_filter			   = "Filtro TS", // MaxLen: 12 (with ':' + settings: .on or .off)
+.dtmf_contact_list			= "Lista DTMF", // Maxlen: 16
 };
 /********************************************************************
  *

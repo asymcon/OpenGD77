@@ -17,6 +17,7 @@
  */
 #include <user_interface/menuSystem.h>
 #include <user_interface/uiLocalisation.h>
+#include <user_interface/uiUtilities.h>
 
 SemaphoreHandle_t battSemaphore = NULL;
 
@@ -301,9 +302,12 @@ static void handleEvent(uiEvent_t *ev)
 {
 	displayLightTrigger();
 
-	if (BUTTONCHECK_SHORTUP(ev, BUTTON_SK1))
+	if (ev->events & BUTTON_EVENT)
 	{
-		voicePromptsPlay();
+		if (repeatVoicePromptOnSK1(ev))
+		{
+			return;
+		}
 	}
 
 	if (KEYCHECK_SHORTUP(ev->keys,KEY_RED))

@@ -174,6 +174,14 @@ static void cpsHandleWriteCommand(void)
 		case 3:
 			if (sector >= 0)
 			{
+#if !defined(PLATFORM_GD77S)
+				// Temporary hack to automatically set Prompt to Level 1
+				// A better solution will be added to the CPS and firmware at a later date.
+				if ((sector * 4096) == VOICE_PROMPTS_FLASH_HEADER_ADDRESS)
+				{
+					nonVolatileSettings.audioPromptMode =	AUDIO_PROMPT_MODE_VOICE_LEVEL_1;
+				}
+#endif
 				taskEXIT_CRITICAL();
 				ok = SPI_Flash_eraseSector(sector * 4096);
 				taskENTER_CRITICAL();

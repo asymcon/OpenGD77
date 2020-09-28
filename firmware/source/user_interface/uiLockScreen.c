@@ -17,6 +17,7 @@
  */
 #include <user_interface/menuSystem.h>
 #include <user_interface/uiLocalisation.h>
+#include <user_interface/uiUtilities.h>
 #include <settings.h>
 #include <ticks.h>
 
@@ -110,43 +111,37 @@ static void redrawScreen(bool update, bool state)
 		ucPrintCentered(48, currentLanguage->to_unlock, FONT_SIZE_1);
 #endif
 
-		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+		voicePromptsInit();
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+
+		if (lockState & LOCK_KEYPAD)
 		{
-			voicePromptsInit();
+			voicePromptsAppendLanguageString(&currentLanguage->keypad);
 			voicePromptsAppendPrompt(PROMPT_SILENCE);
-
-			if (lockState & LOCK_KEYPAD)
-			{
-				voicePromptsAppendLanguageString(&currentLanguage->keypad);
-				voicePromptsAppendPrompt(PROMPT_SILENCE);
-			}
-
-			if (lockState & LOCK_PTT)
-			{
-				voicePromptsAppendLanguageString(&currentLanguage->ptt);
-				voicePromptsAppendPrompt(PROMPT_SILENCE);
-			}
-
-			voicePromptsAppendLanguageString(&currentLanguage->locked);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendLanguageString(&currentLanguage->press_blue_plus_star);
-			voicePromptsAppendLanguageString(&currentLanguage->to_unlock);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsPlay();
 		}
+
+		if (lockState & LOCK_PTT)
+		{
+			voicePromptsAppendLanguageString(&currentLanguage->ptt);
+			voicePromptsAppendPrompt(PROMPT_SILENCE);
+		}
+
+		voicePromptsAppendLanguageString(&currentLanguage->locked);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendLanguageString(&currentLanguage->press_blue_plus_star);
+		voicePromptsAppendLanguageString(&currentLanguage->to_unlock);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsPlay();
 	}
 	else
 	{
 		ucPrintCentered((DISPLAY_SIZE_Y - 16) / 2, currentLanguage->unlocked, FONT_SIZE_3);
 
-		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
-		{
-			voicePromptsInit();
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendLanguageString(&currentLanguage->unlocked);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsPlay();
-		}
+		voicePromptsInit();
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendLanguageString(&currentLanguage->unlocked);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsPlay();
 	}
 
 	ucRender();
@@ -218,6 +213,14 @@ static void updateScreen(bool updateOnly)
 static void handleEvent(uiEvent_t *ev)
 {
 	displayLightTrigger();
+
+	if (ev->events & BUTTON_EVENT)
+	{
+		if (repeatVoicePromptOnSK1(ev))
+		{
+			return;
+		}
+	}
 
 	if (KEYCHECK_DOWN(ev->keys, KEY_STAR) && BUTTONCHECK_DOWN(ev, BUTTON_SK2))
 	{

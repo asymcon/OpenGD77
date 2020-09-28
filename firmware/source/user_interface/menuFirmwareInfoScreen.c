@@ -17,6 +17,7 @@
  */
 #include <user_interface/menuSystem.h>
 #include <user_interface/uiLocalisation.h>
+#include <user_interface/uiUtilities.h>
 
 static void updateScreen(void);
 static void handleEvent(uiEvent_t *ev);
@@ -43,9 +44,9 @@ static void updateScreen(void)
 	char buf[17];
 	char * const *radioModel;
 
-	snprintf(buf, 16, "v1.75.20", GITVERSION);
+	snprintf(buf, 16, "v1.77.20");
 	buf[9] = 0; // git hash id 7 char long;
-	strcat(buf, " ]");
+//	strcat(buf, "]");
 
 	ucClearBuf();
 
@@ -63,23 +64,29 @@ static void updateScreen(void)
 	ucPrintCentered(5, *radioModel, FONT_SIZE_3);
 #endif
 
+
+
+#if defined(PLATFORM_RD5R)
+	ucPrintCentered(14, "Built by NA7Q", FONT_SIZE_2);
+	ucPrintCentered(24,__TIME__, FONT_SIZE_2);
+	ucPrintCentered(32,__DATE__, FONT_SIZE_2);
+	ucPrintCentered(40, buf, FONT_SIZE_2);
+#else
 	ucPrintCentered(24, "Built by NA7Q", FONT_SIZE_2);
 	ucPrintCentered(34,__TIME__, FONT_SIZE_2);
 	ucPrintCentered(44,__DATE__, FONT_SIZE_2);
 	ucPrintCentered(54, buf, FONT_SIZE_2);
 
+#endif
 
-	if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
-	{
-		voicePromptsInit();
-		voicePromptsAppendLanguageString((const char * const *)radioModel);
-		voicePromptsAppendLanguageString(&currentLanguage->built);
-		voicePromptsAppendString(__TIME__);
-		voicePromptsAppendString(__DATE__);
-		voicePromptsAppendLanguageString(&currentLanguage->gitCommit);
-		voicePromptsAppendString(buf);
-		voicePromptsPlay();
-	}
+	voicePromptsInit();
+	voicePromptsAppendLanguageString((const char * const *)radioModel);
+	voicePromptsAppendLanguageString(&currentLanguage->built);
+	voicePromptsAppendString(__TIME__);
+	voicePromptsAppendString(__DATE__);
+	voicePromptsAppendLanguageString(&currentLanguage->gitCommit);
+	voicePromptsAppendString(buf);
+	voicePromptsPlay();
 
 	ucRender();
 	displayLightTrigger();
@@ -93,13 +100,11 @@ static void handleEvent(uiEvent_t *ev)
 
 	if (ev->events & BUTTON_EVENT)
 	{
-		if (BUTTONCHECK_SHORTUP(ev, BUTTON_SK1))
+		if (repeatVoicePromptOnSK1(ev))
 		{
-			voicePromptsPlay();
+			return;
 		}
-		return;
 	}
-
 
 	if (KEYCHECK_SHORTUP(ev->keys, KEY_RED))
 	{

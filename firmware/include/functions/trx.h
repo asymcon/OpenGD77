@@ -122,4 +122,7 @@ void trxUpdateTsForCurrentChannelWithSpecifiedContact(struct_codeplugContact_t *
 uint32_t trxDCSEncode(uint16_t dcsCode);
 void setMicGainFM(uint8_t gain);
 
+void enableTransmission(void);
+void disableTransmission(void);
+
 #endif /* _FW_TRX_H_ */

@@ -43,16 +43,13 @@ menuStatus_t menuOptions(uiEvent_t *ev, bool isFirstRun)
 		// Store original settings, used on cancel event.
 		memcpy(&originalNonVolatileSettings, &nonVolatileSettings, sizeof(settingsStruct_t));
 
-		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
-		{
-			voicePromptsInit();
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendLanguageString(&currentLanguage->options);
-			voicePromptsAppendLanguageString(&currentLanguage->menu);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-		}
+		voicePromptsInit();
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendLanguageString(&currentLanguage->options);
+		voicePromptsAppendLanguageString(&currentLanguage->menu);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
 
 		updateScreen(true);
 		return (MENU_STATUS_LIST_TYPE | MENU_STATUS_SUCCESS);
@@ -94,6 +91,7 @@ static void updateScreen(bool isFirstRun)
 				leftSide = (char * const *)&currentLanguage->hotspot_mode;
 #if defined(PLATFORM_RD5R)
 				rightSideConst = (char * const *)&currentLanguage->n_a;
+				
 #else
 				{
 					const char *hsTypes[] = {"MMDVM", "BlueDV" };
@@ -173,7 +171,7 @@ static void updateScreen(bool isFirstRun)
 
 		snprintf(buf, bufferLen, "%s:%s", *leftSide, (rightSideVar[0] ? rightSideVar : *rightSideConst));
 
-		if ((i == 0) && (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1))
+		if (i == 0)
 		{
 			if (!isFirstRun)
 			{
@@ -201,7 +199,16 @@ static void updateScreen(bool isFirstRun)
 static void handleEvent(uiEvent_t *ev)
 {
 	bool isDirty = false;
+
 	displayLightTrigger();
+
+	if (ev->events & BUTTON_EVENT)
+	{
+		if (repeatVoicePromptOnSK1(ev))
+		{
+			return;
+		}
+	}
 
 	if (KEYCHECK_PRESS(ev->keys,KEY_DOWN))
 	{

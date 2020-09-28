@@ -50,8 +50,13 @@ const uint32_t RSSI_UPDATE_COUNTER_RELOAD = 100;
 uint32_t menuUtilityReceivedPcId 	= 0;// No current Private call awaiting acceptance
 uint32_t menuUtilityTgBeforePcMode 	= 0;// No TG saved, prior to a Private call being accepted.
 
+#if defined(PLATFORM_GD77) || defined(PLATFORM_GD77S)
 const char *POWER_LEVELS[]={"0.1","0.3","0.5","1","5","10","25","50","75","100","250","500","750","1","2","3","4","5","5"};
 const char *POWER_LEVEL_UNITS[]={ "mW","mW","mW","mW","mW","mW","mW","mW","mW","mW","mW","mW","mW","W","W","W","W","W","W++"};
+#else
+const char *POWER_LEVELS[]         = { "50","250","500","750","1","2","3","4","5","5"};
+const char *POWER_LEVEL_UNITS[]    = { "mW","mW","mW","mW","W","W","W","W","W","W++"};
+#endif
 const char *DMR_DESTINATION_FILTER_LEVELS[]   = {"TG","Ct","RxG"};
 const char *ANALOG_FILTER_LEVELS[] = {"CTCSS|DCS"};
 
@@ -87,7 +92,7 @@ const int SCAN_SKIP_CHANNEL_INTERVAL = 1;		//This is actually just an implicit f
 
 voicePromptItem_t voicePromptSequenceState = PROMPT_SEQUENCE_CHANNEL_NAME_OR_VFO_FREQ;
 struct_codeplugZone_t currentZone;
-static bool voicePromptWasPlaying;
+//static bool voicePromptWasPlaying;
 bool inhibitInitialVoicePrompt =
 #if defined(PLATFORM_GD77S)
 		true;
@@ -1594,7 +1599,7 @@ void decreasePowerLevel(void)
 	announceItem(PROMPT_SEQUENCE_POWER, PROMPT_THRESHOLD_3);
 }
 
-void announceRadioMode(void)
+ANNOUNCE_STATIC void announceRadioMode(bool voicePromptWasPlaying)
 {
 	if (!voicePromptWasPlaying)
 	{
@@ -1603,7 +1608,7 @@ void announceRadioMode(void)
 	voicePromptsAppendString( (trxGetMode() == RADIO_MODE_DIGITAL) ? "DMR" : "FM");
 }
 
-void announceZoneName(void)
+ANNOUNCE_STATIC void announceZoneName(bool voicePromptWasPlaying)
 {
 	if (!voicePromptWasPlaying)
 	{
@@ -1612,7 +1617,7 @@ void announceZoneName(void)
 	voicePromptsAppendString(currentZone.name);
 }
 
-void announceContactNameTgOrPc(void)
+ANNOUNCE_STATIC void announceContactNameTgOrPc(void)
 {
 	if (nonVolatileSettings.overrideTG == 0)
 	{
@@ -1636,10 +1641,11 @@ void announceContactNameTgOrPc(void)
 	}
 }
 
-void announcePowerLevel(void)
+ANNOUNCE_STATIC void announcePowerLevel(void)
 {
 	voicePromptsAppendString((char *)POWER_LEVELS[nonVolatileSettings.txPowerLevel]);
 	switch(nonVolatileSettings.txPowerLevel)
+#if defined(PLATFORM_GD77) || defined(PLATFORM_GD77S)
 	{
 		case 0:// <1mW
 		case 1:// 1mW
@@ -1657,39 +1663,55 @@ void announcePowerLevel(void)
 		case 11://1W
 			voicePromptsAppendPrompt(PROMPT_WATT);
 			break;
+#else
+	{
+		case 0://50mW
+		case 1://250mW
+		case 2://500mW
+		case 3://750mW
+			voicePromptsAppendPrompt(PROMPT_MILLIWATTS);
+			break;
+		case 4://1W
+			voicePromptsAppendPrompt(PROMPT_WATT);
+			break;
+#endif
 		default:
 			voicePromptsAppendPrompt(PROMPT_WATTS);
 			break;
 	}
 
 	// When in 5W++ mode
+#if defined(PLATFORM_GD77) || defined(PLATFORM_GD77S)
 	if (nonVolatileSettings.txPowerLevel == 18) //must match max power levels at top
+#else
+	if (nonVolatileSettings.txPowerLevel == 9)
+#endif
 	{
 		voicePromptsAppendPrompt(PROMPT_PLUS);
 		voicePromptsAppendPrompt(PROMPT_PLUS);
 	}
 }
 
-void announceBatteryPercentage(void)
+ANNOUNCE_STATIC void announceBatteryPercentage(void)
 {
 	voicePromptsAppendLanguageString(&currentLanguage->battery);
 	voicePromptsAppendInteger(getBatteryPercentage());
 	voicePromptsAppendPrompt(PROMPT_PERCENT);
 }
 
-void announceTS(void)
+ANNOUNCE_STATIC void announceTS(void)
 {
 	voicePromptsAppendPrompt(PROMPT_TIMESLOT);
 	voicePromptsAppendInteger(trxGetDMRTimeSlot() + 1);
 }
 
-void announceCC(void)
+ANNOUNCE_STATIC void announceCC(void)
 {
 	voicePromptsAppendLanguageString(&currentLanguage->colour_code);
 	voicePromptsAppendInteger(trxGetDMRColourCode());
 }
 
-void announceChannelName(void)
+ANNOUNCE_STATIC void announceChannelName(bool voicePromptWasPlaying)
 {
 	char voiceBuf[17];
 	codeplugUtilConvertBufToString(channelScreenChannelData.name, voiceBuf, 16);
@@ -1716,7 +1738,7 @@ static void removeUnnecessaryZerosFromVoicePrompts(char *str)
 	}
 }
 
-void announceFrequency(void)
+ANNOUNCE_STATIC void announceFrequency(void)
 {
 	char buffer[17];
 
@@ -1741,11 +1763,71 @@ void announceFrequency(void)
 	}
 }
 
-void announceVFOAndFrequency(void)
+ANNOUNCE_STATIC void announceVFOAndFrequency(void)
 {
 	voicePromptsAppendPrompt(PROMPT_VFO);
 	voicePromptsAppendString((nonVolatileSettings.currentVFONumber == 0) ? "A" : "B");
 	announceFrequency();
+}
+
+ANNOUNCE_STATIC void announceSquelchLevel(bool voicePromptWasPlaying)
+{
+	static const int BUFFER_LEN = 8;
+	char buf[BUFFER_LEN];
+
+	if (!voicePromptWasPlaying)
+	{
+		voicePromptsAppendLanguageString(&currentLanguage->squelch);
+	}
+
+	snprintf(buf, BUFFER_LEN, "%d%%", 5 * (((currentChannelData->sql == 0) ? nonVolatileSettings.squelchDefaults[trxCurrentBand[TRX_RX_FREQ_BAND]] : currentChannelData->sql)-1));
+	voicePromptsAppendString(buf);
+}
+
+void announceChar(char ch)
+{
+	if (nonVolatileSettings.audioPromptMode < AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+	{
+		return;
+	}
+
+	char buf[2] = {ch, 0};
+
+	voicePromptsInit();
+	voicePromptsAppendString(buf);
+	voicePromptsPlay();
+}
+
+void announceCSSCode(uint16_t code, CSSTypes_t cssType, bool inverted)
+{
+	if (nonVolatileSettings.audioPromptMode < AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+	{
+		return;
+	}
+
+	static const int BUFFER_LEN = 17;
+	char buf[BUFFER_LEN];
+
+	voicePromptsInit();
+
+	switch (cssType)
+	{
+		case CSS_NONE:
+			voicePromptsAppendLanguageString(&currentLanguage->none);
+			break;
+		case CSS_CTCSS:
+			snprintf(buf, BUFFER_LEN, "%d.%d", code / 10 , code % 10);
+			voicePromptsAppendString(buf);
+			voicePromptsAppendPrompt(PROMPT_HERTZ);
+			break;
+		case CSS_DCS:
+		case CSS_DCS_INVERTED:
+			snprintf(buf, BUFFER_LEN, "D%03o%c", code & 0777, inverted ? 'I' : 'N');
+			voicePromptsAppendString(buf);
+			break;
+	}
+
+	voicePromptsPlay();
 }
 
 void playNextSettingSequence(void)
@@ -1766,7 +1848,7 @@ void announceItem(voicePromptItem_t item, audioPromptThreshold_t immediateAnnoun
 	{
 		return;
 	}
-	voicePromptWasPlaying = voicePromptIsActive;
+	bool voicePromptWasPlaying = voicePromptsIsPlaying();
 
 	voicePromptSequenceState = item;
 
@@ -1777,7 +1859,7 @@ void announceItem(voicePromptItem_t item, audioPromptThreshold_t immediateAnnoun
 		case PROMPT_SEQUENCE_CHANNEL_NAME_OR_VFO_FREQ:
 			if (menuSystemGetCurrentMenuNumber() == UI_CHANNEL_MODE)
 			{
-				announceChannelName();
+				announceChannelName(voicePromptWasPlaying);
 			}
 			else
 			{
@@ -1785,10 +1867,10 @@ void announceItem(voicePromptItem_t item, audioPromptThreshold_t immediateAnnoun
 			}
 			break;
 		case PROMPT_SEQUENCE_ZONE:
-			announceZoneName();
+			announceZoneName(voicePromptWasPlaying);
 			break;
 		case PROMPT_SEQUENCE_MODE:
-			announceRadioMode();
+			announceRadioMode(voicePromptWasPlaying);
 			break;
 		case PROMPT_SEQUENCE_CONTACT_TG_OR_PC:
 			announceContactNameTgOrPc();
@@ -1805,6 +1887,9 @@ void announceItem(voicePromptItem_t item, audioPromptThreshold_t immediateAnnoun
 		case PROMPT_SEQUENCE_BATTERY:
 			announceBatteryPercentage();
 			break;
+		case PROMPT_SQUENCE_SQUELCH:
+			announceSquelchLevel(voicePromptWasPlaying);
+			break;
 		default:
 			break;
 	}
@@ -1816,6 +1901,8 @@ void announceItem(voicePromptItem_t item, audioPromptThreshold_t immediateAnnoun
 		voicePromptsPlay();
 	}
 }
+
+
 
 void buildTgOrPCDisplayName(char *nameBuf, int bufferLen)
 {
@@ -1876,49 +1963,21 @@ void acceptPrivateCall(int id)
 	announceItem(PROMPT_SEQUENCE_CONTACT_TG_OR_PC,PROMPT_THRESHOLD_3);
 }
 
-void SpeakChar(char ch)
+bool repeatVoicePromptOnSK1(uiEvent_t *ev)
 {
-	if (nonVolatileSettings.audioPromptMode < AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+	if (BUTTONCHECK_SHORTUP(ev, BUTTON_SK1))
 	{
-		return;
+		if (!voicePromptsIsPlaying())
+		{
+			voicePromptsPlay();
+		}
+		else
+		{
+			voicePromptsTerminate();
+		}
+
+		return true;
 	}
 
-	char buf[2];
-	buf[0] = ch;
-	buf[1] = '\0';
-
-	voicePromptsInit();
-	voicePromptsAppendString(buf);
-	voicePromptsPlay();
-}
-
-void SpeakCSSCode(uint16_t code, CSSTypes_t cssType, bool inverted)
-{
-	if (nonVolatileSettings.audioPromptMode < AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
-	{
-		return;
-	}
-
-	static const int BUFFER_LEN = 17;
-	char buf[BUFFER_LEN];
-
-	switch (cssType)
-	{
-		case CSS_NONE:
-			snprintf(buf, BUFFER_LEN, "%s", currentLanguage->none);
-			break;
-		case CSS_CTCSS:
-			snprintf(buf, BUFFER_LEN, "%d.%dHz", code/10 , code%10);
-			break;
-		case CSS_DCS:
-		case CSS_DCS_INVERTED:
-			snprintf(buf, BUFFER_LEN, "D%03o%c", code&0777, inverted ? 'I' : 'N');
-		break;
-		default:
-		return;
-	}
-
-	voicePromptsInit();
-	voicePromptsAppendString(buf);
-	voicePromptsPlay();
+	return false;
 }

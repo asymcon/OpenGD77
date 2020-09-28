@@ -40,7 +40,7 @@ void codecInit(void)
 {
 	// Need to prevent the DMR side of the code initialising the codec and sound buffers when the voice prompts are playing
 	// This could be done in every location this function is called, but it saves space if the check is done inside the function.
-	if (voicePromptIsActive)
+	if (voicePromptsIsPlaying())
 	{
 		return;
 	}

@@ -65,6 +65,7 @@ const menuItemsList_t * menusData[] = {	NULL,// splash
 										NULL,// Quick menu - VFO
 										NULL,// Lock screen
 										NULL,// Contact List
+										NULL,// DTMF Contact List
 										NULL,// Contact Quick List (SK2+#)
 										NULL,// Contact List Quick Menu
 										NULL,// Contact Details
@@ -95,7 +96,8 @@ const menuFunctionPointer_t menuFunctions[] = { uiSplashScreen,
 												uiCPS,
 												uiChannelModeQuickMenu,
 												uiVFOModeQuickMenu,
-                                                menuLockScreen,
+												menuLockScreen,
+												menuContactList,
 												menuContactList,
 												menuContactList,
 												menuContactListSubMenu,
@@ -313,14 +315,16 @@ const menuItemsList_t menuDataMainMenu =
 	.items = mainMenuItems
 };
 
-const menuItemNewData_t contractMenuItems[] = {
+const menuItemNewData_t contractMenuItems[] =
+{
 	{ 14, MENU_CONTACT_NEW },
 	{ 15, MENU_CONTACT_LIST },
+	{ 139, MENU_DTMF_CONTACT_LIST },
 };
 
 const menuItemsList_t menuDataContact =
 {
-	.numItems = 2,
+	.numItems = 3,
 	.items = contractMenuItems
 };
 
@@ -333,13 +337,13 @@ void menuDisplayTitle(const char *title)
 void menuDisplayEntry(int loopOffset, int focusedItem,const char *entryText)
 {
 #if defined(PLATFORM_RD5R)
-const int MENU_START_Y = 25;
-const int HIGHLIGHT_START_Y = 24;
-const int MENU_SPACING_Y = FONT_SIZE_3_HEIGHT+2;
+	const int MENU_START_Y = 25;
+	const int HIGHLIGHT_START_Y = 24;
+	const int MENU_SPACING_Y = FONT_SIZE_3_HEIGHT+2;
 #else
-const int MENU_START_Y = 32;
-const int HIGHLIGHT_START_Y = 32;
-const int MENU_SPACING_Y = FONT_SIZE_3_HEIGHT;
+	const int MENU_START_Y = 32;
+	const int HIGHLIGHT_START_Y = 32;
+	const int MENU_SPACING_Y = FONT_SIZE_3_HEIGHT;
 #endif
 
 	bool focused = (focusedItem == gMenusCurrentItemIndex);
@@ -349,7 +353,7 @@ const int MENU_SPACING_Y = FONT_SIZE_3_HEIGHT;
 		ucFillRoundRect(0, HIGHLIGHT_START_Y +  (loopOffset * MENU_SPACING_Y), DISPLAY_SIZE_X, MENU_SPACING_Y, 2, true);
 	}
 
-	ucPrintCore(0,  MENU_START_Y +  (loopOffset * MENU_SPACING_Y), entryText, FONT_SIZE_3, TEXT_ALIGN_LEFT, focused);
+	ucPrintCore(0, MENU_START_Y + (loopOffset * MENU_SPACING_Y), entryText, FONT_SIZE_3, TEXT_ALIGN_LEFT, focused);
 
 }
 
@@ -447,7 +451,7 @@ void moveCursorLeftInString(char *str, int *pos, bool delete)
 	if (*pos > 0)
 	{
 		*pos -=1;
-		SpeakChar(str[*pos]); // speak the new char or the char about to be backspaced out.
+		announceChar(str[*pos]); // speak the new char or the char about to be backspaced out.
 
 		if (delete)
 		{
@@ -480,7 +484,7 @@ void moveCursorRightInString(char *str, int *pos, int max, bool insert)
 		if (*pos < max-1)
 		{
 			*pos += 1;
-			SpeakChar(str[*pos]); // speak the new char or the char about to be backspaced out.
+			announceChar(str[*pos]); // speak the new char or the char about to be backspaced out.
 		}
 	}
 }

@@ -390,15 +390,12 @@ menuStatus_t menuChannelDetails(uiEvent_t *ev, bool isFirstRun)
 			namePos = 5;
 		}
 
-		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
-		{
-			voicePromptsInit();
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendLanguageString(&currentLanguage->channel_details);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-			voicePromptsAppendPrompt(PROMPT_SILENCE);
-		}
+		voicePromptsInit();
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendLanguageString(&currentLanguage->channel_details);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
+		voicePromptsAppendPrompt(PROMPT_SILENCE);
 
 		updateScreen(true, true);
 		updateCursor(true);
@@ -410,8 +407,11 @@ menuStatus_t menuChannelDetails(uiEvent_t *ev, bool isFirstRun)
 		menuChannelDetailsExitCode = MENU_STATUS_SUCCESS;
 
 		updateCursor(false);
+
 		if (ev->hasEvent)
+		{
 			handleEvent(ev);
+		}
 	}
 	return menuChannelDetailsExitCode;
 }
@@ -566,9 +566,9 @@ static void updateScreen(bool isFirstRun, bool allowedToSpeakUpdate)
 					}
 					break;
 				case CH_DETAILS_FREQ_STEP:
-						leftSide = (char * const *)&currentLanguage->stepFreq;
-						tmpVal = VFO_FREQ_STEP_TABLE[(tmpChannel.VFOflag5 >> 4)] / 100;
-						snprintf(rightSideVar, bufferLen, "%d.%02dkHz",  tmpVal, VFO_FREQ_STEP_TABLE[(tmpChannel.VFOflag5 >> 4)] - (tmpVal * 100));
+					leftSide = (char * const *)&currentLanguage->stepFreq;
+					tmpVal = VFO_FREQ_STEP_TABLE[(tmpChannel.VFOflag5 >> 4)] / 100;
+					snprintf(rightSideVar, bufferLen, "%d.%02dkHz",  tmpVal, VFO_FREQ_STEP_TABLE[(tmpChannel.VFOflag5 >> 4)] - (tmpVal * 100));
 					break;
 				case CH_DETAILS_TOT:// TOT
 					leftSide = (char * const *)&currentLanguage->tot;
@@ -618,7 +618,7 @@ static void updateScreen(bool isFirstRun, bool allowedToSpeakUpdate)
 				strcpy(buf, rightSideVar);
 			}
 
-			if ((i == 0) && (allowedToSpeakUpdate &&(nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)))
+			if ((i == 0) && (allowedToSpeakUpdate && (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)))
 			{
 				if (!isFirstRun)
 				{
@@ -681,15 +681,11 @@ static void handleEvent(uiEvent_t *ev)
 		gMenusCurrentItemIndex = ev->function;
 	}
 
-	if (BUTTONCHECK_SHORTUP(ev, BUTTON_SK1))
+	if (ev->events & BUTTON_EVENT)
 	{
-		if (!voicePromptIsActive)
+		if (repeatVoicePromptOnSK1(ev))
 		{
-			voicePromptsPlay();
-		}
-		else
-		{
-			voicePromptsTerminate();
+			return;
 		}
 	}
 
@@ -789,7 +785,7 @@ static void handleEvent(uiEvent_t *ev)
 				{
 					cssIncrementFromEvent(ev, &tmpChannel.rxTone, &RxCSSIndex, &RxCSSType);
 					trxSetRxCSS(tmpChannel.rxTone);
-					SpeakCSSCode(tmpChannel.rxTone, RxCSSType, (tmpChannel.rxTone & CODEPLUG_DCS_INVERTED_MASK));
+					announceCSSCode(tmpChannel.rxTone, RxCSSType, (tmpChannel.rxTone & CODEPLUG_DCS_INVERTED_MASK));
 					allowedToSpeakUpdate = false;
 				}
 				break;
@@ -797,7 +793,7 @@ static void handleEvent(uiEvent_t *ev)
 				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 				{
 					cssIncrementFromEvent(ev, &tmpChannel.txTone, &TxCSSIndex, &TxCSSType);
-					SpeakCSSCode(tmpChannel.txTone, TxCSSType, (tmpChannel.txTone & CODEPLUG_DCS_INVERTED_MASK));
+					announceCSSCode(tmpChannel.txTone, TxCSSType, (tmpChannel.txTone & CODEPLUG_DCS_INVERTED_MASK));
 					allowedToSpeakUpdate = false;
 				}
 				break;
@@ -890,7 +886,7 @@ static void handleEvent(uiEvent_t *ev)
 				{
 					cssDecrementFromEvent(ev, &tmpChannel.rxTone, &RxCSSIndex, &RxCSSType);
 					trxSetRxCSS(tmpChannel.rxTone);
-					SpeakCSSCode(tmpChannel.rxTone, RxCSSType, (tmpChannel.rxTone & CODEPLUG_DCS_INVERTED_MASK));
+					announceCSSCode(tmpChannel.rxTone, RxCSSType, (tmpChannel.rxTone & CODEPLUG_DCS_INVERTED_MASK));
 					allowedToSpeakUpdate = false;
 				}
 				break;
@@ -898,7 +894,7 @@ static void handleEvent(uiEvent_t *ev)
 				if (tmpChannel.chMode == RADIO_MODE_ANALOG)
 				{
 					cssDecrementFromEvent(ev, &tmpChannel.txTone, &TxCSSIndex, &TxCSSType);
-					SpeakCSSCode(tmpChannel.txTone, TxCSSType, (tmpChannel.txTone & CODEPLUG_DCS_INVERTED_MASK));
+					announceCSSCode(tmpChannel.txTone, TxCSSType, (tmpChannel.txTone & CODEPLUG_DCS_INVERTED_MASK));
 					allowedToSpeakUpdate = false;
 				}
 				break;
@@ -985,7 +981,7 @@ static void handleEvent(uiEvent_t *ev)
 		{
 			channelName[namePos] = ev->keys.key;
 			updateCursor(true);
-			SpeakChar(ev->keys.key);
+			announceChar(ev->keys.key);
 			updateScreen(false, false);
 		}
 		if ((ev->keys.event == KEY_MOD_PRESS) && (namePos < 16))
@@ -996,7 +992,7 @@ static void handleEvent(uiEvent_t *ev)
 				namePos++;
 			}
 			updateCursor(true);
-			SpeakChar(ev->keys.key);
+			announceChar(ev->keys.key);
 			updateScreen(false, false);
 		}
 	}

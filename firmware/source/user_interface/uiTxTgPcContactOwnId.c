@@ -124,31 +124,28 @@ static void updateScreen(bool inputModeHasChanged)
 
 	if (inputModeHasChanged)
 	{
-		if (nonVolatileSettings.audioPromptMode >= AUDIO_PROMPT_MODE_VOICE_LEVEL_1)
+		voicePromptsInit();
+		switch(gMenusCurrentItemIndex)
 		{
-			voicePromptsInit();
-			switch(gMenusCurrentItemIndex)
+		case ENTRY_TG:
+			voicePromptsAppendLanguageString(&currentLanguage->tg_entry);
+			break;
+		case ENTRY_PC:
+			voicePromptsAppendLanguageString(&currentLanguage->pc_entry);
+			break;
+		case ENTRY_SELECT_CONTACT:
+			voicePromptsAppendPrompt(PROMPT_CONTACT);
 			{
-				case ENTRY_TG:
-					voicePromptsAppendLanguageString(&currentLanguage->tg_entry);
-					break;
-				case ENTRY_PC:
-					voicePromptsAppendLanguageString(&currentLanguage->pc_entry);
-					break;
-				case ENTRY_SELECT_CONTACT:
-					voicePromptsAppendPrompt(PROMPT_CONTACT);
-					{
-						char buf[17];
-						codeplugUtilConvertBufToString(contact.name, buf, 16);
-						voicePromptsAppendString(buf);
-					}
-					break;
-				case ENTRY_USER_DMR_ID:
-					voicePromptsAppendString("ID");
-					break;
+				char buf[17];
+				codeplugUtilConvertBufToString(contact.name, buf, 16);
+				voicePromptsAppendString(buf);
 			}
-			voicePromptsPlay();
+			break;
+		case ENTRY_USER_DMR_ID:
+			voicePromptsAppendString("ID");
+			break;
 		}
+		voicePromptsPlay();
 	}
 
 	if (pcIdx == 0)
@@ -166,37 +163,20 @@ static void updateScreen(bool inputModeHasChanged)
 	ucRender();
 }
 
-static int getNextContact(int curidx, int dir, struct_codeplugContact_t *contact)
+// curIdx: CODEPLUG_CONTACTS_MIN .. CODEPLUG_CONTACTS_MAX, if equal to 0 it means the previous index was unknown
+static int getNextContact(int curIdx, bool next, struct_codeplugContact_t *ct)
 {
-	int idx = curidx;
+	int idx = (curIdx != 0) ? (curIdx - 1) : (next ? (CODEPLUG_CONTACTS_MAX - 1) : 0);
+	int startIdx = idx;
 
 	do {
-		idx += dir;
-		if (idx >= 1024)
-		{
-			if (curidx == 0)
-			{
-				idx = 0;
-				break;
-			}
-			idx = 1;
-		}
-		else
-		{
-			if (idx ==0)
-			{
-				if (curidx == 0)
-				{
-					idx = 0;
-					break;
-				}
-				idx = 1024;
-			}
-		}
-		codeplugContactGetDataForIndex(idx, contact);
-	} while ((curidx != idx) && ((*contact).name[0] == 0xff));
+		idx = ((next ? (idx + 1) : (idx + (CODEPLUG_CONTACTS_MAX - 1)))) % CODEPLUG_CONTACTS_MAX;
 
-	return idx;
+		codeplugContactGetDataForIndex((idx + 1), ct);
+
+	} while ((startIdx != idx) && ((*ct).name[0] == 0xff)); // will stops after one turn, maximum.
+
+	return (((curIdx == 0) && ((*ct).name[0] == 0xff)) ? curIdx : (idx + 1));
 }
 
 static void announceContactName(void)
@@ -222,7 +202,7 @@ static void handleEvent(uiEvent_t *ev)
 	{
 		if (BUTTONCHECK_SHORTUP(ev, BUTTON_SK1))
 		{
-			if (!voicePromptIsActive)
+			if (!voicePromptsIsPlaying())
 			{
 				voicePromptsInit();
 				switch(gMenusCurrentItemIndex)
@@ -334,7 +314,7 @@ static void handleEvent(uiEvent_t *ev)
 						{
 							menuNumericalExitStatus &= ~MENU_STATUS_INPUT_TYPE;
 
-							pcIdx = getNextContact(0, 1, &contact);
+							pcIdx = getNextContact(0, true, &contact);
 
 							if (pcIdx != 0)
 							{
@@ -355,14 +335,14 @@ static void handleEvent(uiEvent_t *ev)
 
 		if (KEYCHECK_PRESS(ev->keys, KEY_DOWN))
 		{
-			idx = getNextContact(pcIdx, 1, &contact);
+			idx = getNextContact(pcIdx, true, &contact);
 			announceContactName();
 		}
 		else
 		{
 			if (KEYCHECK_PRESS(ev->keys, KEY_UP))
 			{
-				idx = getNextContact(pcIdx, -1, &contact);
+				idx = getNextContact(pcIdx, false, &contact);
 				announceContactName();
 			}
 		}
