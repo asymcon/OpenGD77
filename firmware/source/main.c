@@ -166,9 +166,8 @@ void mainTask(void *data)
 	int function_event;
 	uiEvent_t ev = { .buttons = 0, .keys = NO_KEYCODE, .rotary = 0, .function = 0, .events = NO_EVENT, .hasEvent = false, .time = 0 };
 	bool keyOrButtonChanged = false;
-#if !defined(PLATFORM_GD77S)
 	bool wasRestoringDefaultsettings = false;
-#endif
+
 	USB_DeviceApplicationInit();
 
 	// Init I2C
@@ -183,17 +182,13 @@ void mainTask(void *data)
 
 	if (buttons & BUTTON_SK2)
 	{
-#if !defined(PLATFORM_GD77S)
 		wasRestoringDefaultsettings = true;
-#endif
 		settingsRestoreDefaultSettings();
 		settingsLoadSettings();
 	}
 	else
 	{
-#if !defined(PLATFORM_GD77S)
 		wasRestoringDefaultsettings = settingsLoadSettings();
-#endif
 	}
 
 	displayInit(nonVolatileSettings.displayInverseVideo);
@@ -279,13 +274,11 @@ void mainTask(void *data)
 	codeplugInitContactsCache();
 	dmrIDCacheInit();
 	voicePromptsCacheInit();
-#if !defined(PLATFORM_GD77S)
-	// Note GD77S has always has voice prompt level 3 enabled by default so no need to do this check on that radio
+
 	if (wasRestoringDefaultsettings)
 	{
 		enableVoicePromptsIfLoaded();
 	}
-#endif
 
 	// Should be initialized before the splash screen, as we don't want melodies when VOX is enabled
 	voxSetParameters(nonVolatileSettings.voxThreshold, nonVolatileSettings.voxTailUnits);

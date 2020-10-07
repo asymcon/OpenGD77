@@ -27,7 +27,7 @@
 #include <ticks.h>
 
 static const int STORAGE_BASE_ADDRESS 		= 0x6000;
-static const int STORAGE_MAGIC_NUMBER 		= 0x6025;
+static const int STORAGE_MAGIC_NUMBER 		= 0x6026;
 
 // Bit patterns for DMR Beep
 const uint8_t BEEP_TX_NONE  = 0x00;
@@ -260,7 +260,11 @@ void enableVoicePromptsIfLoaded(void)
 {
 	if (voicePromptDataIsLoaded)
 	{
+#if defined(PLATFORM_GD77S)
+		nonVolatileSettings.audioPromptMode =	AUDIO_PROMPT_MODE_VOICE_LEVEL_3;
+#else
 		nonVolatileSettings.audioPromptMode =	AUDIO_PROMPT_MODE_VOICE_LEVEL_1;
+#endif
 		settingsDirty = true;
 		settingsSaveSettings(false);
 	}
