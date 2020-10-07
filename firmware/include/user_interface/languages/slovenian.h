@@ -172,7 +172,9 @@ const stringsTable_t slovenianLanguage =
 .voice_prompt_level_3	= "Glas L3", // Maxlen 16 (with : + audio_prompt)
 .dmr_filter				= "DMR filter",// MaxLen: 12 (with ':' + settings: "TG" or "Ct" or "RxG")
 .dmr_cc_filter			= "CC filter", // MaxLen: 12 (with ':' + settings: .on or .off)
-.dmr_ts_filter			= "TS filter" // MaxLen: 12 (with ':' + settings: .on or .off)
+.dmr_ts_filter			= "TS filter", // MaxLen: 12 (with ':' + settings: .on or .off)
+.channel_power				= "Ch Power", //Displayed as "Ch Power:" + .channel_power_from_master or "Ch Power:"+ power text e.g. "Power:500mW" . Max total length 16
+.channel_power_from_master	= "Master",// Displayed if per-channel power is not enabled  the .channel_power
 };
 /********************************************************************
  *

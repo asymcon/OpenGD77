@@ -178,6 +178,8 @@ typedef struct stringsTable
    const char *dmr_cc_filter;
    const char *dmr_ts_filter;
    const char *dtmf_contact_list;// Menu number 18
+   const char *channel_power;// "Ch Power" for the Channel details screen
+   const char *channel_power_from_master;// "Master" for the power setting on the Channel details screen
    const char *tone;
    const char *display;
 } stringsTable_t;

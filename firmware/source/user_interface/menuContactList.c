@@ -39,8 +39,14 @@ static bool dtmfKeying = false;
 static uint8_t dtmfBuffer[17U]; // 16 tones + final time-length
 static uint8_t dtmfpoLen = 0U;
 static uint8_t dtmfpoPtr = 0U;
-static const uint32_t dtmfDuration = (10U * 500U); // 500ms per tone
+static const uint32_t dtmfDuration = (10U * 75U); // 75ms per tone
+static const uint32_t dtmfPauseDuration = (10U * 50U); // 50ms per pause
+static const uint32_t pretimeDuration = (10U * 200U); // 200ms pretime
 static uint32_t dtmfNextPeriod = 0;
+static uint32_t dtmfPausePeriod = 0;
+static uint32_t pretimePeriod;
+static bool dtmfPaused = false;
+static bool pretimeOver = false;
 
 enum MENU_CONTACT_LIST_STATE
 {
@@ -528,9 +534,11 @@ menuStatus_t menuContactListSubMenu(uiEvent_t *ev, bool isFirstRun)
 
 			enableTransmission();
 
-			trxSelectVoiceChannel(AT1846_VOICE_CHANNEL_DTMF);
+			trxSelectVoiceChannel(AT1846_VOICE_CHANNEL_NONE);
 			enableAudioAmp(AUDIO_AMP_MODE_RF);
 			GPIO_PinWrite(GPIO_RX_audio_mux, Pin_RX_audio_mux, 1);
+			pretimePeriod = PITCounter + pretimeDuration;
+			pretimeOver = false;
 		}
 
 		// DTMF has been TXed, restore DIGITAL/ANALOG
@@ -618,21 +626,39 @@ static void dtmfProcess(void)
 		return;
 	}
 
-	if (PITCounter > dtmfNextPeriod)
+	if (!pretimeOver)
 	{
-		dtmfNextPeriod = PITCounter + dtmfDuration;
-
-		if (dtmfBuffer[dtmfpoPtr] != 0xFFU)
+		if (PITCounter > pretimePeriod)
 		{
-			trxSetDTMF(dtmfBuffer[dtmfpoPtr]);
+			pretimeOver = true;
 		}
-
-		dtmfpoPtr++;
-
-		if (dtmfpoPtr > dtmfpoLen)
+	}
+	else
+	{
+		if (PITCounter > dtmfNextPeriod)
 		{
-			dtmfpoPtr = 0U;
-			dtmfpoLen = 0U;
+			dtmfPausePeriod = PITCounter + dtmfDuration;
+			dtmfNextPeriod = dtmfPausePeriod + dtmfPauseDuration;
+			dtmfPaused = false;
+
+			if (dtmfBuffer[dtmfpoPtr] != 0xFFU)
+			{
+				trxSetDTMF(dtmfBuffer[dtmfpoPtr]);
+				trxSelectVoiceChannel(AT1846_VOICE_CHANNEL_DTMF);
+			}
+
+			dtmfpoPtr++;
+
+			if (dtmfpoPtr > dtmfpoLen)
+			{
+				dtmfpoPtr = 0U;
+				dtmfpoLen = 0U;
+			}
+		}
+		else if (( PITCounter > dtmfPausePeriod) && !dtmfPaused )
+		{
+			trxSelectVoiceChannel(AT1846_VOICE_CHANNEL_NONE);
+			dtmfPaused = true;
 		}
 	}
 }

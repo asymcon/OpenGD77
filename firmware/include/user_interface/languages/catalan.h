@@ -176,6 +176,8 @@ const stringsTable_t catalanLanguage=
 .dmr_cc_filter			= "CC Filter", // MaxLen: 12 (with ':' + settings: .on or .off)
 .dmr_ts_filter			= "TS Filter", // MaxLen: 12 (with ':' + settings: .on or .off)
 .dtmf_contact_list			= "DTMF list", // Maxlen: 16
+.channel_power				= "Ch Power", //Displayed as "Ch Power:" + .channel_power_from_master or "Ch Power:"+ power text e.g. "Power:500mW" . Max total length 16
+.channel_power_from_master	= "Master",// Displayed if per-channel power is not enabled  the .channel_power
 };
 /********************************************************************
  *
