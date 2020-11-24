@@ -44,7 +44,7 @@ static void updateScreen(void)
 	char buf[17];
 	char * const *radioModel;
 
-	snprintf(buf, 16, "v1.77.20");
+	snprintf(buf, 16, "v1.78.20");
 	buf[9] = 0; // git hash id 7 char long;
 //	strcat(buf, "]");
 

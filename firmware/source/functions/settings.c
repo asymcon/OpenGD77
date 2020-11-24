@@ -27,7 +27,7 @@
 #include <ticks.h>
 
 static const int STORAGE_BASE_ADDRESS 		= 0x6000;
-static const int STORAGE_MAGIC_NUMBER 		= 0x474E;
+static const int STORAGE_MAGIC_NUMBER 		= 0x4748;
 
 // Bit patterns for DMR Beep
 const uint8_t BEEP_TX_NONE  = 0x00;
