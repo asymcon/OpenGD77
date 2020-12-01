@@ -77,7 +77,7 @@ static void updateScreen(void)
 		ucPrintCore(0, 3, buffer, FONT_SIZE_2, TEXT_ALIGN_RIGHT, false);
 
 		// Display "No Signal" when signal is lost
-		if (dBm <= -135)
+		if (dBm <= -150)
 		{
 		sprintf(buffer, "No Signal");
 		}
